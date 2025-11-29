@@ -1,7 +1,6 @@
 // src/components/CanvasView.jsx
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, Filter, BarChart3, Edit2, ZoomIn, ZoomOut, Maximize2, Hand, MousePointer, Github, Linkedin, Mail, Coffee, Heart, MessageCircle, Brain } from 'lucide-react';
-import SeedDetailPanel from './SeedDetailPanel';
 import Node from './Node';
 import AnalyticsPanel from './AnalyticsPanel';
 import LensManager from './LensManager';
