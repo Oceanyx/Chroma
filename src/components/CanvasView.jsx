@@ -58,10 +58,6 @@ export default function CanvasView({purposeData}) {
     return saved || 'dark';
   });
   const [showPreferences, setShowPreferences] = useState(false);
-  const [nodeDetailMode, setNodeDetailMode] = useState(() => {
-    return localStorage.getItem('chroma-node-detail-mode') || 'sidebar';
-  });
-  const [showNodeModal, setShowNodeModal] = useState(false);
   // Save theme preference when it changes
   useEffect(() => {
     localStorage.setItem('chroma-theme', theme);
@@ -306,9 +302,6 @@ const handleDragEnd = async (e, node) => {
   if (node.type === 'content' && tool === 'select') {
     setSelectedNodeId(node.id);
     // If preference is set to modal, open in modal mode
-    if (nodeDetailMode === 'modal') {
-      setShowNodeModal(true);
-    }
   }
 };
 
@@ -1516,21 +1509,6 @@ const filteredNodes = nodes.filter(node => {
         </div>
       </div>
 
-      {selectedNode && nodeDetailMode === 'sidebar' && !showNodeModal && (
-        <SeedDetailPanel
-          key={selectedNode.id}
-          node={selectedNode}
-          onClose={() => setSelectedNodeId(null)}
-          onUpdate={handleUpdateNode}
-          onDelete={handleDeleteNode}
-          lenses={lenses}
-          edges={edges}
-          nodes={nodes}
-          onDeleteEdge={handleDeleteEdge}
-          onCreateEdge={handleCreateEdge}
-          onUpdateEdge={handleUpdateEdge}
-        />
-      )}
 
       {showAnalytics && (
         <AnalyticsPanel
