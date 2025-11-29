@@ -324,7 +324,7 @@ const handleDragEnd = async (e, node) => {
   };
 
 const handleUpdateNode = useCallback(async (nodeId, newData) => {
-  await dbUpdateNode(nodeId, { data: newData });
+  await dbUpdateNode(nodeId, newData);
   
   setNodes(currentNodes => {
     const updatedNodes = currentNodes.map(node => 
@@ -1453,7 +1453,7 @@ const filteredNodes = nodes.filter(node => {
               })}
             </svg>
 
-            {console.log('Filtered nodes:', filteredNodes.map(n => ({ id: n.id, type: n.type, position: n.position })))}
+            {/* {console.log('Filtered nodes:', filteredNodes.map(n => ({ id: n.id, type: n.type, position: n.position })))} */}
             {filteredNodes.map(node => {
               // Calculate opacity and glow based on domain filters
               let opacity = 1;
