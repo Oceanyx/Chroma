@@ -84,30 +84,6 @@ export const connectionTypes = [
 
 export const seedNodes = [
   {
-    id: "d-private",
-    type: "domain",
-    position: { x: -200, y: -200 },  
-    width: 600,
-    height: 600,
-    data: { label: "Private", domainId: "private" }
-  },
-  {
-    id: "d-public",
-    type: "domain",
-    position: { x: 500, y: -200 }, 
-    width: 600,
-    height: 600,
-    data: { label: "Public", domainId: "public" }
-  },
-  {
-    id: "d-abstract",
-    type: "domain",
-    position: { x: 150, y: 300 }, 
-    width: 600,
-    height: 600,
-    data: { label: "Abstract", domainId: "abstract" }
-  },
-  {
     id: "n-1",
     type: "content",
     position: { x: 420, y: 340 },

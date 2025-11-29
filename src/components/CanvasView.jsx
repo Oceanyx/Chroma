@@ -1,7 +1,7 @@
 // src/components/CanvasView.jsx
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Plus, Filter, BarChart3, Edit2, ZoomIn, ZoomOut, Maximize2, Hand, MousePointer, Github, Linkedin, Mail, Coffee } from 'lucide-react';
-import NodeDetailPanel from './NodeDetailPanel';
+import { Plus, Filter, BarChart3, Edit2, ZoomIn, ZoomOut, Maximize2, Hand, MousePointer, Github, Linkedin, Mail, Coffee, Heart, MessageCircle, Brain } from 'lucide-react';
+import SeedDetailPanel from './SeedDetailPanel';
 import Node from './Node';
 import AnalyticsPanel from './AnalyticsPanel';
 import LensManager from './LensManager';
@@ -9,7 +9,7 @@ import LeftSidebar from './LeftSidebar';
 import PurposeModal from './PurposeModal';
 import LegendModal from './LegendModal';
 import PreferencesModal from './PreferencesModal';
-import { domainColors, defaultLenses, modes, predefinedMetaTags, connectionTypes} from '../seedData';
+import { domainColors, defaultLenses, connectionTypes } from '../seedData';
 import { 
   db, 
   initializeDB, 
@@ -32,7 +32,6 @@ export default function CanvasView({purposeData}) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [mapTitle, setMapTitle] = useState(purposeData?.title || 'Untitled Map');
-  const [focusedDomain, setFocusedDomain] = useState(null);
   const [showLegend, setShowLegend] = useState(false);
   const [showPurposeModal, setShowPurposeModal] = useState(false);
   const [nodes, setNodes] = useState([]);
@@ -43,12 +42,12 @@ export default function CanvasView({purposeData}) {
   const [hoveredNode, setHoveredNode] = useState(null);
   const [activeLensIds, setActiveLensIds] = useState([]);
   const [activeFilters, setActiveFilters] = useState({ domains: [], lenses: [] });
+  const [activeDomainFilters, setActiveDomainFilters] = useState([]);
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLensManager, setShowLensManager] = useState(false);
-  const [viewMode, setViewMode] = useState('all');
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 400, y: 200 });
   const [isPanning, setIsPanning] = useState(false);
@@ -72,24 +71,6 @@ export default function CanvasView({purposeData}) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
-
-  // Shared recent meta-tags (persisted to localStorage)
-  const [recentMetaTags, setRecentMetaTags] = useState(() => {
-    try {
-      const raw = localStorage.getItem('recentMetaTags');
-      if (raw) return JSON.parse(raw);
-    } catch (e) { /* ignore */ }
-    // a small default slice to help first-time users
-    return predefinedMetaTags.slice(0, 6);
-  });
-
-  const addRecentMetaTag = useCallback((tag) => {
-    setRecentMetaTags(prev => {
-      const next = [tag, ...prev.filter(t => t !== tag)].slice(0, 30);
-      try { localStorage.setItem('recentMetaTags', JSON.stringify(next)); } catch (e) {}
-      return next;
-    });
-  }, []);
 
   // Initialize database and load data
   useEffect(() => {
@@ -288,37 +269,6 @@ useEffect(() => {
     return `linear-gradient(135deg, ${c1}20 0%, ${c2}20 50%, ${c3}20 100%)`;
   }, []);
 
-  const getDomainBounds = useCallback((domainNode) => {
-    const radius = domainNode.width / 2;
-    const centerX = domainNode.position.x + radius;
-    const centerY = domainNode.position.y + radius;
-    
-    return {
-      centerX,
-      centerY,
-      radius,
-      left: domainNode.position.x,
-      top: domainNode.position.y,
-      right: domainNode.position.x + domainNode.width,
-      bottom: domainNode.position.y + domainNode.width
-    };
-  }, []);
-
-  const getDomainsAtPosition = useCallback((pos) => {
-    const domainNodes = nodes.filter(n => n.type === 'domain');
-    const hits = [];
-    for (const d of domainNodes) {
-      const bounds = getDomainBounds(d);
-      const dx = pos.x - bounds.centerX;
-      const dy = pos.y - bounds.centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance <= bounds.radius) {
-        hits.push(d.data.domainId);
-      }
-    }
-    return hits;
-  }, [nodes, getDomainBounds]);
 
   const handleDragStart = (e, node) => {
     if (node.type === 'content' && tool === 'select') {
@@ -332,21 +282,18 @@ useEffect(() => {
     }
   };
 
-  const handleDragEnd = async (e, node) => {
+const handleDragEnd = async (e, node) => {
   if (node.type === 'content' && canvasRef.current) {
     const canvasRect = canvasRef.current.getBoundingClientRect();
     const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
     const newY = (e.clientY - canvasRect.top - dragOffset.y - pan.y) / zoom;
     
     const newPos = { x: newX, y: newY };
-    const domainIds = getDomainsAtPosition(newPos);
 
-    await dbUpdateNode(node.id, { position: newPos, data: { ...node.data, domainIds } });
+    await dbUpdateNode(node.id, { position: newPos });
     
     const updatedNodes = nodes.map(n => 
-      n.id === node.id
-        ? { ...n, position: newPos, data: { ...n.data, domainIds } }
-        : n
+      n.id === node.id ? { ...n, position: newPos } : n
     );
     
     setNodes(updatedNodes);
@@ -543,86 +490,80 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
     }
   };
 
-  const handleCreateNode = async () => {
-    const centerX = (window.innerWidth / 2 - pan.x) / zoom;
-    const centerY = (window.innerHeight / 2 - pan.y - 60) / zoom;
-    
-    const newNode = {
-      type: 'content',
-      position: { x: centerX, y: centerY },
-      data: {
-        title: 'New Node',
-        perceivedPattern: '',
-        interpretation: '',
-        activeQuestions: '',
-        feltSense: '',
-        agencyOrientation: 'curious',
-        metaTags: [],
-        patternType: 'trigger',
-        beforeState: '',
-        afterState: '',
-        refinesNodeId: null,
-        lensIds: [lenses[0]?.id || 'empathy'],
-        domainIds: [],
-        mode: 'field-first',
-        notes: '',
-        createdAt: new Date().toISOString()
-      }
-    };
-    
-    const id = await addNode(newNode);
-    const nodeWithId = { ...newNode, id };
-    const updatedNodes = [...nodes, nodeWithId];
-    setNodes(updatedNodes);
-    setSelectedNode(nodeWithId);
-    saveToHistory(updatedNodes, edges);
+const handleCreateNode = async () => {
+  const centerX = (window.innerWidth / 2 - pan.x) / zoom;
+  const centerY = (window.innerHeight / 2 - pan.y - 60) / zoom;
+  
+  const newNode = {
+    type: 'content',
+    position: { x: centerX, y: centerY },
+    data: {
+      title: 'New Seed',
+      rawCapture: '',
+      timestamp: new Date().toISOString(),
+      
+      // Optional - filled in later
+      domains: {
+        private: null,
+        public: null,
+        abstract: null
+      },
+      
+      lensIds: [],
+      domainIds: [],
+      notes: ''
+    }
   };
   
+  const id = await addNode(newNode);
+  const nodeWithId = { ...newNode, id };
+  const updatedNodes = [...nodes, nodeWithId];
+  setNodes(updatedNodes);
+  setSelectedNodeId(nodeWithId.id);
+  saveToHistory(updatedNodes, edges);
+};
+const getNodeCenter = (node) => {
+  const width = node.type === 'content' ? 210 : 100;
+  const height = node.type === 'content' ? 80 : 40;
+  return {
+    x: node.position.x + width / 2,
+    y: node.position.y + height / 2
+  };
+};
 
-  const getNodeCenter = (node) => {
-    const width = node.type === 'content' ? 210 : 100;
-    const height = node.type === 'content' ? 80 : 40;
+const toggleFilter = (type, value) => {
+  setActiveFilters(prev => {
+    const current = prev[type];
     return {
-      x: node.position.x + width / 2,
-      y: node.position.y + height / 2
+      ...prev,
+      [type]: current.includes(value) 
+        ? current.filter(v => v !== value)
+        : [...current, value]
     };
-  };
-
-  const toggleFilter = (type, value) => {
-    setActiveFilters(prev => {
-      const current = prev[type];
-      return {
-        ...prev,
-        [type]: current.includes(value) 
-          ? current.filter(v => v !== value)
-          : [...current, value]
-      };
-    });
-  };
-
-  const filteredNodes = nodes.filter(node => {
-    if (node.type !== 'content') return true;
-    
-    if (viewMode !== 'all' && !node.data.domainIds?.includes(viewMode)) {
-      return false;
-    }
-
-    if (activeFilters.domains.length > 0) {
-      const hasMatchingDomain = activeFilters.domains.some(d => 
-        node.data.domainIds?.includes(d)
-      );
-      if (!hasMatchingDomain) return false;
-    }
-
-    if (activeFilters.lenses && activeFilters.lenses.length > 0) {
-      const hasMatchingLens = activeFilters.lenses.some(l => 
-        node.data.lensIds?.includes(l)
-      );
-      if (!hasMatchingLens) return false;
-    }
-
-    return true;
   });
+};
+
+const filteredNodes = nodes.filter(node => {
+  if (node.type !== 'content') return true;
+
+  // Filter by active filter panel domains (from dropdown)
+  if (activeFilters.domains.length > 0) {
+    const hasMatchingDomain = activeFilters.domains.some(d => 
+      node.data.domainIds?.includes(d)
+    );
+    if (!hasMatchingDomain) return false;
+  }
+
+  // Filter by lenses
+  if (activeFilters.lenses && activeFilters.lenses.length > 0) {
+    const hasMatchingLens = activeFilters.lenses.some(l => 
+      node.data.lensIds?.includes(l)
+    );
+    if (!hasMatchingLens) return false;
+  }
+
+  return true;
+});
 
   // Pan controls - works with hand tool OR space key
   const handleCanvasMouseDown = (e) => {
@@ -662,46 +603,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
     setPan({ x: 400, y: 200 });
   };
 
-  const handleDomainFocus = (domainId) => {
-    if (focusedDomain === domainId) {
-      // Exit focus mode
-      setFocusedDomain(null);
-      handleResetView();
-      return;
-    }
-
-    // Find the domain node
-    const domainNode = nodes.find(n => n.type === 'domain' && n.data.domainId === domainId);
-    if (!domainNode) return;
-
-    // Calculate center of domain
-    const bounds = getDomainBounds(domainNode);
-    const targetZoom = 1.2;
-    
-    // Center the domain circle on screen
-    const viewportCenterX = window.innerWidth / 2;
-    const viewportCenterY = (window.innerHeight - 60) / 2 + 60; // -60 for top nav
-    
-    const targetPanX = viewportCenterX - bounds.centerX * targetZoom;
-    const targetPanY = viewportCenterY - bounds.centerY * targetZoom;
-
-    // Animate to focus
-    setZoom(targetZoom);
-    setPan({ x: targetPanX, y: targetPanY });
-    setFocusedDomain(domainId);
-  };
-
-  // Exit focus mode with ESC key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && focusedDomain) {
-        setFocusedDomain(null);
-        handleResetView();
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [focusedDomain]);
   // Get cursor based on tool
   const getCursor = () => {
     if (tool === 'hand') return isPanning ? 'grabbing' : 'grab';
@@ -831,85 +732,68 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
     )}
   </div>
 
-  {/* Right: Domains + Lenses + Tools */}
+  {/* Right: Lenses + Tools */}
   <div style={{ 
     display: 'flex', 
     gap: '12px', 
     alignItems: 'center',
     justifyContent: 'flex-end'
   }}>
-    {/* Domains with sliding indicator */}
-<div style={{
-  position: 'relative',
-  display: 'flex',
-  gap: '4px',
-  padding: '4px',
-  background: 'rgba(15, 23, 36, 0.6)',
-  borderRadius: '10px',
-  border: '1px solid rgba(255, 255, 255, 0.08)'
-}}>
-  {/* Sliding indicator background */}
-  {(() => {
-    const activeMode = focusedDomain || viewMode;
-    const modes = ['all', 'private', 'public', 'abstract'];
-    const activeIndex = modes.indexOf(activeMode);
-    
-    return (
-      <div style={{
-        position: 'absolute',
-        top: '4px',
-        left: `${4 + activeIndex * 76}px`,
-        width: '72px',
-        height: 'calc(100% - 8px)',
-        background: activeMode === 'all' ? '#6C63FF' :
-                   activeMode === 'private' ? domainColors.private :
-                   activeMode === 'public' ? domainColors.public :
-                   domainColors.abstract,
-        borderRadius: '7px',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        zIndex: 0
-      }} />
-    );
-  })()}
-  
-  {['all', 'private', 'public', 'abstract'].map((mode) => (
-    <button
-      key={mode}
-      onClick={() => {
-        setViewMode(mode);
-        if (mode !== 'all') {
-          handleDomainFocus(mode);
-        } else {
-          setFocusedDomain(null);
-          handleResetView();
-        }
-      }}
-      style={{
-        position: 'relative',
-        zIndex: 1,
-        width: '72px',
-        padding: '8px 0',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '7px',
-        color: (focusedDomain === mode || (viewMode === mode && !focusedDomain)) ? '#fff' : '#94A3B8',
-        cursor: 'pointer',
-        fontSize: '13px',
-        fontWeight: focusedDomain === mode || (viewMode === mode && !focusedDomain) ? 600 : 500,
-        textTransform: 'capitalize',
-        transition: 'color 0.2s',
-        whiteSpace: 'nowrap',
-        textAlign: 'center'
-      }}
-    >
-      {mode === 'all' ? 'All' : mode}
-    </button>
-  ))}
-</div>
-
-    {/* Divider */}
-    <div style={{ width: '1px', height: '32px', background: 'rgba(255, 255, 255, 0.1)' }} />
-
+    {/* Domain Filters */}
+    <div style={{
+      display: 'flex',
+      gap: '6px',
+      padding: '4px',
+      background: 'rgba(15, 23, 36, 0.6)',
+      borderRadius: '10px',
+      border: '1px solid rgba(255, 255, 255, 0.08)'
+    }}>
+      {['private', 'public', 'abstract'].map((domain) => {
+        const Icon = domain === 'private' ? Heart : domain === 'public' ? MessageCircle : Brain;
+        const isActive = activeDomainFilters.includes(domain);
+        
+        return (
+          <button
+            key={domain}
+            onClick={() => {
+              setActiveDomainFilters(prev => 
+                prev.includes(domain) 
+                  ? prev.filter(d => d !== domain)
+                  : [...prev, domain]
+              );
+            }}
+            style={{
+              padding: '8px 12px',
+              background: isActive ? domainColors[domain] : 'transparent',
+              border: 'none',
+              borderRadius: '7px',
+              color: isActive ? '#000' : '#94A3B8',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: isActive ? 600 : 500,
+              textTransform: 'capitalize',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.target.style.background = 'rgba(148, 163, 184, 0.1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.target.style.background = 'transparent';
+              }
+            }}
+          >
+            <Icon size={14} />
+            {domain}
+          </button>
+        );
+      })}
+    </div>
     {/* Lens Selector */}
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
       <button
@@ -927,14 +811,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
           fontSize: '13px',
           fontWeight: 700,
           transition: 'all 0.2s'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = 'rgba(236, 72, 153, 0.15)';
-          e.target.style.borderColor = 'rgba(236, 72, 153, 0.5)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = 'rgba(15, 23, 36, 0.6)';
-          e.target.style.borderColor = 'rgba(236, 72, 153, 0.3)';
         }}
       >
         <span style={{
@@ -965,14 +841,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
           transition: 'all 0.2s',
           boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)'
         }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.05)';
-          e.target.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 2px 8px rgba(236, 72, 153, 0.4)';
-        }}
         title="Manage Lenses"
       >
         <Edit2 size={16} />
@@ -999,16 +867,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
         fontWeight: 500,
         transition: 'all 0.2s'
       }}
-      onMouseEnter={(e) => {
-        if (!showFilters) {
-          e.target.style.background = 'rgba(108, 99, 255, 0.2)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!showFilters) {
-          e.target.style.background = 'rgba(15, 23, 36, 0.6)';
-        }
-      }}
     >
       <Filter size={16} /> Filter
     </button>
@@ -1028,12 +886,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
         fontSize: '13px',
         fontWeight: 500,
         transition: 'all 0.2s'
-      }}
-      onMouseEnter={(e) => {
-        e.target.style.background = 'rgba(79, 159, 255, 0.2)';
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.background = 'rgba(15, 23, 36, 0.6)';
       }}
     >
       <BarChart3 size={16} /> Analytics
@@ -1056,16 +908,8 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
         transition: 'all 0.2s',
         boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
       }}
-      onMouseEnter={(e) => {
-        e.target.style.transform = 'translateY(-1px)';
-        e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.transform = 'translateY(0)';
-        e.target.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
-      }}
-    >
-      <Plus size={16} /> New Node
+    >s
+      <Plus size={16} /> New Seed
     </button>
   </div>
 </div>
@@ -1555,13 +1399,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
                 
                 // Fade edges in focus mode
                 let edgeOpacity = isHighlighted ? 0.8 : 0.6;
-                if (focusedDomain) {
-                  const sourceInFocus = source.type === 'content' && source.data.domainIds?.includes(focusedDomain);
-                  const targetInFocus = target.type === 'content' && target.data.domainIds?.includes(focusedDomain);
-                  if (!sourceInFocus && !targetInFocus) {
-                    edgeOpacity = 0.1;
-                  }
-                }
 
                 // Calculate curved path for contradicts
                 const midX = (start.x + end.x) / 2;
@@ -1618,13 +1455,33 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
 
             {console.log('Filtered nodes:', filteredNodes.map(n => ({ id: n.id, type: n.type, position: n.position })))}
             {filteredNodes.map(node => {
-              // Calculate opacity based on focus mode
+              // Calculate opacity and glow based on domain filters
               let opacity = 1;
-              if (focusedDomain) {
-                if (node.type === 'domain') {
-                  opacity = node.data.domainId === focusedDomain ? 1 : 0.15;
-                } else if (node.type === 'content') {
-                  opacity = node.data.domainIds?.includes(focusedDomain) ? 1 : 0.2;
+              let glowEffect = 'none';
+              
+              if (node.type === 'content' && activeDomainFilters.length > 0) {
+                const hasMatchingDomain = activeDomainFilters.some(domain => 
+                  node.data.domainIds?.includes(domain)
+                );
+                
+                if (hasMatchingDomain) {
+                  // Highlighted seed - full opacity with glow
+                  opacity = 1;
+                  const glowColors = activeDomainFilters
+                    .filter(d => node.data.domainIds?.includes(d))
+                    .map(d => domainColors[d]);
+                  
+                  // Create multi-color glow if multiple domains match
+                  if (glowColors.length === 1) {
+                    glowEffect = `drop-shadow(0 0 12px ${glowColors[0]}80) drop-shadow(0 0 24px ${glowColors[0]}40)`;
+                  } else if (glowColors.length > 1) {
+                    glowEffect = `drop-shadow(0 0 12px ${glowColors[0]}80) drop-shadow(0 0 12px ${glowColors[1]}80)`;
+                  } else {
+                    glowEffect = 'none';
+                  }
+                } else {
+                  // Non-matching seed - dimmed
+                  opacity = 0.25;
                 }
               }
 
@@ -1637,7 +1494,8 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
                     top: node.position.y,
                     pointerEvents: tool === 'hand' ? 'none' : 'auto',
                     opacity: opacity,
-                    transition: 'opacity 0.3s ease'
+                    filter: glowEffect !== 'none' ? glowEffect : 'none',
+                    transition: 'all 0.3s ease'
                   }}
                 >
                 <Node
@@ -1659,8 +1517,8 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
         </div>
       </div>
 
-      {selectedNode && nodeDetailMode === 'sidebar' && (
-        <NodeDetailPanel
+      {selectedNode && nodeDetailMode === 'sidebar' && !showNodeModal && (
+        <SeedDetailPanel
           key={selectedNode.id}
           node={selectedNode}
           onClose={() => setSelectedNodeId(null)}
@@ -1672,8 +1530,6 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
           onDeleteEdge={handleDeleteEdge}
           onCreateEdge={handleCreateEdge}
           onUpdateEdge={handleUpdateEdge}
-          recentMetaTags={recentMetaTags}
-          onAddRecentMetaTag={addRecentMetaTag}
         />
       )}
 

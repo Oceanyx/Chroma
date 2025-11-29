@@ -1,7 +1,7 @@
 // src/components/LegendModal.jsx
 import React from 'react';
 import { X, Map, Circle, Tag, Zap } from 'lucide-react';
-import { domainColors, connectionTypes, modes, agencyStates } from '../seedData';
+import { domainColors, connectionTypes} from '../seedData';
 
 export default function LegendModal({ lenses, onClose }) {
   return (
