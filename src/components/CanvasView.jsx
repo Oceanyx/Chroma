@@ -1,19 +1,37 @@
 // src/components/CanvasView.jsx
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Plus, Filter, BarChart3, Edit2, ZoomIn, ZoomOut, Maximize2, Hand, MousePointer, Github, Linkedin, Mail, Coffee, Heart, MessageCircle, Brain } from 'lucide-react';
-import Node from './Node';
-import AnalyticsPanel from './AnalyticsPanel';
-import LensManager from './LensManager';
-import LeftSidebar from './LeftSidebar';
-import PurposeModal from './PurposeModal';
-import LegendModal from './LegendModal';
-import PreferencesModal from './PreferencesModal';
-import { domainColors, defaultLenses, connectionTypes } from '../seedData';
-import { 
-  db, 
-  initializeDB, 
-  getAllNodes, 
-  getAllEdges, 
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import {
+  Plus,
+  Filter,
+  BarChart3,
+  Edit2,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Hand,
+  MousePointer,
+  Github,
+  Linkedin,
+  Mail,
+  Coffee,
+  Heart,
+  MessageCircle,
+  Brain,
+} from "lucide-react";
+import Node from "./Node";
+import AnalyticsPanel from "./AnalyticsPanel";
+import LensManager from "./LensManager";
+import LeftSidebar from "./LeftSidebar";
+import PurposeModal from "./PurposeModal";
+import LegendModal from "./LegendModal";
+import ExpandingNodeModal from "./ExpandingNodeModal";
+import PreferencesModal from "./PreferencesModal";
+import { domainColors, defaultLenses, connectionTypes } from "../seedData";
+import {
+  db,
+  initializeDB,
+  getAllNodes,
+  getAllEdges,
   getAllLenses,
   addNode,
   updateNode as dbUpdateNode,
@@ -21,16 +39,18 @@ import {
   addEdge,
   updateEdge,
   deleteEdge as dbDeleteEdge,
-  updateLenses as dbUpdateLenses
-} from '../lib/db';
+  updateLenses as dbUpdateLenses,
+} from "../lib/db";
 
-export default function CanvasView({purposeData}) {
+export default function CanvasView({ purposeData }) {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isUndoRedoing, setIsUndoRedoing] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [mapTitle, setMapTitle] = useState(purposeData?.title || 'Untitled Map');
+  const [editedTitle, setEditedTitle] = useState("");
+  const [mapTitle, setMapTitle] = useState(
+    purposeData?.title || "Untitled Map"
+  );
   const [showLegend, setShowLegend] = useState(false);
   const [showPurposeModal, setShowPurposeModal] = useState(false);
   const [nodes, setNodes] = useState([]);
@@ -40,7 +60,10 @@ export default function CanvasView({purposeData}) {
   const [showLensDropdown, setShowLensDropdown] = useState(false);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [activeLensIds, setActiveLensIds] = useState([]);
-  const [activeFilters, setActiveFilters] = useState({ domains: [], lenses: [] });
+  const [activeFilters, setActiveFilters] = useState({
+    domains: [],
+    lenses: [],
+  });
   const [activeDomainFilters, setActiveDomainFilters] = useState([]);
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -51,150 +74,231 @@ export default function CanvasView({purposeData}) {
   const [pan, setPan] = useState({ x: 400, y: 200 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [tool, setTool] = useState('select'); // 'select' or 'hand'
+  const [tool, setTool] = useState("select"); // 'select' or 'hand'
   const [theme, setTheme] = useState(() => {
     // Check localStorage for saved preference
-    const saved = localStorage.getItem('chroma-theme');
-    return saved || 'dark';
+    const saved = localStorage.getItem("chroma-theme");
+    return saved || "dark";
   });
   const [showPreferences, setShowPreferences] = useState(false);
   // Save theme preference when it changes
   useEffect(() => {
-    localStorage.setItem('chroma-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem("chroma-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+  const ambientCanvasRef = useRef(null);
+  const selectedNode = selectedNodeId
+    ? nodes.find((n) => n.id === selectedNodeId)
+    : null;
 
   // Initialize database and load data
   useEffect(() => {
-  async function loadData() {
-    await initializeDB();
-    const loadedNodes = await getAllNodes();
-    const loadedEdges = await getAllEdges();
-    const loadedLenses = await getAllLenses();
-    
-    /*console.log('Loaded nodes:', loadedNodes);
+    async function loadData() {
+      await initializeDB();
+      const loadedNodes = await getAllNodes();
+      const loadedEdges = await getAllEdges();
+      const loadedLenses = await getAllLenses();
+
+      /*console.log('Loaded nodes:', loadedNodes);
     console.log('Loaded edges:', loadedEdges);
     console.log('Loaded lenses:', loadedLenses);
     */
-    
-    setNodes(loadedNodes);
-    setEdges(loadedEdges);
-    if (loadedLenses.length > 0) {
-      setLenses(loadedLenses);
+
+      setNodes(loadedNodes);
+      setEdges(loadedEdges);
+      if (loadedLenses.length > 0) {
+        setLenses(loadedLenses);
+      }
     }
-  }
-  loadData();
-}, []);
-const saveToHistory = useCallback((newNodes, newEdges) => {
-  if (isUndoRedoing) return;
-  
-  const snapshot = {
-    nodes: JSON.parse(JSON.stringify(newNodes)),
-    edges: JSON.parse(JSON.stringify(newEdges)),
-    timestamp: Date.now()
-  };
-  
-  setHistoryIndex(currentIndex => {
-    setHistory(currentHistory => {
-      const newHistory = currentHistory.slice(0, currentIndex + 1);
-      newHistory.push(snapshot);
-      return newHistory.slice(-50);
-    });
-    return currentIndex + 1;
-  });
-}, [isUndoRedoing]);
+    loadData();
+  }, []);
+
+  // // Ambient particle animation
+  // useEffect(() => {
+  //   const canvas = document.getElementById('ambient-canvas');
+  //   if (!canvas) return;
+
+  //   const ctx = canvas.getContext('2d');
+  //   canvas.width = window.innerWidth;
+  //   canvas.height = window.innerHeight;
+
+  //   const particles = [];
+  //   const particleCount = 40;
+
+  //   class Particle {
+  //     constructor() {
+  //       this.x = Math.random() * canvas.width;
+  //       this.y = Math.random() * canvas.height;
+  //       this.vx = (Math.random() - 0.5) * 0.2;
+  //       this.vy = (Math.random() - 0.5) * 0.2;
+  //       this.size = Math.random() * 2 + 0.5;
+  //       this.opacity = Math.random() * 0.25 + 0.05;
+  //     }
+
+  //     update() {
+  //       this.x += this.vx;
+  //       this.y += this.vy;
+
+  //       if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+  //       if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+  //     }
+
+  //     draw() {
+  //       ctx.beginPath();
+  //       ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+  //       ctx.fillStyle = `rgba(167, 139, 250, ${this.opacity})`;
+  //       ctx.fill();
+  //     }
+  //   }
+
+  //   for (let i = 0; i < particleCount; i++) {
+  //     particles.push(new Particle());
+  //   }
+
+  //   let animationId;
+  //   const animate = () => {
+  //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  //     particles.forEach(particle => {
+  //       particle.update();
+  //       particle.draw();
+  //     });
+
+  //     animationId = requestAnimationFrame(animate);
+  //   };
+
+  //   animate();
+
+  //   const handleResize = () => {
+  //     canvas.width = window.innerWidth;
+  //     canvas.height = window.innerHeight;
+  //   };
+
+  //   window.addEventListener('resize', handleResize);
+
+  //   return () => {
+  //     cancelAnimationFrame(animationId);
+  //     window.removeEventListener('resize', handleResize);
+  //   };
+  // }, []);
+
+  const saveToHistory = useCallback(
+    (newNodes, newEdges) => {
+      if (isUndoRedoing) return;
+
+      const snapshot = {
+        nodes: JSON.parse(JSON.stringify(newNodes)),
+        edges: JSON.parse(JSON.stringify(newEdges)),
+        timestamp: Date.now(),
+      };
+
+      setHistoryIndex((currentIndex) => {
+        setHistory((currentHistory) => {
+          const newHistory = currentHistory.slice(0, currentIndex + 1);
+          newHistory.push(snapshot);
+          return newHistory.slice(-50);
+        });
+        return currentIndex + 1;
+      });
+    },
+    [isUndoRedoing]
+  );
 
   const handleUndo = useCallback(async () => {
-  setHistoryIndex(currentIndex => {
-    if (currentIndex <= 0) return currentIndex;
-    
-    setIsUndoRedoing(true);
-    
-    setHistory(currentHistory => {
-      const prevState = currentHistory[currentIndex - 1];
-      
-      // Update database and UI
-      (async () => {
-        await db.nodes.clear();
-        await db.edges.clear();
-        await db.nodes.bulkAdd(prevState.nodes);
-        await db.edges.bulkAdd(prevState.edges);
-        
-        setNodes(prevState.nodes);
-        setEdges(prevState.edges);
-        
-        setTimeout(() => setIsUndoRedoing(false), 100);
-      })();
-      
-      return currentHistory;
+    setHistoryIndex((currentIndex) => {
+      if (currentIndex <= 0) return currentIndex;
+
+      setIsUndoRedoing(true);
+
+      setHistory((currentHistory) => {
+        const prevState = currentHistory[currentIndex - 1];
+
+        // Update database and UI
+        (async () => {
+          await db.nodes.clear();
+          await db.edges.clear();
+          await db.nodes.bulkAdd(prevState.nodes);
+          await db.edges.bulkAdd(prevState.edges);
+
+          setNodes(prevState.nodes);
+          setEdges(prevState.edges);
+
+          setTimeout(() => setIsUndoRedoing(false), 100);
+        })();
+
+        return currentHistory;
+      });
+
+      return currentIndex - 1;
     });
-    
-    return currentIndex - 1;
-  });
-}, []);
+  }, []);
 
-const handleRedo = useCallback(async () => {
-  // Check if redo is available first
-  if (historyIndex >= history.length - 1) {
-    console.log('No redo available', historyIndex, history.length);
-    return;
-  }
-  
-  setIsUndoRedoing(true);
-  const nextState = history[historyIndex + 1];
-  console.log('Redoing to state:', historyIndex + 1);
-  
-  // Update database
-  await db.nodes.clear();
-  await db.edges.clear();
-  await db.nodes.bulkAdd(nextState.nodes);
-  await db.edges.bulkAdd(nextState.edges);
-  
-  // Update UI state
-  setNodes(nextState.nodes);
-  setEdges(nextState.edges);
-  setHistoryIndex(historyIndex + 1);
-  
-  setTimeout(() => setIsUndoRedoing(false), 100);
-}, [history, historyIndex]);
-
-useEffect(() => {
-  const handleKeyboard = (e) => {
-    // Check for Ctrl+Z (undo)
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      // console.log('Undo triggered');
-      handleUndo();
-    } 
-    // Check for Ctrl+Shift+Z or Ctrl+Y (redo)
-    else if ((e.metaKey || e.ctrlKey) && (
-      (e.shiftKey && e.key.toLowerCase() === 'z') || 
-      e.key.toLowerCase() === 'y'
-    )) {
-      e.preventDefault();
-      // console.log('Redo triggered');
-      handleRedo();
+  const handleRedo = useCallback(async () => {
+    // Check if redo is available first
+    if (historyIndex >= history.length - 1) {
+      console.log("No redo available", historyIndex, history.length);
+      return;
     }
-  };
-  
-  window.addEventListener('keydown', handleKeyboard);
-  return () => window.removeEventListener('keydown', handleKeyboard);
-}, [handleUndo, handleRedo]);
+
+    setIsUndoRedoing(true);
+    const nextState = history[historyIndex + 1];
+    console.log("Redoing to state:", historyIndex + 1);
+
+    // Update database
+    await db.nodes.clear();
+    await db.edges.clear();
+    await db.nodes.bulkAdd(nextState.nodes);
+    await db.edges.bulkAdd(nextState.edges);
+
+    // Update UI state
+    setNodes(nextState.nodes);
+    setEdges(nextState.edges);
+    setHistoryIndex(historyIndex + 1);
+
+    setTimeout(() => setIsUndoRedoing(false), 100);
+  }, [history, historyIndex]);
+
+  useEffect(() => {
+    const handleKeyboard = (e) => {
+      // Check for Ctrl+Z (undo)
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key.toLowerCase() === "z" &&
+        !e.shiftKey
+      ) {
+        e.preventDefault();
+        // console.log('Undo triggered');
+        handleUndo();
+      }
+      // Check for Ctrl+Shift+Z or Ctrl+Y (redo)
+      else if (
+        (e.metaKey || e.ctrlKey) &&
+        ((e.shiftKey && e.key.toLowerCase() === "z") ||
+          e.key.toLowerCase() === "y")
+      ) {
+        e.preventDefault();
+        // console.log('Redo triggered');
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [handleUndo, handleRedo]);
 
   // Close preferences with ESC
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && showPreferences) {
+      if (e.key === "Escape" && showPreferences) {
         setShowPreferences(false);
       }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
   }, [showPreferences]);
-  
+
   // Save initial state to history
   useEffect(() => {
     if (nodes.length > 0 && history.length === 0) {
@@ -204,29 +308,29 @@ useEffect(() => {
   // Keyboard shortcut for hand tool
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === ' ' && !e.repeat && tool === 'select') {
+      if (e.key === " " && !e.repeat && tool === "select") {
         e.preventDefault();
-        setTool('hand');
+        setTool("hand");
       }
-      if (e.key === 'v' || e.key === 'V') {
-        setTool('select');
+      if (e.key === "v" || e.key === "V") {
+        setTool("select");
       }
-      if (e.key === 'h' || e.key === 'H') {
-        setTool('hand');
+      if (e.key === "h" || e.key === "H") {
+        setTool("hand");
       }
     };
 
     const handleKeyUp = (e) => {
-      if (e.key === ' ' && tool === 'hand') {
-        setTool('select');
+      if (e.key === " " && tool === "hand") {
+        setTool("select");
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [tool]);
 
@@ -236,19 +340,19 @@ useEffect(() => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom(prev => Math.min(Math.max(0.3, prev + delta), 3));
+        setZoom((prev) => Math.min(Math.max(0.3, prev + delta), 3));
       }
     };
 
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.addEventListener('wheel', handleWheel, { passive: false });
-      return () => canvas.removeEventListener('wheel', handleWheel);
+      canvas.addEventListener("wheel", handleWheel, { passive: false });
+      return () => canvas.removeEventListener("wheel", handleWheel);
     }
   }, []);
 
   const blendColors = useCallback((domainIds) => {
-    if (!domainIds || domainIds.length === 0) return '#1E293B';
+    if (!domainIds || domainIds.length === 0) return "#1E293B";
     if (domainIds.length === 1) {
       const color = domainColors[domainIds[0]];
       return `linear-gradient(180deg, ${color}25, ${color}15)`;
@@ -264,49 +368,48 @@ useEffect(() => {
     return `linear-gradient(135deg, ${c1}20 0%, ${c2}20 50%, ${c3}20 100%)`;
   }, []);
 
-
   const handleDragStart = (e, node) => {
-    if (node.type === 'content' && tool === 'select') {
+    if (node.type === "content" && tool === "select") {
       e.stopPropagation();
       setDraggingNode(node.id);
       const rect = e.currentTarget.getBoundingClientRect();
       setDragOffset({
         x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        y: e.clientY - rect.top,
       });
     }
   };
 
-const handleDragEnd = async (e, node) => {
-  if (node.type === 'content' && canvasRef.current) {
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
-    const newY = (e.clientY - canvasRect.top - dragOffset.y - pan.y) / zoom;
-    
-    const newPos = { x: newX, y: newY };
+  const handleDragEnd = async (e, node) => {
+    if (node.type === "content" && canvasRef.current) {
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
+      const newY = (e.clientY - canvasRect.top - dragOffset.y - pan.y) / zoom;
 
-    await dbUpdateNode(node.id, { position: newPos });
-    
-    const updatedNodes = nodes.map(n => 
-      n.id === node.id ? { ...n, position: newPos } : n
-    );
-    
-    setNodes(updatedNodes);
-    saveToHistory(updatedNodes, edges);
-  }
-  setDraggingNode(null);
-};
+      const newPos = { x: newX, y: newY };
+
+      await dbUpdateNode(node.id, { position: newPos });
+
+      const updatedNodes = nodes.map((n) =>
+        n.id === node.id ? { ...n, position: newPos } : n
+      );
+
+      setNodes(updatedNodes);
+      saveToHistory(updatedNodes, edges);
+    }
+    setDraggingNode(null);
+  };
 
   const handleNodeClick = (node, e) => {
-  e.stopPropagation();
-  if (node.type === 'content' && tool === 'select') {
-    setSelectedNodeId(node.id);
-    // If preference is set to modal, open in modal mode
-  }
-};
+    e.stopPropagation();
+    if (node.type === "content" && tool === "select") {
+      setSelectedNodeId(node.id);
+      // If preference is set to modal, open in modal mode
+    }
+  };
 
   const handleNodeHover = (node) => {
-    if (node.type === 'content') {
+    if (node.type === "content") {
       setHoveredNode(node.id);
     }
   };
@@ -315,106 +418,116 @@ const handleDragEnd = async (e, node) => {
     setHoveredNode(null);
   };
 
-const handleUpdateNode = useCallback(async (nodeId, newData) => {
-  await dbUpdateNode(nodeId, newData);
-  
-  setNodes(currentNodes => {
-    const updatedNodes = currentNodes.map(node => 
-      node.id === nodeId 
-        ? { ...node, data: { ...node.data, ...newData } }
-        : node
-    );
-    
-    // Save to history after state update
-    setTimeout(() => {
-      saveToHistory(updatedNodes, edges);
-    }, 0);
-    
-    return updatedNodes;
-  });
-}, [edges, saveToHistory]);
+  const handleUpdateNode = useCallback(
+    async (nodeId, newData) => {
+      await dbUpdateNode(nodeId, newData);
 
-  const handleDeleteNode = useCallback(async (nodeId) => {
-    await dbDeleteNode(nodeId);
-    const updatedNodes = nodes.filter(n => n.id !== nodeId);
-    const updatedEdges = edges.filter(e => e.source !== nodeId && e.target !== nodeId);
-    setNodes(updatedNodes);
-    setEdges(updatedEdges);
-    saveToHistory(updatedNodes, updatedEdges);
-  }, [nodes, edges, saveToHistory]);
+      setNodes((currentNodes) => {
+        const updatedNodes = currentNodes.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...newData } }
+            : node
+        );
+
+        // Save to history after state update
+        setTimeout(() => {
+          saveToHistory(updatedNodes, edges);
+        }, 0);
+
+        return updatedNodes;
+      });
+    },
+    [edges, saveToHistory]
+  );
+
+  const handleDeleteNode = useCallback(
+    async (nodeId) => {
+      await dbDeleteNode(nodeId);
+      const updatedNodes = nodes.filter((n) => n.id !== nodeId);
+      const updatedEdges = edges.filter(
+        (e) => e.source !== nodeId && e.target !== nodeId
+      );
+      setNodes(updatedNodes);
+      setEdges(updatedEdges);
+      saveToHistory(updatedNodes, updatedEdges);
+    },
+    [nodes, edges, saveToHistory]
+  );
 
   const handleCreateEdge = useCallback(async (newEdge) => {
     await addEdge(newEdge);
-    setEdges(current => [...current, newEdge]);
+    setEdges((current) => [...current, newEdge]);
   }, []);
 
   const handleDeleteEdge = useCallback(async (edgeId) => {
     await dbDeleteEdge(edgeId);
-    setEdges(current => current.filter(e => e.id !== edgeId));
+    setEdges((current) => current.filter((e) => e.id !== edgeId));
   }, []);
 
-const handleUpdateEdge = useCallback(async (edgeId, updates) => {
+  const handleUpdateEdge = useCallback(async (edgeId, updates) => {
     // If updating type, clear the label so it uses the connection type name
     if (updates.type) {
-      const connType = connectionTypes.find(c => c.id === updates.type);
+      const connType = connectionTypes.find((c) => c.id === updates.type);
       updates.label = connType?.name || updates.label;
     }
     await updateEdge(edgeId, updates);
-    const updatedEdges = edges.map(e => e.id === edgeId ? { ...e, ...updates } : e);
+    const updatedEdges = edges.map((e) =>
+      e.id === edgeId ? { ...e, ...updates } : e
+    );
     setEdges(updatedEdges);
     saveToHistory(nodes, updatedEdges);
   }, []);
-  
+
   const handleUpdateLenses = useCallback(async (newLenses) => {
     await dbUpdateLenses(newLenses);
     setLenses(newLenses);
   }, []);
 
   const handleImportJSON = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
+
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        
+
         if (!data.nodes || !data.edges) {
-          alert('Invalid map file format');
+          alert("Invalid map file format");
           return;
         }
-        
-        if (!window.confirm('This will replace your current map. Continue?')) {
+
+        if (!window.confirm("This will replace your current map. Continue?")) {
           return;
         }
-        
+
         // Clear existing data
         await db.nodes.clear();
         await db.edges.clear();
-        
+
         // Import new data
         await db.nodes.bulkAdd(data.nodes);
         await db.edges.bulkAdd(data.edges);
-        
+
         if (data.lenses) {
           await db.lenses.clear();
           await db.lenses.bulkAdd(data.lenses);
           setLenses(data.lenses);
         }
-        
+
         // Reload
         const loadedNodes = await getAllNodes();
         const loadedEdges = await getAllEdges();
         setNodes(loadedNodes);
         setEdges(loadedEdges);
-        
-        alert('Map imported successfully!');
+
+        alert("Map imported successfully!");
       } catch (error) {
-        console.error('Import error:', error);
-        alert('Failed to import map. Please check the file format.');
+        console.error("Import error:", error);
+        alert("Failed to import map. Please check the file format.");
       }
     };
     input.click();
@@ -426,14 +539,18 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
       edges,
       lenses,
       purposeData: { ...purposeData, title: mapTitle },
-      exportedAt: new Date().toISOString()
+      exportedAt: new Date().toISOString(),
     };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `perception-map-${mapTitle.replace(/\s+/g, '-').toLowerCase() || 'untitled'}-${Date.now()}.json`;
+    a.download = `perception-map-${
+      mapTitle.replace(/\s+/g, "-").toLowerCase() || "untitled"
+    }-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -441,10 +558,11 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
   const handleExportPNG = async () => {
     // Load html2canvas dynamically
     if (!window.html2canvas) {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
       document.head.appendChild(script);
-      await new Promise(resolve => script.onload = resolve);
+      await new Promise((resolve) => (script.onload = resolve));
     }
 
     // Temporarily hide UI elements
@@ -452,115 +570,127 @@ const handleUpdateEdge = useCallback(async (edgeId, updates) => {
     setShowAnalytics(false);
     setShowLensManager(false);
     setShowFilters(false);
-    
+
     // Wait a moment for React to re-render
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const container = containerRef.current;
     if (!container) return;
 
     try {
       const canvas = await window.html2canvas(container, {
-        backgroundColor: '#0F1724',
+        backgroundColor: "#0F1724",
         scale: 2,
-        logging: false
+        logging: false,
       });
 
       canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `chroma-${mapTitle.replace(/\s+/g, '-').toLowerCase() || 'untitled'}-${Date.now()}.png`;
+        a.download = `chroma-${
+          mapTitle.replace(/\s+/g, "-").toLowerCase() || "untitled"
+        }-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 100);
       });
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('Failed to export PNG. Please try again.');
+      console.error("Export failed:", error);
+      alert("Failed to export PNG. Please try again.");
     }
   };
 
-const handleCreateNode = async () => {
-  const centerX = (window.innerWidth / 2 - pan.x) / zoom;
-  const centerY = (window.innerHeight / 2 - pan.y - 60) / zoom;
-  
-  const newNode = {
-    type: 'content',
-    position: { x: centerX, y: centerY },
-    data: {
-      title: 'New Seed',
-      rawCapture: '',
-      timestamp: new Date().toISOString(),
-      
-      // Optional - filled in later
-      domains: {
-        private: null,
-        public: null,
-        abstract: null
+  const handleCreateNode = async () => {
+    const centerX = (window.innerWidth / 2 - pan.x) / zoom;
+    const centerY = (window.innerHeight / 2 - pan.y - 60) / zoom;
+
+    const newNode = {
+      type: "content",
+      position: { x: centerX, y: centerY },
+      data: {
+        title: "New Seed",
+        rawCapture: "",
+        timestamp: new Date().toISOString(),
+
+        // Optional - filled in later
+        domains: {
+          private: null,
+          public: null,
+          abstract: null,
+        },
+
+        lensIds: [],
+        domainIds: [],
+        notes: "",
       },
-      
-      lensIds: [],
-      domainIds: [],
-      notes: ''
-    }
-  };
-  
-  const id = await addNode(newNode);
-  const nodeWithId = { ...newNode, id };
-  const updatedNodes = [...nodes, nodeWithId];
-  setNodes(updatedNodes);
-  setSelectedNodeId(nodeWithId.id);
-  saveToHistory(updatedNodes, edges);
-};
-const getNodeCenter = (node) => {
-  const width = node.type === 'content' ? 210 : 100;
-  const height = node.type === 'content' ? 80 : 40;
-  return {
-    x: node.position.x + width / 2,
-    y: node.position.y + height / 2
-  };
-};
-
-const toggleFilter = (type, value) => {
-  setActiveFilters(prev => {
-    const current = prev[type];
-    return {
-      ...prev,
-      [type]: current.includes(value) 
-        ? current.filter(v => v !== value)
-        : [...current, value]
     };
+
+    const id = await addNode(newNode);
+    const nodeWithId = { ...newNode, id };
+    const updatedNodes = [...nodes, nodeWithId];
+    setNodes(updatedNodes);
+    setSelectedNodeId(nodeWithId.id);
+    saveToHistory(updatedNodes, edges);
+  };
+  const getNodeCenter = (node) => {
+    const width = node.type === "content" ? 210 : 100;
+    const height = node.type === "content" ? 80 : 40;
+    return {
+      x: node.position.x + width / 2,
+      y: node.position.y + height / 2,
+    };
+  };
+
+  const toggleFilter = (type, value) => {
+    setActiveFilters((prev) => {
+      const current = prev[type];
+      return {
+        ...prev,
+        [type]: current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value],
+      };
+    });
+  };
+
+  const filteredNodes = nodes.filter((node) => {
+    if (node.type !== "content") return true;
+
+    // Filter by active filter panel domains (from dropdown)
+    if (activeFilters.domains.length > 0) {
+      const hasMatchingDomain = activeFilters.domains.some((d) =>
+        node.data.domainIds?.includes(d)
+      );
+      if (!hasMatchingDomain) return false;
+    }
+
+    // Filter by lenses
+    if (activeFilters.lenses && activeFilters.lenses.length > 0) {
+      const hasMatchingLens = activeFilters.lenses.some((l) =>
+        node.data.lensIds?.includes(l)
+      );
+      if (!hasMatchingLens) return false;
+    }
+
+    return true;
   });
-};
-
-const filteredNodes = nodes.filter(node => {
-  if (node.type !== 'content') return true;
-
-  // Filter by active filter panel domains (from dropdown)
-  if (activeFilters.domains.length > 0) {
-    const hasMatchingDomain = activeFilters.domains.some(d => 
-      node.data.domainIds?.includes(d)
-    );
-    if (!hasMatchingDomain) return false;
-  }
-
-  // Filter by lenses
-  if (activeFilters.lenses && activeFilters.lenses.length > 0) {
-    const hasMatchingLens = activeFilters.lenses.some(l => 
-      node.data.lensIds?.includes(l)
-    );
-    if (!hasMatchingLens) return false;
-  }
-
-  return true;
-});
 
   // Pan controls - works with hand tool OR space key
   const handleCanvasMouseDown = (e) => {
-    if (tool === 'hand' || e.target === containerRef.current || e.target === canvasRef.current || e.target.tagName === 'svg') {
-      if (tool === 'hand' || (e.target !== containerRef.current && e.target !== canvasRef.current && e.target.tagName !== 'svg')) {
+    if (
+      tool === "hand" ||
+      e.target === containerRef.current ||
+      e.target === canvasRef.current ||
+      e.target.tagName === "svg"
+    ) {
+      if (
+        tool === "hand" ||
+        (e.target !== containerRef.current &&
+          e.target !== canvasRef.current &&
+          e.target.tagName !== "svg")
+      ) {
         return; // Let hand tool work anywhere
       }
       setIsPanning(true);
@@ -570,8 +700,8 @@ const filteredNodes = nodes.filter(node => {
   };
 
   const handleCanvasMouseMove = (e) => {
-    if (isPanning || tool === 'hand') {
-      if (tool === 'hand' && e.buttons === 1) {
+    if (isPanning || tool === "hand") {
+      if (tool === "hand" && e.buttons === 1) {
         if (!isPanning) {
           setIsPanning(true);
           setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
@@ -588,8 +718,8 @@ const filteredNodes = nodes.filter(node => {
   };
 
   // Zoom controls
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.2, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.2, 0.3));
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.3));
   const handleResetView = () => {
     setZoom(0.8);
     setPan({ x: 400, y: 200 });
@@ -597,314 +727,350 @@ const filteredNodes = nodes.filter(node => {
 
   // Get cursor based on tool
   const getCursor = () => {
-    if (tool === 'hand') return isPanning ? 'grabbing' : 'grab';
-    return isPanning ? 'grabbing' : 'default';
+    if (tool === "hand") return isPanning ? "grabbing" : "grab";
+    return isPanning ? "grabbing" : "default";
   };
 
   return (
-    <div style={{ 
-      width: '100%', 
-      height: '100%', 
-      background: '#0F1724',
-      overflow: 'hidden',
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      {/* Top Navigation Bar */}
-<div style={{
-  height: '60px',
-  background: 'linear-gradient(180deg, #1E293B 0%, #1A2332 100%)',
-  borderBottom: '1px solid rgba(108, 99, 255, 0.2)',
-  display: 'grid',
-  gridTemplateColumns: 'auto 1fr auto',
-  alignItems: 'center',
-  padding: '0 24px',
-  gap: '24px',
-  zIndex: 100,
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-}}>
-  {/* Left: Logo + Brand */}
-  <div style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '16px'
-  }}>
-    <img 
-      src="/logo.PNG"
-      alt="Chroma Logo" 
+    <div
       style={{
-        width: '36px',
-        height: '36px',
-        filter: 'drop-shadow(0 2px 6px rgba(108, 99, 255, 0.4))'
+        width: "100%",
+        height: "100%",
+        background: "linear-gradient(180deg, #0A0F1E 0%, #0F1428 100%)",
+        overflow: "hidden",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
       }}
-    />
-    <h1 style={{
-      margin: 0,
-      fontSize: '20px',
-      fontWeight: 700,
-      background: 'linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-      letterSpacing: '-0.3px'
-    }}>
-      Chroma
-    </h1>
-  </div>
-
-  {/* Center: Purpose Title */}
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center'
-  }}>
-    {isEditingTitle ? (
-      <input
-        value={editedTitle}
-        onChange={(e) => setEditedTitle(e.target.value)}
-        onBlur={() => {
-          if (editedTitle.trim()) {
-            setMapTitle(editedTitle.trim());
-          }
-          setIsEditingTitle(false);
-        }}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            if (editedTitle.trim()) {
-              setMapTitle(editedTitle.trim());
-            }
-            setIsEditingTitle(false);
-          }
-        }}
-        autoFocus
+    >
+      {/* Top Navigation Bar */}
+      <div
         style={{
-          fontSize: '15px',
-          fontWeight: 600,
-          background: 'rgba(30, 41, 59, 0.6)',
-          border: '1px solid rgba(108, 99, 255, 0.5)',
-          borderRadius: '8px',
-          color: '#E6EEF8',
-          padding: '8px 12px',
-          outline: 'none',
-          maxWidth: '280px',
-          boxSizing: 'border-box',
-          textAlign: 'center'
-        }}
-      />
-    ) : (
-      <h2 
-        onClick={() => {
-          setEditedTitle(mapTitle);
-          setIsEditingTitle(true);
-        }}
-        style={{
-          margin: 0,
-          fontSize: '15px',
-          fontWeight: 600,
-          color: '#E6EEF8',
-          cursor: 'pointer',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          maxWidth: '280px'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = 'rgba(108, 99, 255, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = 'transparent';
+          height: "60px",
+          background: "linear-gradient(180deg, #1E293B 0%, #1A2332 100%)",
+          borderBottom: "1px solid rgba(108, 99, 255, 0.2)",
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          alignItems: "center",
+          padding: "0 24px",
+          gap: "24px",
+          zIndex: 100,
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
         }}
       >
-        {mapTitle}
-      </h2>
-    )}
-  </div>
-
-  {/* Right: Lenses + Tools */}
-  <div style={{ 
-    display: 'flex', 
-    gap: '12px', 
-    alignItems: 'center',
-    justifyContent: 'flex-end'
-  }}>
-    {/* Domain Filters */}
-    <div style={{
-      display: 'flex',
-      gap: '6px',
-      padding: '4px',
-      background: 'rgba(15, 23, 36, 0.6)',
-      borderRadius: '10px',
-      border: '1px solid rgba(255, 255, 255, 0.08)'
-    }}>
-      {['private', 'public', 'abstract'].map((domain) => {
-        const Icon = domain === 'private' ? Heart : domain === 'public' ? MessageCircle : Brain;
-        const isActive = activeDomainFilters.includes(domain);
-        
-        return (
-          <button
-            key={domain}
-            onClick={() => {
-              setActiveDomainFilters(prev => 
-                prev.includes(domain) 
-                  ? prev.filter(d => d !== domain)
-                  : [...prev, domain]
-              );
-            }}
+        {/* Left: Logo + Brand */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+          }}
+        >
+          <img
+            src="/logo.PNG"
+            alt="Chroma Logo"
             style={{
-              padding: '8px 12px',
-              background: isActive ? domainColors[domain] : 'transparent',
-              border: 'none',
-              borderRadius: '7px',
-              color: isActive ? '#000' : '#94A3B8',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: isActive ? 600 : 500,
-              textTransform: 'capitalize',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
+              width: "36px",
+              height: "36px",
+              filter: "drop-shadow(0 2px 6px rgba(108, 99, 255, 0.4))",
             }}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                e.target.style.background = 'rgba(148, 163, 184, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                e.target.style.background = 'transparent';
-              }
+          />
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "20px",
+              fontWeight: 700,
+              background:
+                "linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              letterSpacing: "-0.3px",
             }}
           >
-            <Icon size={14} />
-            {domain}
+            Chroma
+          </h1>
+        </div>
+
+        {/* Center: Purpose Title */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {isEditingTitle ? (
+            <input
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={() => {
+                if (editedTitle.trim()) {
+                  setMapTitle(editedTitle.trim());
+                }
+                setIsEditingTitle(false);
+              }}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  if (editedTitle.trim()) {
+                    setMapTitle(editedTitle.trim());
+                  }
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              style={{
+                fontSize: "15px",
+                fontWeight: 600,
+                background: "rgba(30, 41, 59, 0.6)",
+                border: "1px solid rgba(108, 99, 255, 0.5)",
+                borderRadius: "8px",
+                color: "#E6EEF8",
+                padding: "8px 12px",
+                outline: "none",
+                maxWidth: "280px",
+                boxSizing: "border-box",
+                textAlign: "center",
+              }}
+            />
+          ) : (
+            <h2
+              onClick={() => {
+                setEditedTitle(mapTitle);
+                setIsEditingTitle(true);
+              }}
+              style={{
+                margin: 0,
+                fontSize: "15px",
+                fontWeight: 600,
+                color: "#E6EEF8",
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "280px",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = "rgba(108, 99, 255, 0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "transparent";
+              }}
+            >
+              {mapTitle}
+            </h2>
+          )}
+        </div>
+
+        {/* Right: Lenses + Tools */}
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "center",
+            justifyContent: "flex-end",
+          }}
+        >
+          {/* Domain Filters */}
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              padding: "4px",
+              background: "rgba(15, 23, 36, 0.6)",
+              borderRadius: "10px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            {["private", "public", "abstract"].map((domain) => {
+              const Icon =
+                domain === "private"
+                  ? Heart
+                  : domain === "public"
+                  ? MessageCircle
+                  : Brain;
+              const isActive = activeDomainFilters.includes(domain);
+
+              return (
+                <button
+                  key={domain}
+                  onClick={() => {
+                    setActiveDomainFilters((prev) =>
+                      prev.includes(domain)
+                        ? prev.filter((d) => d !== domain)
+                        : [...prev, domain]
+                    );
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    background: isActive ? domainColors[domain] : "transparent",
+                    border: "none",
+                    borderRadius: "7px",
+                    color: isActive ? "#000" : "#94A3B8",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: isActive ? 600 : 500,
+                    textTransform: "capitalize",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.target.style.background = "rgba(148, 163, 184, 0.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.target.style.background = "transparent";
+                    }
+                  }}
+                >
+                  <Icon size={14} />
+                  {domain}
+                </button>
+              );
+            })}
+          </div>
+          {/* Lens Selector */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <button
+              onClick={() => setShowLensDropdown(!showLensDropdown)}
+              style={{
+                padding: "8px 14px",
+                background: "rgba(15, 23, 36, 0.6)",
+                border: "1px solid rgba(236, 72, 153, 0.3)",
+                borderRadius: "8px",
+                color: "#E6EEF8",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                fontWeight: 700,
+                transition: "all 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  padding: "2px 8px",
+                  background: "#EC4899",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#fff",
+                }}
+              >
+                {activeLensIds.length}/{lenses.length}
+              </span>
+              Lenses
+            </button>
+
+            <button
+              onClick={() => setShowLensManager(true)}
+              style={{
+                padding: "10px",
+                background: "linear-gradient(135deg, #EC4899 0%, #F472B6 100%)",
+                border: "none",
+                borderRadius: "8px",
+                color: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+                boxShadow: "0 2px 8px rgba(236, 72, 153, 0.4)",
+              }}
+              title="Manage Lenses"
+            >
+              <Edit2 size={16} />
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div
+            style={{
+              width: "1px",
+              height: "32px",
+              background: "rgba(255, 255, 255, 0.1)",
+            }}
+          />
+
+          {/* Tools */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            style={{
+              padding: "8px 12px",
+              background: showFilters ? "#6C63FF" : "rgba(15, 23, 36, 0.6)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "8px",
+              color: "#E6EEF8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: 500,
+              transition: "all 0.2s",
+            }}
+          >
+            <Filter size={16} /> Filter
           </button>
-        );
-      })}
-    </div>
-    {/* Lens Selector */}
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <button
-        onClick={() => setShowLensDropdown(!showLensDropdown)}
-        style={{
-          padding: '8px 14px',
-          background: 'rgba(15, 23, 36, 0.6)',
-          border: '1px solid rgba(236, 72, 153, 0.3)',
-          borderRadius: '8px',
-          color: '#E6EEF8',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '13px',
-          fontWeight: 700,
-          transition: 'all 0.2s'
-        }}
-      >
-        <span style={{
-          padding: '2px 8px',
-          background: '#EC4899',
-          borderRadius: '4px',
-          fontSize: '11px',
-          fontWeight: 700,
-          color: '#fff'
-        }}>
-          {activeLensIds.length}/{lenses.length}
-        </span>
-        Lenses
-      </button>
-      
-      <button
-        onClick={() => setShowLensManager(true)}
-        style={{
-          padding: '10px',
-          background: 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
-          border: 'none',
-          borderRadius: '8px',
-          color: '#fff',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)'
-        }}
-        title="Manage Lenses"
-      >
-        <Edit2 size={16} />
-      </button>
-    </div>
 
-    {/* Divider */}
-    <div style={{ width: '1px', height: '32px', background: 'rgba(255, 255, 255, 0.1)' }} />
+          <button
+            onClick={() => setShowAnalytics(true)}
+            style={{
+              padding: "8px 12px",
+              background: "rgba(15, 23, 36, 0.6)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "8px",
+              color: "#E6EEF8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: 500,
+              transition: "all 0.2s",
+            }}
+          >
+            <BarChart3 size={16} /> Analytics
+          </button>
 
-    {/* Tools */}
-    <button
-      onClick={() => setShowFilters(!showFilters)}
-      style={{
-        padding: '8px 12px',
-        background: showFilters ? '#6C63FF' : 'rgba(15, 23, 36, 0.6)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '8px',
-        color: '#E6EEF8',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        fontSize: '13px',
-        fontWeight: 500,
-        transition: 'all 0.2s'
-      }}
-    >
-      <Filter size={16} /> Filter
-    </button>
-
-    <button
-      onClick={() => setShowAnalytics(true)}
-      style={{
-        padding: '8px 12px',
-        background: 'rgba(15, 23, 36, 0.6)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '8px',
-        color: '#E6EEF8',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        fontSize: '13px',
-        fontWeight: 500,
-        transition: 'all 0.2s'
-      }}
-    >
-      <BarChart3 size={16} /> Analytics
-    </button>
-
-    <button
-      onClick={handleCreateNode}
-      style={{
-        padding: '8px 16px',
-        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-        border: 'none',
-        borderRadius: '8px',
-        color: '#fff',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        fontSize: '13px',
-        fontWeight: 600,
-        transition: 'all 0.2s',
-        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-      }}
-    >s
-      <Plus size={16} /> New Seed
-    </button>
-  </div>
-</div>
+          <button
+            onClick={handleCreateNode}
+            style={{
+              padding: "8px 16px",
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              border: "none",
+              borderRadius: "8px",
+              color: "#fff",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "13px",
+              fontWeight: 600,
+              transition: "all 0.2s",
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+            }}
+          >
+            s
+            <Plus size={16} /> New Seed
+          </button>
+        </div>
+      </div>
 
       {/* Left Sidebar */}
       <LeftSidebar
@@ -922,393 +1088,457 @@ const filteredNodes = nodes.filter(node => {
         onShowPreferences={() => setShowPreferences(true)}
       />
 
-{/* Bottom Right Controls */}
-<div style={{
-  position: 'absolute',
-  bottom: '20px',
-  right: '20px',
-  display: 'flex',
-  gap: '12px',
-  alignItems: 'flex-end',
-  zIndex: 100
-}}>
-  {/* Personal Links */}
-  <div style={{
-    display: 'flex',
-    gap: '8px',
-    padding: '10px 12px',
-    background: 'rgba(30, 41, 59, 0.8)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '12px',
-    border: '1px solid rgba(108, 99, 255, 0.2)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-  }}>
-    <a 
-      href="https://github.com/Oceanyx" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      style={{
-        color: '#88CCFF',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        textDecoration: 'none'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.15)';
-        e.currentTarget.style.color = '#C7D2FE';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.color = '#88CCFF';
-      }}
-    >
-      <Github size={20} />
-    </a>
-    <a 
-      href="https://www.linkedin.com/in/oceanyx/" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      style={{
-        color: '#4D9FFF',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        textDecoration: 'none'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.15)';
-        e.currentTarget.style.color = '#93C5FD';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.color = '#4D9FFF';
-      }}
-    >
-      <Linkedin size={20} />
-    </a>
-    <a 
-      href="mailto:bchanyx@gmail.com"
-      style={{
-        color: '#10B981',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        textDecoration: 'none'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.15)';
-        e.currentTarget.style.color = '#6EE7B7';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.color = '#10B981';
-      }}
-    >
-      <Mail size={20} />
-    </a>
-    <a 
-      href="https://ko-fi.com/oceanyx" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      style={{
-        color: '#FF5E5B',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        textDecoration: 'none'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.15)';
-        e.currentTarget.style.color = '#FCA5A5';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.color = '#FF5E5B';
-      }}
-    >
-      <Coffee size={20} />
-    </a>
-  </div>
+      {/* Bottom Right Controls */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          right: "20px",
+          display: "flex",
+          gap: "12px",
+          alignItems: "flex-end",
+          zIndex: 100,
+        }}
+      >
+        {/* Personal Links */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            padding: "10px 12px",
+            background: "rgba(30, 41, 59, 0.8)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "12px",
+            border: "1px solid rgba(108, 99, 255, 0.2)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          <a
+            href="https://github.com/Oceanyx"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#88CCFF",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.15)";
+              e.currentTarget.style.color = "#C7D2FE";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.color = "#88CCFF";
+            }}
+          >
+            <Github size={20} />
+          </a>
+          <a
+            href="https://www.linkedin.com/in/oceanyx/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#4D9FFF",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.15)";
+              e.currentTarget.style.color = "#93C5FD";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.color = "#4D9FFF";
+            }}
+          >
+            <Linkedin size={20} />
+          </a>
+          <a
+            href="mailto:bchanyx@gmail.com"
+            style={{
+              color: "#10B981",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.15)";
+              e.currentTarget.style.color = "#6EE7B7";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.color = "#10B981";
+            }}
+          >
+            <Mail size={20} />
+          </a>
+          <a
+            href="https://ko-fi.com/oceanyx"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#FF5E5B",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.15)";
+              e.currentTarget.style.color = "#FCA5A5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.color = "#FF5E5B";
+            }}
+          >
+            <Coffee size={20} />
+          </a>
+        </div>
 
-  {/* New Map Button */}
-  <button
-    onClick={() => {
-      if (window.confirm('Creating a new map will overwrite your current work. Continue?')) {
-        window.location.reload();
-      }
-    }}
-    style={{
-      padding: '12px 16px',
-      background: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
-      border: 'none',
-      borderRadius: '10px',
-      color: '#fff',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: 600,
-      transition: 'all 0.2s',
-      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
-      whiteSpace: 'nowrap',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    }}
-    onMouseEnter={(e) => {
-      e.target.style.transform = 'translateY(-2px)';
-      e.target.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.5)';
-    }}
-    onMouseLeave={(e) => {
-      e.target.style.transform = 'translateY(0)';
-      e.target.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
-    }}
-  >
-    <Plus size={16} /> New Map
-  </button>
+        {/* New Map Button */}
+        <button
+          onClick={() => {
+            if (
+              window.confirm(
+                "Creating a new map will overwrite your current work. Continue?"
+              )
+            ) {
+              window.location.reload();
+            }
+          }}
+          style={{
+            padding: "12px 16px",
+            background: "linear-gradient(135deg, #F59E0B 0%, #F97316 100%)",
+            border: "none",
+            borderRadius: "10px",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: "13px",
+            fontWeight: 600,
+            transition: "all 0.2s",
+            boxShadow: "0 4px 12px rgba(245, 158, 11, 0.4)",
+            whiteSpace: "nowrap",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "translateY(-2px)";
+            e.target.style.boxShadow = "0 6px 20px rgba(245, 158, 11, 0.5)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.4)";
+          }}
+        >
+          <Plus size={16} /> New Map
+        </button>
 
-  {/* Zoom Controls */}
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  }}>
-    <button
-      onClick={handleZoomIn}
-      style={{
-        padding: '10px',
-        background: '#1E293B',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '8px',
-        color: '#E6EEF8',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      title="Zoom In"
-    >
-      <ZoomIn size={20} />
-    </button>
-    <button
-      onClick={handleResetView}
-      style={{
-        padding: '10px',
-        background: '#1E293B',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '8px',
-        color: '#E6EEF8',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      title="Reset View"
-    >
-      <Maximize2 size={20} />
-    </button>
-    <button
-      onClick={handleZoomOut}
-      style={{
-        padding: '10px',
-        background: '#1E293B',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '8px',
-        color: '#E6EEF8',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      title="Zoom Out"
-    >
-      <ZoomOut size={20} />
-    </button>
-    <div style={{
-      padding: '8px',
-      background: '#1E293B',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '8px',
-      color: '#94A3B8',
-      fontSize: '12px',
-      textAlign: 'center'
-    }}>
-      {Math.round(zoom * 100)}%
-    </div>
-  </div>
-</div>
+        {/* Zoom Controls */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <button
+            onClick={handleZoomIn}
+            style={{
+              padding: "10px",
+              background: "#1E293B",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "8px",
+              color: "#E6EEF8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Zoom In"
+          >
+            <ZoomIn size={20} />
+          </button>
+          <button
+            onClick={handleResetView}
+            style={{
+              padding: "10px",
+              background: "#1E293B",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "8px",
+              color: "#E6EEF8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Reset View"
+          >
+            <Maximize2 size={20} />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            style={{
+              padding: "10px",
+              background: "#1E293B",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "8px",
+              color: "#E6EEF8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Zoom Out"
+          >
+            <ZoomOut size={20} />
+          </button>
+          <div
+            style={{
+              padding: "8px",
+              background: "#1E293B",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "8px",
+              color: "#94A3B8",
+              fontSize: "12px",
+              textAlign: "center",
+            }}
+          >
+            {Math.round(zoom * 100)}%
+          </div>
+        </div>
+      </div>
 
       {/* Filters Dropdown */}
-{showFilters && (
-  <div style={{
-    position: 'absolute',
-    top: '70px',
-    right: '20px',
-    width: '300px',
-    background: '#1E293B',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '12px',
-    padding: '16px',
-    zIndex: 1001,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-  }}>
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '8px', fontWeight: 600 }}>
-        Domains
-      </div>
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-        {['private', 'public', 'abstract'].map(domain => (
+      {showFilters && (
+        <div
+          style={{
+            position: "absolute",
+            top: "70px",
+            right: "20px",
+            width: "300px",
+            background: "#1E293B",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "12px",
+            padding: "16px",
+            zIndex: 1001,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          }}
+        >
+          <div style={{ marginBottom: "16px" }}>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "#94A3B8",
+                marginBottom: "8px",
+                fontWeight: 600,
+              }}
+            >
+              Domains
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {["private", "public", "abstract"].map((domain) => (
+                <button
+                  key={domain}
+                  onClick={() => toggleFilter("domains", domain)}
+                  style={{
+                    padding: "6px 12px",
+                    background: activeFilters.domains.includes(domain)
+                      ? domainColors[domain]
+                      : "#0F1724",
+                    border: `1px solid ${
+                      activeFilters.domains.includes(domain)
+                        ? domainColors[domain]
+                        : "rgba(148, 163, 184, 0.2)"
+                    }`,
+                    borderRadius: "6px",
+                    color: activeFilters.domains.includes(domain)
+                      ? "#fff"
+                      : "#E6EEF8",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    textTransform: "capitalize",
+                    fontWeight: activeFilters.domains.includes(domain)
+                      ? 600
+                      : 400,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {domain}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "#94A3B8",
+                marginBottom: "8px",
+                fontWeight: 600,
+              }}
+            >
+              Lenses
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {lenses.map((lens) => (
+                <button
+                  key={lens.id}
+                  onClick={() => toggleFilter("lenses", lens.id)}
+                  style={{
+                    padding: "6px 12px",
+                    background: activeFilters.lenses?.includes(lens.id)
+                      ? lens.color
+                      : "#0F1724",
+                    border: `1px solid ${
+                      activeFilters.lenses?.includes(lens.id)
+                        ? lens.color
+                        : "rgba(148, 163, 184, 0.2)"
+                    }`,
+                    borderRadius: "6px",
+                    color: activeFilters.lenses?.includes(lens.id)
+                      ? "#fff"
+                      : "#E6EEF8",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: activeFilters.lenses?.includes(lens.id)
+                      ? 600
+                      : 400,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {lens.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
-            key={domain}
-            onClick={() => toggleFilter('domains', domain)}
+            onClick={() => setActiveFilters({ domains: [], lenses: [] })}
             style={{
-              padding: '6px 12px',
-              background: activeFilters.domains.includes(domain) ? domainColors[domain] : '#0F1724',
-              border: `1px solid ${activeFilters.domains.includes(domain) ? domainColors[domain] : 'rgba(148, 163, 184, 0.2)'}`,
-              borderRadius: '6px',
-              color: activeFilters.domains.includes(domain) ? '#fff' : '#E6EEF8',
-              cursor: 'pointer',
-              fontSize: '13px',
-              textTransform: 'capitalize',
-              fontWeight: activeFilters.domains.includes(domain) ? 600 : 400,
-              transition: 'all 0.15s'
+              width: "100%",
+              padding: "8px",
+              background: "transparent",
+              fontWeight: 650,
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "6px",
+              color: "#94A3B8",
+              cursor: "pointer",
+              fontSize: "13px",
             }}
           >
-            {domain}
+            Clear All Filters
           </button>
-        ))}
-      </div>
-    </div>
-
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '8px', fontWeight: 600 }}>
-        Lenses
-      </div>
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-        {lenses.map(lens => (
-          <button
-            key={lens.id}
-            onClick={() => toggleFilter('lenses', lens.id)}
-            style={{
-              padding: '6px 12px',
-              background: activeFilters.lenses?.includes(lens.id) ? lens.color : '#0F1724',
-              border: `1px solid ${activeFilters.lenses?.includes(lens.id) ? lens.color : 'rgba(148, 163, 184, 0.2)'}`,
-              borderRadius: '6px',
-              color: activeFilters.lenses?.includes(lens.id) ? '#fff' : '#E6EEF8',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: activeFilters.lenses?.includes(lens.id) ? 600 : 400,
-              transition: 'all 0.15s'
-            }}
-          >
-            {lens.name}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <button
-      onClick={() => setActiveFilters({ domains: [], lenses: [] })}
-      style={{
-        width: '100%',
-        padding: '8px',
-        background: 'transparent',
-        fontWeight: 650,
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '6px',
-        color: '#94A3B8',
-        cursor: 'pointer',
-        fontSize: '13px'
-      }}
-    >
-      Clear All Filters
-    </button>
-  </div>
-)}
+        </div>
+      )}
       {/* Lens Dropdown */}
       {showLensDropdown && (
         <>
-          <div 
+          <div
             style={{
-              position: 'fixed',
+              position: "fixed",
               inset: 0,
-              zIndex: 999
+              zIndex: 999,
             }}
             onClick={() => setShowLensDropdown(false)}
           />
-          <div style={{
-            position: 'absolute',
-            top: '70px',
-            right: '320px',
-            width: '280px',
-            background: 'linear-gradient(135deg, #1E293B 0%, #1A2332 100%)',
-            border: '1px solid rgba(236, 72, 153, 0.3)',
-            borderRadius: '12px',
-            padding: '16px',
-            zIndex: 1000,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-          }}>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#CBD5E1', 
-              marginBottom: '12px', 
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "70px",
+              right: "320px",
+              width: "280px",
+              background: "linear-gradient(135deg, #1E293B 0%, #1A2332 100%)",
+              border: "1px solid rgba(236, 72, 153, 0.3)",
+              borderRadius: "12px",
+              padding: "16px",
+              zIndex: 1000,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#CBD5E1",
+                marginBottom: "12px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
               Active Lenses
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {lenses.map(lens => (
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
+              {lenses.map((lens) => (
                 <button
                   key={lens.id}
-                  onClick={() => setActiveLensIds(prev => 
-                    prev.includes(lens.id) ? prev.filter(id => id !== lens.id) : [...prev, lens.id]
-                  )}
+                  onClick={() =>
+                    setActiveLensIds((prev) =>
+                      prev.includes(lens.id)
+                        ? prev.filter((id) => id !== lens.id)
+                        : [...prev, lens.id]
+                    )
+                  }
                   style={{
-                    padding: '12px 14px',
-                    background: activeLensIds.includes(lens.id) 
-                      ? `linear-gradient(135deg, ${lens.color}40 0%, ${lens.color}20 100%)` 
-                      : 'rgba(15, 23, 36, 0.6)',
-                    border: `2px solid ${activeLensIds.includes(lens.id) ? lens.color : 'rgba(148, 163, 184, 0.2)'}`,
-                    borderRadius: '8px',
-                    color: activeLensIds.includes(lens.id) ? '#fff' : '#CBD5E1',
-                    cursor: 'pointer',
-                    fontSize: '14px',
+                    padding: "12px 14px",
+                    background: activeLensIds.includes(lens.id)
+                      ? `linear-gradient(135deg, ${lens.color}40 0%, ${lens.color}20 100%)`
+                      : "rgba(15, 23, 36, 0.6)",
+                    border: `2px solid ${
+                      activeLensIds.includes(lens.id)
+                        ? lens.color
+                        : "rgba(148, 163, 184, 0.2)"
+                    }`,
+                    borderRadius: "8px",
+                    color: activeLensIds.includes(lens.id) ? "#fff" : "#CBD5E1",
+                    cursor: "pointer",
+                    fontSize: "14px",
                     fontWeight: activeLensIds.includes(lens.id) ? 700 : 500,
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    boxShadow: activeLensIds.includes(lens.id) 
-                      ? `0 4px 12px ${lens.color}40` 
-                      : 'none'
+                    textAlign: "left",
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    boxShadow: activeLensIds.includes(lens.id)
+                      ? `0 4px 12px ${lens.color}40`
+                      : "none",
                   }}
                   onMouseEnter={(e) => {
                     if (!activeLensIds.includes(lens.id)) {
-                      e.target.style.background = 'rgba(30, 41, 59, 0.8)';
-                      e.target.style.borderColor = 'rgba(148, 163, 184, 0.4)';
+                      e.target.style.background = "rgba(30, 41, 59, 0.8)";
+                      e.target.style.borderColor = "rgba(148, 163, 184, 0.4)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!activeLensIds.includes(lens.id)) {
-                      e.target.style.background = 'rgba(15, 23, 36, 0.6)';
-                      e.target.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+                      e.target.style.background = "rgba(15, 23, 36, 0.6)";
+                      e.target.style.borderColor = "rgba(148, 163, 184, 0.2)";
                     }
                   }}
                 >
-                  <div style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    background: activeLensIds.includes(lens.id) 
-                      ? lens.color 
-                      : 'rgba(148, 163, 184, 0.3)',
-                    boxShadow: activeLensIds.includes(lens.id) 
-                      ? `0 0 8px ${lens.color}` 
-                      : 'none',
-                    transition: 'all 0.2s'
-                  }} />
+                  <div
+                    style={{
+                      width: "14px",
+                      height: "14px",
+                      borderRadius: "50%",
+                      background: activeLensIds.includes(lens.id)
+                        ? lens.color
+                        : "rgba(148, 163, 184, 0.3)",
+                      boxShadow: activeLensIds.includes(lens.id)
+                        ? `0 0 8px ${lens.color}`
+                        : "none",
+                      transition: "all 0.2s",
+                    }}
+                  />
                   {lens.name}
                 </button>
               ))}
@@ -1318,77 +1548,125 @@ const filteredNodes = nodes.filter(node => {
       )}
 
       {/* Canvas */}
-      <div 
+      <div
         ref={containerRef}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleCanvasMouseMove}
         onMouseUp={handleCanvasMouseUp}
         onMouseLeave={handleCanvasMouseUp}
-        style={{ 
+        style={{
           flex: 1,
-          position: 'relative',
+          position: "relative",
           cursor: getCursor(),
-          overflow: 'hidden',
-          userSelect: 'none'
+          overflow: "hidden",
+          userSelect: "none",
         }}
       >
-        <div 
+        {/* Ambient particle layer */}
+        <canvas
+          id="ambient-canvas"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+        <div
           ref={canvasRef}
-          style={{ 
-            width: '100%',
-            height: '100%',
-            position: 'relative',
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
             backgroundImage: `
-              radial-gradient(circle, rgba(30, 41, 59, 0.5) 1px, transparent 1px)
+              radial-gradient(circle, rgba(30, 41, 59, 0.2) 1px, transparent 1px)
             `,
             backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
-            backgroundPosition: `${pan.x}px ${pan.y}px`
+            backgroundPosition: `${pan.x}px ${pan.y}px`,
           }}
         >
-          <div style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-            width: '10000px',
-            height: '10000px',
-            position: 'absolute',
-            left: '0px',
-            top: '0px'
-          }}>
-            <svg style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              width: '100%', 
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 1,
-              overflow: 'visible'
-            }}>
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: "0 0",
+              width: "10000px",
+              height: "10000px",
+              position: "absolute",
+              left: "0px",
+              top: "0px",
+            }}
+          >
+            <svg
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+                zIndex: 1,
+                overflow: "visible",
+              }}
+            >
               <defs>
                 {/* Gradient for refines connection */}
-                <linearGradient id="refinesGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" style={{ stopColor: '#F59E0B', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: '#FBBF24', stopOpacity: 1 }} />
+                <linearGradient
+                  id="refinesGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop
+                    offset="0%"
+                    style={{ stopColor: "#F59E0B", stopOpacity: 1 }}
+                  />
+                  <stop
+                    offset="100%"
+                    style={{ stopColor: "#FBBF24", stopOpacity: 1 }}
+                  />
                 </linearGradient>
                 {/* Arrow markers */}
-                <marker id="arrowInfluences" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <marker
+                  id="arrowInfluences"
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="9"
+                  refY="3"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
                   <path d="M0,0 L0,6 L9,3 z" fill="#6C63FF" />
                 </marker>
-                <marker id="arrowRefines" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <marker
+                  id="arrowRefines"
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="9"
+                  refY="3"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
                   <path d="M0,0 L0,6 L9,3 z" fill="#F59E0B" />
                 </marker>
               </defs>
-              {edges.map(edge => {
-                const source = filteredNodes.find(n => n.id === edge.source);
-                const target = filteredNodes.find(n => n.id === edge.target);
+              {edges.map((edge) => {
+                const source = filteredNodes.find((n) => n.id === edge.source);
+                const target = filteredNodes.find((n) => n.id === edge.target);
                 if (!source || !target) return null;
-                
+
                 const start = getNodeCenter(source);
                 const end = getNodeCenter(target);
-                
-                const isHighlighted = hoveredNode === edge.source || hoveredNode === edge.target;
-                const connType = connectionTypes.find(c => c.id === edge.type) || connectionTypes[0];
-                
+
+                const isHighlighted =
+                  hoveredNode === edge.source || hoveredNode === edge.target;
+                const connType =
+                  connectionTypes.find((c) => c.id === edge.type) ||
+                  connectionTypes[0];
+
                 // Fade edges in focus mode
                 let edgeOpacity = isHighlighted ? 0.8 : 0.6;
 
@@ -1399,21 +1677,26 @@ const filteredNodes = nodes.filter(node => {
                 const dy = end.y - start.y;
                 const perpX = -dy * 0.1;
                 const perpY = dx * 0.1;
-                
+
                 // Determine what label to show
-                const displayLabel = edge.label && edge.label !== connType.name ? edge.label : connType.name;
-                
+                const displayLabel =
+                  edge.label && edge.label !== connType.name
+                    ? edge.label
+                    : connType.name;
+
                 return (
                   <g key={edge.id}>
-                    {edge.type === 'contradicts' ? (
+                    {edge.type === "contradicts" ? (
                       <path
-                        d={`M ${start.x} ${start.y} Q ${midX + perpX} ${midY + perpY} ${end.x} ${end.y}`}
-                        stroke={isHighlighted ? '#FFFFFF' : connType.color}
+                        d={`M ${start.x} ${start.y} Q ${midX + perpX} ${
+                          midY + perpY
+                        } ${end.x} ${end.y}`}
+                        stroke={isHighlighted ? "#FFFFFF" : connType.color}
                         strokeWidth={isHighlighted ? 3 : 2}
                         opacity={edgeOpacity}
                         fill="none"
                         strokeDasharray={connType.strokeDasharray}
-                        style={{ transition: 'all 0.2s' }}
+                        style={{ transition: "all 0.2s" }}
                       />
                     ) : (
                       <line
@@ -1421,22 +1704,34 @@ const filteredNodes = nodes.filter(node => {
                         y1={start.y}
                         x2={end.x}
                         y2={end.y}
-                        stroke={connType.gradient ? 'url(#refinesGradient)' : (isHighlighted ? '#FFFFFF' : connType.color)}
+                        stroke={
+                          connType.gradient
+                            ? "url(#refinesGradient)"
+                            : isHighlighted
+                            ? "#FFFFFF"
+                            : connType.color
+                        }
                         strokeWidth={isHighlighted ? 3 : 2}
                         opacity={edgeOpacity}
                         strokeDasharray={connType.strokeDasharray}
-                        markerEnd={connType.arrow ? (edge.type === 'refines' ? 'url(#arrowRefines)' : 'url(#arrowInfluences)') : 'none'}
-                        style={{ transition: 'all 0.2s' }}
+                        markerEnd={
+                          connType.arrow
+                            ? edge.type === "refines"
+                              ? "url(#arrowRefines)"
+                              : "url(#arrowInfluences)"
+                            : "none"
+                        }
+                        style={{ transition: "all 0.2s" }}
                       />
                     )}
                     <text
                       x={(start.x + end.x) / 2}
                       y={(start.y + end.y) / 2 - 5}
-                      fill={isHighlighted ? '#FFFFFF' : connType.color}
+                      fill={isHighlighted ? "#FFFFFF" : connType.color}
                       fontSize="14px"
                       fontWeight="500"
                       textAnchor="middle"
-                      style={{ pointerEvents: 'none' }}
+                      style={{ pointerEvents: "none" }}
                     >
                       {displayLabel}
                     </text>
@@ -1446,30 +1741,30 @@ const filteredNodes = nodes.filter(node => {
             </svg>
 
             {/* {console.log('Filtered nodes:', filteredNodes.map(n => ({ id: n.id, type: n.type, position: n.position })))} */}
-            {filteredNodes.map(node => {
+            {filteredNodes.map((node) => {
               // Calculate opacity and glow based on domain filters
               let opacity = 1;
-              let glowEffect = 'none';
-              
-              if (node.type === 'content' && activeDomainFilters.length > 0) {
-                const hasMatchingDomain = activeDomainFilters.some(domain => 
+              let glowEffect = "none";
+
+              if (node.type === "content" && activeDomainFilters.length > 0) {
+                const hasMatchingDomain = activeDomainFilters.some((domain) =>
                   node.data.domainIds?.includes(domain)
                 );
-                
+
                 if (hasMatchingDomain) {
                   // Highlighted seed - full opacity with glow
                   opacity = 1;
                   const glowColors = activeDomainFilters
-                    .filter(d => node.data.domainIds?.includes(d))
-                    .map(d => domainColors[d]);
-                  
+                    .filter((d) => node.data.domainIds?.includes(d))
+                    .map((d) => domainColors[d]);
+
                   // Create multi-color glow if multiple domains match
                   if (glowColors.length === 1) {
                     glowEffect = `drop-shadow(0 0 12px ${glowColors[0]}80) drop-shadow(0 0 24px ${glowColors[0]}40)`;
                   } else if (glowColors.length > 1) {
                     glowEffect = `drop-shadow(0 0 12px ${glowColors[0]}80) drop-shadow(0 0 12px ${glowColors[1]}80)`;
                   } else {
-                    glowEffect = 'none';
+                    glowEffect = "none";
                   }
                 } else {
                   // Non-matching seed - dimmed
@@ -1481,35 +1776,45 @@ const filteredNodes = nodes.filter(node => {
                 <div
                   key={node.id}
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     left: node.position.x,
                     top: node.position.y,
-                    pointerEvents: tool === 'hand' ? 'none' : 'auto',
+                    pointerEvents: tool === "hand" ? "none" : "auto",
                     opacity: opacity,
-                    filter: glowEffect !== 'none' ? glowEffect : 'none',
-                    transition: 'all 0.3s ease'
+                    filter: glowEffect !== "none" ? glowEffect : "none",
+                    transition: "all 0.3s ease",
                   }}
                 >
-                <Node
-                  node={{ ...node, position: { x: 0, y: 0 } }}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onClick={handleNodeClick}
-                  onHover={handleNodeHover}
-                  onLeave={handleNodeLeave}
-                  isDragging={draggingNode === node.id}
-                  isHovered={hoveredNode === node.id}
-                  activeLensIds={activeLensIds}
-                  blendColors={blendColors}
-                  lenses={lenses}
-                />
-              </div>
-            )})}
+                  <Node
+                    node={{ ...node, position: { x: 0, y: 0 } }}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onClick={handleNodeClick}
+                    onHover={handleNodeHover}
+                    onLeave={handleNodeLeave}
+                    isDragging={draggingNode === node.id}
+                    isHovered={hoveredNode === node.id}
+                    activeLensIds={activeLensIds}
+                    blendColors={blendColors}
+                    lenses={lenses}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-
+      {/* Expanding Node Modal */}
+      {selectedNode && (
+        <ExpandingNodeModal
+          node={selectedNode}
+          onClose={() => setSelectedNodeId(null)}
+          onUpdate={handleUpdateNode}
+          onDelete={handleDeleteNode}
+          lenses={lenses}
+        />
+      )}
       {showAnalytics && (
         <AnalyticsPanel
           nodes={nodes}
@@ -1524,7 +1829,7 @@ const filteredNodes = nodes.filter(node => {
           onClose={() => setShowLensManager(false)}
           onUpdate={handleUpdateLenses}
         />
-        )}
+      )}
       {showPurposeModal && purposeData && (
         <PurposeModal
           purposeData={purposeData}
@@ -1532,15 +1837,12 @@ const filteredNodes = nodes.filter(node => {
           onEdit={() => {
             setShowPurposeModal(false);
             // TODO: Re-open purpose screen for editing
-            alert('Edit purpose: Coming soon!');
+            alert("Edit purpose: Coming soon!");
           }}
         />
       )}
       {showLegend && (
-        <LegendModal
-          lenses={lenses}
-          onClose={() => setShowLegend(false)}
-        />
+        <LegendModal lenses={lenses} onClose={() => setShowLegend(false)} />
       )}
       {showPreferences && (
         <PreferencesModal
@@ -1549,17 +1851,19 @@ const filteredNodes = nodes.filter(node => {
           onSave={(mode) => setNodeDetailMode(mode)}
         />
       )}
-       {/* Copyright Footer */}
-      <div style={{
-        position: 'absolute',
-        bottom: '10px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        fontSize: '11px',
-        color: '#475569',
-        zIndex: 50,
-        pointerEvents: 'none'
-      }}>
+      {/* Copyright Footer */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "10px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: "11px",
+          color: "#475569",
+          zIndex: 50,
+          pointerEvents: "none",
+        }}
+      >
         © 2025 Oceanyx · Brian Chan
       </div>
     </div>

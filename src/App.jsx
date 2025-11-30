@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import CanvasView from "./components/CanvasView";
 import PurposeScreen from "./components/PurposeScreen";
 
-export default function App()  {
+export default function App() {
   const [purposeData, setPurposeData] = useState(null);
   const [showPurposeScreen, setShowPurposeScreen] = useState(true);
 
@@ -19,7 +19,7 @@ export default function App()  {
 
   if (showPurposeScreen) {
     return (
-      <PurposeScreen 
+      <PurposeScreen
         onComplete={handlePurposeComplete}
         onSkip={handlePurposeSkip}
       />
