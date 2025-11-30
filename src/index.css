@@ -50,3 +50,13 @@ body,
 .btn-seg button {
   padding: 0.4rem 0.6rem;
 }
+
+@keyframes domainPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}

@@ -1562,6 +1562,47 @@ export default function CanvasView({ purposeData }) {
           userSelect: "none",
         }}
       >
+        {/* Domain Filter Color Overlay */}
+        {activeDomainFilters.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: "none",
+              zIndex: 1,
+              background:
+                activeDomainFilters.length === 1
+                  ? `radial-gradient(circle at center, ${
+                      domainColors[activeDomainFilters[0]]
+                    }15 0%, ${
+                      domainColors[activeDomainFilters[0]]
+                    }05 50%, transparent 80%)`
+                  : activeDomainFilters.length === 2
+                  ? `radial-gradient(circle at center, ${
+                      domainColors[activeDomainFilters[0]]
+                    }10 0%, ${
+                      domainColors[activeDomainFilters[1]]
+                    }10 50%, transparent 80%)`
+                  : `radial-gradient(circle at center, ${
+                      domainColors[activeDomainFilters[0]]
+                    }08 0%, ${domainColors[activeDomainFilters[1]]}08 40%, ${
+                      domainColors[activeDomainFilters[2]]
+                    }08 80%)`,
+              animation: "fadeIn 0.4s ease",
+              transition: "all 0.4s ease",
+            }}
+          >
+            <style>{`
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `}</style>
+          </div>
+        )}
         {/* Ambient particle layer */}
         <canvas
           id="ambient-canvas"
@@ -1783,6 +1824,10 @@ export default function CanvasView({ purposeData }) {
                     opacity: opacity,
                     filter: glowEffect !== "none" ? glowEffect : "none",
                     transition: "all 0.3s ease",
+                    animation:
+                      glowEffect !== "none"
+                        ? "domainPulse 2s ease-in-out infinite"
+                        : "none",
                   }}
                 >
                   <Node
