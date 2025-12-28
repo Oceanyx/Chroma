@@ -10,6 +10,7 @@ const domainColors = {
 
 export default function ReflectionNode({ data, selected }) {
   const color = domainColors[data.domain] || domainColors.private;
+  const isOrbiting = !data.isLocked;
 
   return (
     <>
@@ -24,6 +25,7 @@ export default function ReflectionNode({ data, selected }) {
         }}
       />
       <div
+        className={isOrbiting ? "reflection-orbit" : ""}
         style={{
           width: "48px",
           height: "48px",
@@ -36,14 +38,29 @@ export default function ReflectionNode({ data, selected }) {
           boxShadow: selected
             ? `0 4px 16px ${color}80`
             : `0 2px 8px ${color}60`,
-          transition: "all 0.2s ease",
+          transition: isOrbiting ? "none" : "all 0.2s ease",
           cursor: "pointer",
           fontSize: "16px",
           fontWeight: 700,
           color: "#fff",
+          position: "relative",
         }}
       >
-        R
+        {/* Glow effect for orbiting nodes */}
+        {isOrbiting && (
+          <div
+            style={{
+              position: "absolute",
+              inset: "-8px",
+              background: `radial-gradient(circle, ${color}40 0%, transparent 70%)`,
+              borderRadius: "50%",
+              pointerEvents: "none",
+              animation: "pulse 2s ease-in-out infinite",
+            }}
+          />
+        )}
+
+        <span style={{ position: "relative", zIndex: 1 }}>R</span>
       </div>
       <Handle
         type="source"

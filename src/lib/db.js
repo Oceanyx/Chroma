@@ -1,4 +1,4 @@
-// src/lib/db-v2.js
+// src/lib/db.js
 import Dexie from "dexie";
 
 const db = new Dexie("PerceptionMapV2");
@@ -9,6 +9,59 @@ db.version(1).stores({
   lenses: "++id, label",
   patterns: "++id, label",
 });
+
+// Orbital calculation helpers
+const ORBIT_RADIUS = 120;
+const COMPASS_SLOTS = 8; // N, NE, E, SE, S, SW, W, NW
+
+export const calculateSlotPosition = (parentX, parentY, slot) => {
+  const angle = (slot * Math.PI * 2) / COMPASS_SLOTS;
+  return {
+    x: parentX + ORBIT_RADIUS * Math.cos(angle - Math.PI / 2), // -PI/2 to start at North
+    y: parentY + ORBIT_RADIUS * Math.sin(angle - Math.PI / 2),
+  };
+};
+
+export const findLargestGaps = (occupiedSlots, count = 3) => {
+  if (occupiedSlots.length === 0) {
+    return [0, 2, 4]; // Default: N, E, S
+  }
+
+  const sorted = [...occupiedSlots].sort((a, b) => a - b);
+  const gaps = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const next = sorted[(i + 1) % sorted.length];
+    const gapSize =
+      next > sorted[i] ? next - sorted[i] : COMPASS_SLOTS - sorted[i] + next;
+
+    gaps.push({
+      start: sorted[i],
+      size: gapSize,
+      midpoint: (sorted[i] + Math.floor(gapSize / 2)) % COMPASS_SLOTS,
+    });
+  }
+
+  // If no siblings, add gap for full circle
+  if (
+    sorted.length === occupiedSlots.length &&
+    occupiedSlots.length < COMPASS_SLOTS
+  ) {
+    const lastSlot = sorted[sorted.length - 1];
+    const firstSlot = sorted[0];
+    const finalGap = COMPASS_SLOTS - lastSlot + firstSlot;
+    gaps.push({
+      start: lastSlot,
+      size: finalGap,
+      midpoint: (lastSlot + Math.floor(finalGap / 2)) % COMPASS_SLOTS,
+    });
+  }
+
+  return gaps
+    .sort((a, b) => b.size - a.size)
+    .slice(0, count)
+    .map((g) => g.midpoint);
+};
 
 // Schema enforcement helpers
 export const createObservation = (text, x, y) => ({
@@ -28,15 +81,28 @@ export const createAction = (text, state, x, y) => ({
   y,
 });
 
-export const createReflection = (parentId, domain, text, lensesUsed, slot) => ({
-  type: "R",
+export const createReflection = (
   parentId,
-  domain, // 'private' | 'public' | 'abstract'
+  domain,
   text,
-  lensesUsed, // array of lens IDs
-  slot, // 0-7 (compass position)
-  isLocked: false, // Tidal lock state
-});
+  lensesUsed,
+  slot,
+  parentX,
+  parentY
+) => {
+  const position = calculateSlotPosition(parentX, parentY, slot);
+  return {
+    type: "R",
+    parentId,
+    domain, // 'private' | 'public' | 'abstract'
+    text,
+    lensesUsed, // array of lens IDs
+    slot, // 0-7 (compass position)
+    isLocked: false, // Tidal lock state
+    x: position.x,
+    y: position.y,
+  };
+};
 
 export const createPattern = (label, nodeIds) => ({
   type: "P",
@@ -67,6 +133,10 @@ export const getAllNodes = async () => {
   return await db.nodes.toArray();
 };
 
+export const getNodeById = async (id) => {
+  return await db.nodes.get(id);
+};
+
 export const addEdge = async (edge) => {
   // Validate timestamp constraint
   const source = await db.nodes.get(edge.sourceId);
@@ -78,6 +148,11 @@ export const addEdge = async (edge) => {
     target.timestamp <= source.timestamp
   ) {
     throw new Error("Target timestamp must be greater than source timestamp");
+  }
+
+  // If source is R node, mark it as tidally locked
+  if (source.type === "R") {
+    await updateNode(edge.sourceId, { isLocked: true });
   }
 
   return await db.edges.add(edge);
@@ -99,4 +174,10 @@ export const initializeDB = async () => {
   await db.open();
 };
 
-export { db };
+export {
+  db,
+  ORBIT_RADIUS,
+  COMPASS_SLOTS,
+  findLargestGaps,
+  calculateSlotPosition,
+};
