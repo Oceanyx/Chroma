@@ -24,7 +24,7 @@ import {
   addEdge as dbAddEdge,
   deleteNode as dbDeleteNode,
   createObservation,
-} from "../lib/db-v2";
+} from "../lib/db";
 
 const nodeTypes = {
   O: ObservationNode,
