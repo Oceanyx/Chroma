@@ -26,11 +26,5 @@ export default function App() {
     );
   }
 
-  return (
-    <div className="app-root">
-      <div className="canvas-shell">
-        <PerceptionCanvas purposeData={purposeData} />
-      </div>
-    </div>
-  );
+  return <PerceptionCanvas purposeData={purposeData} />;
 }

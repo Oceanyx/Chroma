@@ -13,7 +13,16 @@ export default function ActionNode({ data, selected }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{
+          background: stateColors[data.state] || stateColors.present,
+          width: 10,
+          height: 10,
+          border: "2px solid #fff",
+        }}
+      />
       <div
         style={{
           width: "140px",
@@ -50,6 +59,29 @@ export default function ActionNode({ data, selected }) {
             opacity: selected ? 1 : 0.5,
           }}
         />
+
+        {/* Type Indicator */}
+        <div
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            width: "24px",
+            height: "24px",
+            borderRadius: "50%",
+            background: `${color}40`,
+            border: `1px solid ${color}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "13px",
+            fontWeight: 700,
+            color: "#fff",
+            zIndex: 2,
+          }}
+        >
+          A
+        </div>
 
         {/* State indicator */}
         <div
@@ -99,7 +131,16 @@ export default function ActionNode({ data, selected }) {
           {data.state}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: stateColors[data.state] || stateColors.present,
+          width: 10,
+          height: 10,
+          border: "2px solid #fff",
+        }}
+      />
     </>
   );
 }

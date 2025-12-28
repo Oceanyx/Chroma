@@ -13,7 +13,16 @@ export default function ReflectionNode({ data, selected }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{
+          background: color,
+          width: 8,
+          height: 8,
+          border: "2px solid #fff",
+        }}
+      />
       <div
         style={{
           width: "48px",
@@ -29,16 +38,23 @@ export default function ReflectionNode({ data, selected }) {
             : `0 2px 8px ${color}60`,
           transition: "all 0.2s ease",
           cursor: "pointer",
-          fontSize: "20px",
+          fontSize: "16px",
+          fontWeight: 700,
+          color: "#fff",
         }}
       >
-        {data.domain === "private"
-          ? "❤️"
-          : data.domain === "public"
-          ? "💬"
-          : "🧠"}
+        R
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: color,
+          width: 8,
+          height: 8,
+          border: "2px solid #fff",
+        }}
+      />
     </>
   );
 }

@@ -10,6 +10,7 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { Hand, MousePointer } from "lucide-react";
 
 import ObservationNode from "./nodes/ObservationNode";
 import ActionNode from "./nodes/ActionNode";
@@ -31,11 +32,13 @@ const nodeTypes = {
   R: ReflectionNode,
 };
 
-export default function PerceptionCanvas() {
+export default function PerceptionCanvas({ purposeData }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [tool, setTool] = useState("select"); // 'select' or 'hand'
+  const [isPanning, setIsPanning] = useState(false);
 
   // Initialize DB and load data
   useEffect(() => {
@@ -88,7 +91,20 @@ export default function PerceptionCanvas() {
         color: "#6C63FF",
       },
     };
+    // Keyboard shortcuts for tools
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        if (e.key === "v" || e.key === "V") {
+          setTool("select");
+        }
+        if (e.key === "h" || e.key === "H") {
+          setTool("hand");
+        }
+      };
 
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
     setEdges((eds) => addEdge(newEdge, eds));
 
     // Save to DB
@@ -125,39 +141,64 @@ export default function PerceptionCanvas() {
   };
 
   return (
-    <div style={{ width: "100%", height: "100vh", background: "#0A0F1E" }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onInit={setReactFlowInstance}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        background: "linear-gradient(180deg, #0A0F1E 0%, #0F1428 100%)",
+      }}
+    >
+      {/* Tool Selector - Bottom Left */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          zIndex: 100,
+        }}
       >
-        <Background
-          color="#1E293B"
-          gap={20}
-          size={1}
-          style={{ opacity: 0.3 }}
-        />
-        <Controls />
-        <MiniMap
-          nodeColor={(node) => {
-            if (node.type === "O") return "#fff";
-            if (node.type === "A") return "#10B981";
-            if (node.type === "R") return "#A78BFA";
-            return "#fff";
+        <button
+          onClick={() => setTool("select")}
+          style={{
+            padding: "10px",
+            background: tool === "select" ? "#6C63FF" : "#1E293B",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "8px",
+            color: "#E6EEF8",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
           }}
-        />
-      </ReactFlow>
+          title="Select Tool (V)"
+        >
+          <MousePointer size={20} />
+        </button>
+        <button
+          onClick={() => setTool("hand")}
+          style={{
+            padding: "10px",
+            background: tool === "hand" ? "#6C63FF" : "#1E293B",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "8px",
+            color: "#E6EEF8",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+          }}
+          title="Hand Tool (H)"
+        >
+          <Hand size={20} />
+        </button>
+      </div>
 
-      {/* Temporary test button */}
+      {/* Test Button - Bottom Right */}
       <button
         onClick={handleCreateObservation}
         style={{
@@ -176,6 +217,40 @@ export default function PerceptionCanvas() {
       >
         + Observation
       </button>
+
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onNodeClick={onNodeClick}
+        onInit={setReactFlowInstance}
+        nodeTypes={nodeTypes}
+        fitView
+        minZoom={0.1}
+        maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+        panOnDrag={tool === "hand"}
+        nodesDraggable={tool === "select"}
+        elementsSelectable={tool === "select"}
+      >
+        <Background
+          color="#1E293B"
+          gap={20}
+          size={1}
+          style={{ opacity: 0.3 }}
+        />
+        <Controls />
+        <MiniMap
+          nodeColor={(node) => {
+            if (node.type === "O") return "#fff";
+            if (node.type === "A") return "#10B981";
+            if (node.type === "R") return "#A78BFA";
+            return "#fff";
+          }}
+        />
+      </ReactFlow>
     </div>
   );
 }
