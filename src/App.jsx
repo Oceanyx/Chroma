@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState } from "react";
-import CanvasView from "./components/CanvasView";
+import PerceptionCanvas from "./components/PerceptionCanvas";
 import PurposeScreen from "./components/PurposeScreen";
 
 export default function App() {
@@ -29,7 +29,7 @@ export default function App() {
   return (
     <div className="app-root">
       <div className="canvas-shell">
-        <CanvasView purposeData={purposeData} />
+        <PerceptionCanvas purposeData={purposeData} />
       </div>
     </div>
   );

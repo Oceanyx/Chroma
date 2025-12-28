@@ -19,12 +19,10 @@ import {
   Brain,
 } from "lucide-react";
 import Node from "./Node";
-import AnalyticsPanel from "./AnalyticsPanel";
 import LensManager from "./LensManager";
 import LeftSidebar from "./LeftSidebar";
 import PurposeModal from "./PurposeModal";
 import LegendModal from "./LegendModal";
-import ExpandingNodeModal from "./ExpandingNodeModal";
 import PreferencesModal from "./PreferencesModal";
 import { domainColors, defaultLenses, connectionTypes } from "../seedData";
 import {
