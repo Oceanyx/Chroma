@@ -174,10 +174,4 @@ export const initializeDB = async () => {
   await db.open();
 };
 
-export {
-  db,
-  ORBIT_RADIUS,
-  COMPASS_SLOTS,
-  findLargestGaps,
-  calculateSlotPosition,
-};
+export { db, ORBIT_RADIUS, COMPASS_SLOTS };

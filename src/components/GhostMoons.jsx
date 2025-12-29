@@ -14,10 +14,8 @@ export default function GhostMoons({
   onSelect,
   onCancel,
 }) {
-  // Calculate available slots
   const occupiedSlots = existingReflections.map((r) => r.slot);
   const availableSlots = findLargestGaps(occupiedSlots, 3);
-
   const domains = Object.keys(domainConfig);
 
   return (
@@ -31,7 +29,6 @@ export default function GhostMoons({
         borderRadius: "16px",
         border: "1px solid rgba(108, 99, 255, 0.3)",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-        animation: "scaleIn 0.3s ease",
       }}
     >
       {domains.map((domain, index) => {
@@ -62,7 +59,6 @@ export default function GhostMoons({
               moon.style.opacity = "0.6";
             }}
           >
-            {/* Ghost Moon */}
             <div
               className="ghost-moon"
               style={{
@@ -86,8 +82,6 @@ export default function GhostMoons({
             >
               R
             </div>
-
-            {/* Label */}
             <div
               style={{
                 fontSize: "14px",
@@ -101,29 +95,6 @@ export default function GhostMoons({
           </button>
         );
       })}
-
-      <style jsx>{`
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            box-shadow: 0 0 20px currentColor;
-          }
-          50% {
-            box-shadow: 0 0 40px currentColor;
-          }
-        }
-      `}</style>
     </div>
   );
 }
