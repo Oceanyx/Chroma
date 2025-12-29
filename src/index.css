@@ -11,7 +11,7 @@ body,
   width: 100%;
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, #0a0f1e 0%, #0f1428 100%);
+  background: #0f1724;
   color: #ffffff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial;
@@ -25,7 +25,7 @@ body,
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background: linear-gradient(180deg, #0a0f1e 0%, #0f1428 100%);
+  background: #0f1724;
   margin: 0;
   padding: 0;
 }
@@ -35,33 +35,7 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(180deg, #0a0f1e 0%, #0f1428 100%);
-}
-
-/* Reflection Node Orbit Animation */
-@keyframes orbit {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-.reflection-orbit {
-  animation: orbit 20s linear infinite;
+  background: #071022;
 }
 
 /* Small helpers for leftover UI */
@@ -75,65 +49,4 @@ body,
 
 .btn-seg button {
   padding: 0.4rem 0.6rem;
-}
-
-@keyframes domainPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(108, 99, 255, 0.5);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(108, 99, 255, 0.7);
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
