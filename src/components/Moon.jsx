@@ -1,6 +1,6 @@
-// src/components/Moon.jsx
+// src/components/Moon.jsx - Updated (No Glow, Stable)
 import React from "react";
-import { MOON } from "../utils/constants";
+import { moonConfig } from "../seedData";
 
 export default function Moon({
   node,
@@ -14,78 +14,36 @@ export default function Moon({
   onMouseEnter,
   onMouseLeave,
 }) {
-  const domain = MOON.domains[node?.domain || "private"];
-  const radius = MOON.radius;
+  const domain = moonConfig.domain[node?.domain || "private"];
+  const radius = moonConfig.baseRadius;
 
-  // Use provided position or node's position
+  // Use provided position (already calculated)
   const x = position?.x || node.position?.x || 0;
   const y = position?.y || node.position?.y || 0;
 
   const gradientId = `moon-gradient-${node?.id || Math.random()}`;
-  const glowId = `moon-glow-${node?.id || Math.random()}`;
 
   // Ghost moon styling
-  const opacity = isGhost
-    ? isHovered
-      ? MOON.ghost.hoverOpacity
-      : MOON.ghost.opacity
-    : 1;
+  const opacity = isGhost ? (isHovered ? 0.7 : 0.3) : 1;
 
   return (
     <g
-      onClick={(e) => !isGhost && onClick?.(node, e)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(node, e);
+      }}
       onMouseEnter={() => onMouseEnter?.(node)}
       onMouseLeave={() => onMouseLeave?.()}
-      style={{ cursor: isGhost ? "pointer" : "pointer" }}
+      style={{ cursor: "pointer" }}
       opacity={opacity}
-      transform={isHovered && !isGhost ? "scale(1.15)" : "scale(1)"}
-      transformOrigin={`${x} ${y}`}
     >
       <defs>
-        {/* Moon Gradient */}
         <radialGradient id={gradientId}>
           <stop offset="0%" stopColor={domain.color} stopOpacity="0.9" />
           <stop offset="70%" stopColor={domain.color} stopOpacity="0.7" />
           <stop offset="100%" stopColor={domain.color} stopOpacity="0.5" />
         </radialGradient>
-
-        {/* Glow Filter */}
-        <filter id={glowId} x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation={isHovered ? "6" : "4"} result="blur" />
-          <feFlood floodColor={domain.glow} floodOpacity="0.8" />
-          <feComposite in2="blur" operator="in" />
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
-
-      {/* Pulsing Halo */}
-      {!isGhost && (
-        <circle
-          cx={x}
-          cy={y}
-          r={radius * 2}
-          fill={domain.glow}
-          opacity={isHovered ? 0.3 : 0.15}
-        >
-          <animate
-            attributeName="r"
-            values={`${radius * 1.8};${radius * 2.2};${radius * 1.8}`}
-            dur="3s"
-            repeatCount="indefinite"
-          />
-          <animate
-            attributeName="opacity"
-            values={`${isHovered ? 0.2 : 0.1};${isHovered ? 0.4 : 0.2};${
-              isHovered ? 0.2 : 0.1
-            }`}
-            dur="3s"
-            repeatCount="indefinite"
-          />
-        </circle>
-      )}
 
       {/* Main Moon Body */}
       <circle
@@ -96,7 +54,6 @@ export default function Moon({
         stroke={isSelected ? "#FFFFFF" : domain.color}
         strokeWidth={isSelected ? 2 : 1}
         strokeOpacity={isGhost ? 0.5 : 0.8}
-        filter={!isGhost ? `url(#${glowId})` : "none"}
       />
 
       {/* Highlight Spot */}
@@ -114,8 +71,8 @@ export default function Moon({
           <circle
             cx={x + radius * 0.6}
             cy={y - radius * 0.6}
-            r={MOON.aggregateIndicator.radius}
-            fill={MOON.aggregateIndicator.color}
+            r={8}
+            fill="#FFFFFF"
             stroke={domain.color}
             strokeWidth={2}
           />
@@ -124,8 +81,8 @@ export default function Moon({
             y={y - radius * 0.6}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={MOON.aggregateIndicator.fontSize}
-            fontWeight={MOON.aggregateIndicator.fontWeight}
+            fontSize={10}
+            fontWeight="bold"
             fill={domain.color}
           >
             {count}
@@ -146,20 +103,6 @@ export default function Moon({
         >
           {domain.name}
         </text>
-      )}
-
-      {/* Expanded Mini-Moon Connector Line */}
-      {isExpanded && (
-        <line
-          x1={x}
-          y1={y}
-          x2={x}
-          y2={y - 40}
-          stroke={domain.color}
-          strokeWidth={1}
-          strokeOpacity={0.4}
-          strokeDasharray="2,2"
-        />
       )}
 
       {/* Selection Ring */}
@@ -185,7 +128,7 @@ export default function Moon({
         </circle>
       )}
 
-      {/* Hover Text Preview (for non-ghost moons) */}
+      {/* Hover Text Preview */}
       {isHovered && !isGhost && node?.text && (
         <g>
           <rect

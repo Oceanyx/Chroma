@@ -1,20 +1,18 @@
-// src/lib/orbitalPhysics.js - Moon Position & Orbit Calculations
+// src/lib/orbitalPhysics.js - With Stable Position Memoization
+import { moonConfig, planetConfig } from "../seedData";
 
-import { MOON, PLANET } from "../utils/constants";
+// Position cache to prevent recalculation
+const positionCache = new Map();
 
 /**
  * Calculate orbital position for a moon around its parent planet
- * @param {Object} parent - Parent planet node { position: {x, y}, type }
- * @param {number} angle - Angle in radians (0 = right, π/2 = bottom, π = left, 3π/2 = top)
- * @param {number} radius - Orbital radius (default from constants)
- * @returns {Object} - {x, y} position
  */
 export function calculateMoonPosition(
   parent,
   angle,
-  radius = MOON.orbitRadius
+  radius = moonConfig.orbitRadius
 ) {
-  const planetRadius = PLANET[parent.type]?.radius || 50;
+  const planetRadius = planetConfig.baseRadius;
   const centerX = parent.position.x + planetRadius;
   const centerY = parent.position.y + planetRadius;
 
@@ -25,36 +23,17 @@ export function calculateMoonPosition(
 }
 
 /**
- * Distribute moons evenly around orbit
- * @param {Array} moons - Array of moon nodes for a single parent
- * @param {Object} parent - Parent planet node
- * @returns {Array} - Moons with updated orbital positions
- */
-export function distributeMoonsEvenly(moons, parent) {
-  const count = moons.length;
-  if (count === 0) return [];
-
-  const angleStep = (Math.PI * 2) / count;
-
-  return moons.map((moon, index) => {
-    const angle = angleStep * index;
-    const position = calculateMoonPosition(parent, angle);
-
-    return {
-      ...moon,
-      orbitAngle: angle,
-      position,
-    };
-  });
-}
-
-/**
- * Group moons by domain and calculate positions for aggregate display
- * @param {Array} moons - All moons for a parent
- * @param {Object} parent - Parent planet node
- * @returns {Object} - { private: {...}, public: {...}, abstract: {...} }
+ * Group moons by domain and calculate stable positions
+ * Returns memoized positions to prevent jittering
  */
 export function groupMoonsByDomain(moons, parent) {
+  const cacheKey = `${parent.id}-${moons.map((m) => m.id).join(",")}`;
+
+  // Check cache
+  if (positionCache.has(cacheKey)) {
+    return positionCache.get(cacheKey);
+  }
+
   const grouped = {
     private: [],
     public: [],
@@ -67,11 +46,11 @@ export function groupMoonsByDomain(moons, parent) {
     }
   });
 
-  // Calculate positions for each domain's aggregate moon
+  // Fixed angles for each domain
   const domainAngles = {
-    private: Math.PI * 1.5, // Top
-    public: Math.PI * 0.5, // Bottom
-    abstract: 0, // Right
+    private: Math.PI * 1.5, // Top (270°)
+    public: Math.PI * 0.5, // Bottom (90°)
+    abstract: 0, // Right (0°)
   };
 
   const result = {};
@@ -89,72 +68,88 @@ export function groupMoonsByDomain(moons, parent) {
     }
   });
 
+  // Cache result
+  positionCache.set(cacheKey, result);
+
   return result;
 }
 
 /**
- * Expand aggregate moon into individual moons in a mini-orbit
- * @param {Array} moons - Moons in a single domain
- * @param {Object} aggregatePosition - Position of the aggregate moon
- * @param {number} miniOrbitRadius - Radius of mini-orbit
- * @returns {Array} - Moons with mini-orbit positions
+ * Distribute moons evenly in circular orbit
+ * Used for individual moon positioning when not aggregated
  */
-export function expandAggregateMoon(
-  moons,
-  aggregatePosition,
-  miniOrbitRadius = 30
-) {
+export function distributeMoonsEvenly(moons, parent) {
   const count = moons.length;
+  if (count === 0) return [];
+
   const angleStep = (Math.PI * 2) / count;
+  const startAngle = Math.PI * 1.5; // Start from top
 
   return moons.map((moon, index) => {
-    const angle = angleStep * index;
+    const angle = startAngle + angleStep * index;
+    const position = calculateMoonPosition(parent, angle);
+
     return {
       ...moon,
-      position: {
-        x: aggregatePosition.x + Math.cos(angle) * miniOrbitRadius,
-        y: aggregatePosition.y + Math.sin(angle) * miniOrbitRadius,
-      },
-      miniOrbitAngle: angle,
+      orbitAngle: angle,
+      position,
     };
   });
 }
 
 /**
- * Calculate animated orbital position based on time
- * @param {Object} moon - Moon node with orbitAngle
- * @param {Object} parent - Parent planet
- * @param {number} time - Current time in ms
- * @returns {Object} - {x, y} animated position
+ * Calculate animated orbital position based on time and initial angle
  */
-export function calculateAnimatedOrbit(moon, parent, time) {
+export function calculateAnimatedOrbit(moon, parent, time, paused = false) {
   const baseAngle = moon.orbitAngle || 0;
-  const animatedAngle = baseAngle + time * MOON.orbitSpeed;
 
+  // If paused (hovered), return static position
+  if (paused) {
+    return calculateMoonPosition(parent, baseAngle);
+  }
+
+  // Animate
+  const animatedAngle = baseAngle + time * moonConfig.orbitSpeed;
   return calculateMoonPosition(parent, animatedAngle);
 }
 
 /**
- * Check if two moons would overlap
- * @param {Object} pos1 - {x, y} position
- * @param {Object} pos2 - {x, y} position
- * @param {number} minDistance - Minimum allowed distance
- * @returns {boolean}
+ * Get ghost moon positions for reflection mode
+ * These are fixed positions in viewport center
  */
-export function moonsWouldOverlap(pos1, pos2, minDistance = MOON.radius * 3) {
-  const dx = pos2.x - pos1.x;
-  const dy = pos2.y - pos1.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
+export function getGhostMoonPositions(parent) {
+  // In reflection mode, parent should be centered in viewport
+  // Calculate based on viewport dimensions
+  const viewportCenterX = window.innerWidth / 2;
+  const viewportCenterY = window.innerHeight / 2;
 
-  return distance < minDistance;
+  const radius = moonConfig.orbitRadius;
+
+  return {
+    private: {
+      x: viewportCenterX,
+      y: viewportCenterY - radius,
+    },
+    public: {
+      x: viewportCenterX,
+      y: viewportCenterY + radius,
+    },
+    abstract: {
+      x: viewportCenterX + radius,
+      y: viewportCenterY,
+    },
+  };
+}
+
+/**
+ * Clear position cache when nodes are added/removed
+ */
+export function clearPositionCache() {
+  positionCache.clear();
 }
 
 /**
  * Binary Lock: Two sibling moons lock distance and orbit together
- * @param {Object} moon1 - First moon
- * @param {Object} moon2 - Second moon
- * @param {Object} parent - Parent planet
- * @returns {Object} - { moon1Position, moon2Position, lockAngle }
  */
 export function calculateBinaryLock(moon1, moon2, parent) {
   const midpointAngle = (moon1.orbitAngle + moon2.orbitAngle) / 2;
@@ -169,21 +164,17 @@ export function calculateBinaryLock(moon1, moon2, parent) {
 
 /**
  * Tidal Lock: Moon faces a distant target and stops orbiting
- * @param {Object} moon - Moon node
- * @param {Object} parent - Parent planet
- * @param {Object} target - Target node the moon is connected to
- * @returns {Object} - {x, y, rotation} for tidal-locked moon
  */
 export function calculateTidalLock(moon, parent, target) {
-  const planetRadius = PLANET[parent.type]?.radius || 50;
+  const planetRadius = planetConfig.baseRadius;
   const parentCenter = {
     x: parent.position.x + planetRadius,
     y: parent.position.y + planetRadius,
   };
 
   const targetCenter = {
-    x: target.position.x + (PLANET[target.type]?.radius || 50),
-    y: target.position.y + (PLANET[target.type]?.radius || 50),
+    x: target.position.x + planetRadius,
+    y: target.position.y + planetRadius,
   };
 
   // Calculate angle from parent to target
@@ -198,18 +189,5 @@ export function calculateTidalLock(moon, parent, target) {
     position,
     rotation: angleToTarget,
     isTidalLocked: true,
-  };
-}
-
-/**
- * Get ghost moon positions for reflection mode
- * @param {Object} parent - Parent planet
- * @returns {Object} - { private, public, abstract } with positions
- */
-export function getGhostMoonPositions(parent) {
-  return {
-    private: calculateMoonPosition(parent, Math.PI * 1.5), // Top
-    public: calculateMoonPosition(parent, Math.PI * 0.5), // Bottom
-    abstract: calculateMoonPosition(parent, 0), // Right
   };
 }

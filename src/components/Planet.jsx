@@ -1,6 +1,6 @@
-// src/components/Planet.jsx
+// src/components/Planet.jsx - Updated with Variants & Fixes
 import React from "react";
-import { PLANET } from "../utils/constants";
+import { planetVariants, planetConfig } from "../seedData";
 
 export default function Planet({
   node,
@@ -11,20 +11,35 @@ export default function Planet({
   onDoubleClick,
   onMouseEnter,
   onMouseLeave,
+  onMouseDown,
 }) {
-  const config = PLANET[node.type];
+  const variantType = node.type === "O" ? "observation" : "action";
+  const defaultVariant = variantType === "observation" ? "deep-ocean" : "ember";
+  const variantKey = node.variant || defaultVariant;
+  const variant =
+    planetVariants[variantType]?.[variantKey] ||
+    planetVariants[variantType][defaultVariant];
+
   const { x, y } = node.position;
-  const radius = config.radius;
+  const radius = planetConfig.baseRadius;
   const centerX = x + radius;
   const centerY = y + radius;
 
-  // Unique IDs for gradients (to avoid conflicts)
   const gradientId = `gradient-${node.id}`;
   const glowId = `glow-${node.id}`;
 
-  // State-specific styling for Action nodes
-  const stateStyle =
-    node.type === "A" && node.state ? config.states[node.state] : null;
+  // State-specific styling
+  const stateConfig =
+    node.state && node.type === "A" ? planetConfig.states[node.state] : null;
+
+  // Calculate opacity based on state
+  const opacity = stateConfig?.opacity || 1;
+
+  // Glow intensity based on hover
+  const glowOpacity = isHovered ? 0.5 : 0.2;
+  const glowRadius = isHovered
+    ? planetConfig.glowRadius * 1.2
+    : planetConfig.glowRadius;
 
   return (
     <g
@@ -32,25 +47,21 @@ export default function Planet({
       onDoubleClick={(e) => onDoubleClick?.(node, e)}
       onMouseEnter={() => onMouseEnter?.(node)}
       onMouseLeave={() => onMouseLeave?.()}
+      onMouseDown={(e) => onMouseDown?.(node, e)}
       style={{ cursor: "pointer" }}
-      opacity={isFocused === false ? 0.3 : 1}
-      transform={isHovered ? "scale(1.05)" : "scale(1)"}
-      transformOrigin={`${centerX} ${centerY}`}
-      transition="all 0.2s ease"
+      opacity={isFocused === false ? 0.3 : opacity}
     >
       <defs>
-        {/* Core to Surface Gradient */}
         <radialGradient id={gradientId}>
-          <stop offset="0%" stopColor={config.colors.core[0]} />
-          <stop offset="40%" stopColor={config.colors.core[1]} />
-          <stop offset="70%" stopColor={config.colors.surface[0]} />
-          <stop offset="100%" stopColor={config.colors.surface[1]} />
+          <stop offset="0%" stopColor={variant.colors.core[0]} />
+          <stop offset="40%" stopColor={variant.colors.core[1]} />
+          <stop offset="70%" stopColor={variant.colors.surface[0]} />
+          <stop offset="100%" stopColor={variant.colors.surface[1]} />
         </radialGradient>
 
-        {/* Glow Filter */}
         <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation={isHovered ? "8" : "5"} result="blur" />
-          <feFlood floodColor={config.colors.glow} floodOpacity="1" />
+          <feFlood floodColor={variant.colors.glow} floodOpacity="1" />
           <feComposite in2="blur" operator="in" />
           <feMerge>
             <feMergeNode />
@@ -59,84 +70,62 @@ export default function Planet({
         </filter>
       </defs>
 
-      {/* Outer Glow */}
+      {/* Outer Glow Aura */}
       <circle
         cx={centerX}
         cy={centerY}
-        r={config.glowRadius}
-        fill={config.colors.glow}
-        opacity={isHovered ? 0.3 : 0.2}
+        r={glowRadius}
+        fill={variant.colors.glow}
+        opacity={glowOpacity}
         filter={`url(#${glowId})`}
-      />
-
-      {/* Main Planet Body */}
-      <circle
-        cx={centerX}
-        cy={centerY}
-        r={radius}
-        fill={`url(#${gradientId})`}
-        stroke={isSelected ? "#FFFFFF" : "rgba(255,255,255,0.1)"}
-        strokeWidth={isSelected ? 3 : 1}
-      />
-
-      {/* Highlight (Top-Left Shine) */}
-      <ellipse
-        cx={centerX + config.highlightOffset.x * radius}
-        cy={centerY + config.highlightOffset.y * radius}
-        rx={radius * 0.35}
-        ry={radius * 0.25}
-        fill="rgba(255, 255, 255, 0.3)"
-        opacity={0.6}
+        style={{ transition: "all 0.3s ease" }}
       />
 
       {/* State-Specific Overlays for Action Nodes */}
-      {node.type === "A" && stateStyle && (
+      {node.type === "A" && stateConfig && (
         <>
-          {/* Past: Trailing Glow */}
           {node.state === "past" && (
             <ellipse
               cx={centerX - 30}
               cy={centerY}
-              rx={stateStyle.trailLength}
+              rx={stateConfig.trailLength}
               ry={radius * 0.5}
-              fill={stateStyle.trailColor}
+              fill={stateConfig.trailColor}
               opacity={0.4}
             />
           )}
 
-          {/* Present: Pulsing Ring */}
           {node.state === "present" && (
             <circle
               cx={centerX}
               cy={centerY}
               r={radius + 8}
               fill="none"
-              stroke={stateStyle.pulseColor}
+              stroke={stateConfig.pulseColor}
               strokeWidth={3}
               opacity={0.7}
             >
               <animate
                 attributeName="r"
                 values={`${radius + 5};${radius + 12};${radius + 5}`}
-                dur="2s"
+                dur={`${stateConfig.pulseSpeed}s`}
                 repeatCount="indefinite"
               />
               <animate
                 attributeName="opacity"
                 values="0.7;0.3;0.7"
-                dur="2s"
+                dur={`${stateConfig.pulseSpeed}s`}
                 repeatCount="indefinite"
               />
             </circle>
           )}
 
-          {/* Future: Enhanced Glow */}
           {node.state === "future" && (
             <circle
               cx={centerX}
               cy={centerY}
-              r={config.glowRadius * 1.2}
-              fill={stateStyle.glowColor}
+              r={glowRadius * stateConfig.glowIntensity}
+              fill={stateConfig.glowColor}
               opacity={0.25}
             >
               <animate
@@ -150,45 +139,53 @@ export default function Planet({
         </>
       )}
 
+      {/* Main Planet Body */}
+      <circle
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        fill={`url(#${gradientId})`}
+        stroke={isSelected ? "#FFFFFF" : "rgba(255,255,255,0.1)"}
+        strokeWidth={isSelected ? 3 : 1}
+      />
+
+      {/* Highlight (Top-Left Shine) */}
+      <ellipse
+        cx={centerX + planetConfig.highlightOffset.x * radius}
+        cy={centerY + planetConfig.highlightOffset.y * radius}
+        rx={radius * 0.35}
+        ry={radius * 0.25}
+        fill="rgba(255, 255, 255, 0.3)"
+        opacity={0.6}
+      />
+
       {/* Icon Overlay */}
       <text
         x={centerX}
         y={centerY}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={config.iconSize}
+        fontSize={planetConfig.iconSize}
         opacity={0.9}
+        style={{ pointerEvents: "none" }}
       >
-        {config.icon}
+        {planetConfig.icon[node.type === "O" ? "observation" : "action"]}
       </text>
 
-      {/* Node Text (appears on hover) */}
-      {isHovered && (
-        <g>
-          <rect
-            x={centerX - 80}
-            y={centerY + radius + 10}
-            width={160}
-            height={36}
-            rx={6}
-            fill="rgba(15, 23, 36, 0.95)"
-            stroke="rgba(108, 99, 255, 0.5)"
-            strokeWidth={1}
-          />
-          <text
-            x={centerX}
-            y={centerY + radius + 28}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={12}
-            fill="#E6EEF8"
-            fontWeight={500}
-            style={{ pointerEvents: "none" }}
-          >
-            {node.text.length > 20 ? node.text.slice(0, 20) + "..." : node.text}
-          </text>
-        </g>
-      )}
+      {/* Title Label Below Planet (Always Visible) */}
+      <text
+        x={centerX}
+        y={centerY + radius + 20}
+        textAnchor="middle"
+        fontSize={13}
+        fill="#E6EEF8"
+        fontWeight={500}
+        opacity={0.9}
+        style={{ pointerEvents: "none" }}
+      >
+        {node.text?.substring(0, 20) || "Untitled"}
+        {node.text?.length > 20 ? "..." : ""}
+      </text>
 
       {/* Selection Ring Animation */}
       {isSelected && (
@@ -211,6 +208,35 @@ export default function Planet({
             repeatCount="indefinite"
           />
         </circle>
+      )}
+
+      {/* Hover Tooltip */}
+      {isHovered && node.text && (
+        <g>
+          <rect
+            x={centerX - 100}
+            y={centerY - radius - 50}
+            width={200}
+            height={40}
+            rx={6}
+            fill="rgba(15, 23, 36, 0.95)"
+            stroke="rgba(108, 99, 255, 0.5)"
+            strokeWidth={1}
+          />
+          <text
+            x={centerX}
+            y={centerY - radius - 30}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={12}
+            fill="#E6EEF8"
+            fontWeight={500}
+            style={{ pointerEvents: "none" }}
+          >
+            {node.text.substring(0, 30)}
+            {node.text.length > 30 ? "..." : ""}
+          </text>
+        </g>
       )}
     </g>
   );
