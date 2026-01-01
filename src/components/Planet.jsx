@@ -1,4 +1,4 @@
-// src/components/Planet.jsx - Updated with Variants & Fixes
+// src/components/Planet.jsx - More Planet-like, No Icons
 import React from "react";
 import { planetVariants, planetConfig } from "../seedData";
 
@@ -27,15 +27,12 @@ export default function Planet({
 
   const gradientId = `gradient-${node.id}`;
   const glowId = `glow-${node.id}`;
+  const noiseId = `noise-${node.id}`;
 
-  // State-specific styling
   const stateConfig =
     node.state && node.type === "A" ? planetConfig.states[node.state] : null;
 
-  // Calculate opacity based on state
   const opacity = stateConfig?.opacity || 1;
-
-  // Glow intensity based on hover
   const glowOpacity = isHovered ? 0.5 : 0.2;
   const glowRadius = isHovered
     ? planetConfig.glowRadius * 1.2
@@ -52,6 +49,7 @@ export default function Planet({
       opacity={isFocused === false ? 0.3 : opacity}
     >
       <defs>
+        {/* Core to Surface Gradient */}
         <radialGradient id={gradientId}>
           <stop offset="0%" stopColor={variant.colors.core[0]} />
           <stop offset="40%" stopColor={variant.colors.core[1]} />
@@ -59,6 +57,26 @@ export default function Planet({
           <stop offset="100%" stopColor={variant.colors.surface[1]} />
         </radialGradient>
 
+        {/* Surface Texture Pattern */}
+        <filter id={noiseId}>
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.02"
+            numOctaves="3"
+            result="noise"
+          />
+          <feDiffuseLighting
+            in="noise"
+            lightingColor={variant.colors.surface[1]}
+            surfaceScale="2"
+          >
+            <feDistantLight azimuth="45" elevation="60" />
+          </feDiffuseLighting>
+          <feComposite operator="in" in2="SourceGraphic" />
+          <feBlend in2="SourceGraphic" mode="overlay" />
+        </filter>
+
+        {/* Glow Filter */}
         <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation={isHovered ? "8" : "5"} result="blur" />
           <feFlood floodColor={variant.colors.glow} floodOpacity="1" />
@@ -147,6 +165,16 @@ export default function Planet({
         fill={`url(#${gradientId})`}
         stroke={isSelected ? "#FFFFFF" : "rgba(255,255,255,0.1)"}
         strokeWidth={isSelected ? 3 : 1}
+        filter={`url(#${noiseId})`}
+      />
+
+      {/* Atmosphere Layer */}
+      <circle
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        fill={variant.colors.atmosphere[0]}
+        opacity={0.15}
       />
 
       {/* Highlight (Top-Left Shine) */}
@@ -155,24 +183,21 @@ export default function Planet({
         cy={centerY + planetConfig.highlightOffset.y * radius}
         rx={radius * 0.35}
         ry={radius * 0.25}
-        fill="rgba(255, 255, 255, 0.3)"
-        opacity={0.6}
+        fill="rgba(255, 255, 255, 0.5)"
+        opacity={0.7}
       />
 
-      {/* Icon Overlay */}
-      <text
-        x={centerX}
-        y={centerY}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={planetConfig.iconSize}
-        opacity={0.9}
-        style={{ pointerEvents: "none" }}
-      >
-        {planetConfig.icon[node.type === "O" ? "observation" : "action"]}
-      </text>
+      {/* Secondary Shine (Softer) */}
+      <ellipse
+        cx={centerX + planetConfig.highlightOffset.x * radius * 0.5}
+        cy={centerY + planetConfig.highlightOffset.y * radius * 0.5}
+        rx={radius * 0.2}
+        ry={radius * 0.15}
+        fill="rgba(255, 255, 255, 0.3)"
+        opacity={0.5}
+      />
 
-      {/* Title Label Below Planet (Always Visible) */}
+      {/* Title Label Below Planet */}
       <text
         x={centerX}
         y={centerY + radius + 20}

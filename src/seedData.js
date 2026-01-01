@@ -1,7 +1,7 @@
-// src/seedData.js - With Planet Variants System
+// src/seedData.js - Final with Moon Sizes & Speeds
 
 // ============================================================================
-// DOMAIN COLORS (for R nodes only)
+// DOMAIN COLORS
 // ============================================================================
 export const domainColors = {
   private: "#A78BFA", // Violet
@@ -10,7 +10,7 @@ export const domainColors = {
 };
 
 // ============================================================================
-// PLANET VARIANTS - 10 Observation + 10 Action
+// PLANET VARIANTS
 // ============================================================================
 export const planetVariants = {
   observation: {
@@ -199,7 +199,6 @@ export const planetVariants = {
   },
 };
 
-// Helper to get random variant
 export function getRandomVariant(nodeType) {
   const variantType = nodeType === "O" ? "observation" : "action";
   const variants = Object.keys(planetVariants[variantType]);
@@ -208,19 +207,13 @@ export function getRandomVariant(nodeType) {
 }
 
 // ============================================================================
-// PLANET CONFIG (base settings)
+// PLANET CONFIG
 // ============================================================================
 export const planetConfig = {
   baseRadius: 50,
   glowRadius: 70,
   highlightOffset: { x: -0.3, y: -0.3 },
-  icon: {
-    observation: "👁️",
-    action: "⚡",
-  },
-  iconSize: 24,
 
-  // State visualizations for Action nodes
   states: {
     past: {
       trailColor: "rgba(100, 116, 139, 0.3)",
@@ -241,25 +234,36 @@ export const planetConfig = {
 };
 
 // ============================================================================
-// MOON CONFIG
+// MOON CONFIG - Size & Speed per Domain
 // ============================================================================
 export const moonConfig = {
-  baseRadius: 18,
-  orbitRadius: 90,
-  orbitSpeed: 0.0003, // Very slow rotation (radians per frame)
-
   domain: {
     private: {
       color: domainColors.private,
       name: "Private",
+      radius: 14, // Smallest
+      orbitRadius: 70, // Closest
+      orbitSpeed: 0.001047, // Fastest (1 full rotation per minute: 2π/60000ms)
+      glowPattern: "inward", // Soft inward pulse
+      glowIntensity: 0.6,
     },
     public: {
       color: domainColors.public,
       name: "Public",
+      radius: 18, // Medium
+      orbitRadius: 100, // Middle
+      orbitSpeed: 0.000698, // Medium (1.5 min rotation)
+      glowPattern: "outward", // Radiating outward
+      glowIntensity: 0.7,
     },
     abstract: {
       color: domainColors.abstract,
       name: "Abstract",
+      radius: 22, // Largest
+      orbitRadius: 135, // Farthest
+      orbitSpeed: 0.000524, // Slowest (2 min rotation)
+      glowPattern: "shimmer", // Geometric shimmer
+      glowIntensity: 0.8,
     },
   },
 };
@@ -378,9 +382,6 @@ export const seedEdges = [
   },
 ];
 
-// ============================================================================
-// PATTERN ZONE CONFIG
-// ============================================================================
 export const patternZoneConfig = {
   detectionThreshold: 3,
   clusterRadius: 200,
