@@ -1,17 +1,10 @@
-// src/components/SpaceCanvas.jsx - Final with All Interactions
+// src/components/SpaceCanvas.jsx - Fully Integrated with New Planet/Moon System
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  db,
-  initializeDB,
-  getAllNodes,
-  getAllEdges,
-  cascadeDeleteNode,
-} from "../lib/db";
+import { db, initializeDB, getAllNodes, getAllEdges } from "../lib/db";
 import {
   groupMoonsByDomain,
   distributeMoonsEvenly,
   calculateAnimatedOrbit,
-  clearPositionCache,
 } from "../lib/orbitalPhysics";
 import { getRandomVariant, planetConfig } from "../seedData";
 import Planet from "./Planet";
@@ -65,17 +58,10 @@ export default function SpaceCanvas({ purposeData }) {
   useEffect(() => {
     async function loadData() {
       await initializeDB();
-      // TEMPORARY: Clear database to start fresh
-      // await db.nodes.clear();
-      // await db.edges.clear();
-      // console.log("🗑️ Database cleared");
-
       const loadedNodes = await getAllNodes();
       const loadedEdges = await getAllEdges();
-
       setNodes(loadedNodes);
       setEdges(loadedEdges);
-
       console.log(
         "📊 Loaded:",
         loadedNodes.length,
@@ -87,8 +73,8 @@ export default function SpaceCanvas({ purposeData }) {
     loadData();
   }, []);
 
+  // Migrate nodes to add variants if missing
   useEffect(() => {
-    // Migrate existing nodes to add variants
     async function migrateNodes() {
       const nodesToUpdate = nodes.filter(
         (n) => (n.type === "O" || n.type === "A") && !n.variant
@@ -100,12 +86,10 @@ export default function SpaceCanvas({ purposeData }) {
           nodesToUpdate.length,
           "nodes to add variants..."
         );
-
         for (const node of nodesToUpdate) {
           const variant = getRandomVariant(node.type);
           await db.nodes.update(node.id, { variant });
         }
-
         const updated = await getAllNodes();
         setNodes(updated);
         console.log("✅ Migration complete!");
@@ -115,14 +99,13 @@ export default function SpaceCanvas({ purposeData }) {
     if (nodes.length > 0) {
       migrateNodes();
     }
-  }, [nodes.length]); // Only run when nodes first load
+  }, [nodes.length]);
 
   // ============================================================================
   // ORBIT ANIMATION
   // ============================================================================
   useEffect(() => {
     const animate = () => {
-      // Only animate if not in reflection mode and no hover
       if (!reflectionMode.active && !hoveredNodeId) {
         setOrbitTime((prev) => prev + 1);
       }
@@ -130,7 +113,6 @@ export default function SpaceCanvas({ purposeData }) {
     };
 
     animationFrameRef.current = requestAnimationFrame(animate);
-
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -160,9 +142,8 @@ export default function SpaceCanvas({ purposeData }) {
   }, []);
 
   const handleCanvasMouseDown = (e) => {
-    // Shift+drag = connection creation
     if (e.shiftKey && tool === "select") {
-      return; // Handled by planet mousedown
+      return;
     }
 
     if (
@@ -181,7 +162,6 @@ export default function SpaceCanvas({ purposeData }) {
       setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
     }
 
-    // Update connection preview
     if (creatingConnection && connectionSource) {
       const canvasRect = canvasRef.current.getBoundingClientRect();
       setConnectionPreview({
@@ -190,7 +170,6 @@ export default function SpaceCanvas({ purposeData }) {
       });
     }
 
-    // Update dragging
     if (draggingNodeId && canvasRef.current) {
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
@@ -207,7 +186,6 @@ export default function SpaceCanvas({ purposeData }) {
   const handleCanvasMouseUp = async () => {
     setIsPanning(false);
 
-    // Finish dragging
     if (draggingNodeId) {
       const node = nodes.find((n) => n.id === draggingNodeId);
       if (node) {
@@ -216,7 +194,6 @@ export default function SpaceCanvas({ purposeData }) {
       setDraggingNodeId(null);
     }
 
-    // Cancel connection if not completed
     if (creatingConnection) {
       setCreatingConnection(false);
       setConnectionSource(null);
@@ -256,12 +233,10 @@ export default function SpaceCanvas({ purposeData }) {
   const handlePlanetMouseDown = useCallback(
     (node, e) => {
       if (e.shiftKey) {
-        // Start connection creation
         e.stopPropagation();
         setCreatingConnection(true);
         setConnectionSource(node);
       } else if (tool === "select") {
-        // Start dragging
         e.stopPropagation();
         setDraggingNodeId(node.id);
         const rect = e.currentTarget.getBoundingClientRect();
@@ -278,7 +253,6 @@ export default function SpaceCanvas({ purposeData }) {
     (node, e) => {
       e.stopPropagation();
 
-      // Complete connection if creating one
       if (
         creatingConnection &&
         connectionSource &&
@@ -317,7 +291,6 @@ export default function SpaceCanvas({ purposeData }) {
   // CONNECTION CREATION
   // ============================================================================
   const createConnection = async (source, target) => {
-    // Validate timestamp constraint
     if (target.timestamp <= source.timestamp) {
       alert("Target timestamp must be after source timestamp");
       return;
@@ -395,7 +368,6 @@ export default function SpaceCanvas({ purposeData }) {
     await db.nodes.add(newNode);
     const updated = await getAllNodes();
     setNodes(updated);
-    clearPositionCache();
   };
 
   const handleCreateAction = async () => {
@@ -416,11 +388,10 @@ export default function SpaceCanvas({ purposeData }) {
     await db.nodes.add(newNode);
     const updated = await getAllNodes();
     setNodes(updated);
-    clearPositionCache();
   };
 
   // ============================================================================
-  // RENDER MOONS WITH ORBIT
+  // RENDER MOONS WITH ORBIT ANIMATION
   // ============================================================================
   const renderMoons = useCallback(() => {
     const parentNodes = nodes.filter((n) => n.type === "O" || n.type === "A");
@@ -428,32 +399,24 @@ export default function SpaceCanvas({ purposeData }) {
 
     parentNodes.forEach((parent) => {
       const childMoons = nodes.filter((n) => n.parentId === parent.id);
-
-      // Distribute moons evenly for animation
       const distributedMoons = distributeMoonsEvenly(childMoons, parent);
-
-      // Group by domain for aggregate display
       const grouped = groupMoonsByDomain(childMoons, parent);
-
-      // Check if parent is hovered (stops orbit)
       const isPaused = hoveredNodeId === parent.id;
 
-      // Render aggregate moons for each domain
       Object.entries(grouped).forEach(([domain, data]) => {
         if (data.count > 0) {
-          // Get first moon for orbit calculation
           const firstMoon = data.moons[0];
           const distributedMoon = distributedMoons.find(
             (m) => m.id === firstMoon.id
           );
 
-          // Calculate animated position
           const animatedPosition = distributedMoon
             ? calculateAnimatedOrbit(
                 distributedMoon,
                 parent,
                 orbitTime,
-                isPaused
+                isPaused,
+                domain
               )
             : data.position;
 
@@ -565,11 +528,9 @@ export default function SpaceCanvas({ purposeData }) {
               transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
               style={{ pointerEvents: "auto" }}
             >
-              {/* Connection Lines */}
               {edges.map((edge) => {
                 const sourceNode = nodes.find((n) => n.id === edge.sourceId);
                 const targetNode = nodes.find((n) => n.id === edge.targetId);
-
                 return (
                   <ConnectionLine
                     key={edge.id}
@@ -581,7 +542,6 @@ export default function SpaceCanvas({ purposeData }) {
                 );
               })}
 
-              {/* Connection Preview */}
               {creatingConnection && connectionSource && connectionPreview && (
                 <line
                   x1={connectionSource.position.x + planetConfig.baseRadius}
@@ -595,7 +555,6 @@ export default function SpaceCanvas({ purposeData }) {
                 />
               )}
 
-              {/* Planets */}
               {parentNodes.map((node) => (
                 <Planet
                   key={node.id}
@@ -615,13 +574,11 @@ export default function SpaceCanvas({ purposeData }) {
                 />
               ))}
 
-              {/* Moons */}
               {!reflectionMode.active && renderMoons()}
             </g>
           </svg>
         </div>
 
-        {/* Reflection Mode Overlay */}
         {reflectionMode.active && focusedParent && (
           <ReflectionMode
             parentNode={focusedParent}
@@ -630,13 +587,11 @@ export default function SpaceCanvas({ purposeData }) {
             onNodesUpdate={async () => {
               const updated = await getAllNodes();
               setNodes(updated);
-              clearPositionCache();
             }}
           />
         )}
       </div>
 
-      {/* Main Dock */}
       {!reflectionMode.active && (
         <MainDock
           onCreateObservation={handleCreateObservation}

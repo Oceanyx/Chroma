@@ -1,4 +1,4 @@
-// src/components/ReflectionSpace.jsx - Mode 2 (Moon Focus)
+// src/components/ReflectionSpace.jsx - Updated for New Moon System
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import Moon from "./Moon";
@@ -21,20 +21,15 @@ export default function ReflectionSpace({
   const [expandedDomain, setExpandedDomain] = useState(null);
   const [showInputCard, setShowInputCard] = useState(false);
 
-  // Get existing moons for this parent
   const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
   const groupedMoons = groupMoonsByDomain(childMoons, parentNode);
-
-  // Ghost moon positions
   const ghostPositions = getGhostMoonPositions(parentNode);
 
-  // Handle ghost moon selection
   const handleGhostClick = (domain) => {
     setSelectedDomain(domain);
     setShowInputCard(true);
   };
 
-  // Handle aggregate moon click (expand to show individual moons)
   const handleAggregateMoonClick = (domain) => {
     if (expandedDomain === domain) {
       setExpandedDomain(null);
@@ -43,7 +38,6 @@ export default function ReflectionSpace({
     }
   };
 
-  // Save new reflection
   const handleSaveReflection = async (reflectionData) => {
     const newMoon = {
       type: "R",
@@ -112,26 +106,15 @@ export default function ReflectionSpace({
         >
           <ArrowLeft size={16} /> Edit Observation
         </button>
-        <div
-          style={{
-            fontSize: "18px",
-            fontWeight: 600,
-            color: "#E6EEF8",
-          }}
-        >
+        <div style={{ fontSize: "18px", fontWeight: 600, color: "#E6EEF8" }}>
           {parentNode.text?.substring(0, 40) || "Untitled"}
           {parentNode.text?.length > 40 ? "..." : ""}
         </div>
-        <div style={{ width: "140px" }} /> {/* Spacer for centering */}
+        <div style={{ width: "140px" }} />
       </div>
 
       {/* Main Content Area */}
-      <div
-        style={{
-          flex: 1,
-          position: "relative",
-        }}
-      >
+      <div style={{ flex: 1, position: "relative" }}>
         {/* Instructions */}
         {!showInputCard && !expandedDomain && (
           <div
@@ -162,7 +145,6 @@ export default function ReflectionSpace({
             const hasExisting = existingGroup && existingGroup.count > 0;
 
             if (hasExisting && !expandedDomain) {
-              // Show aggregate moon
               const aggregateNode = {
                 id: `${parentNode.id}-${domain}`,
                 type: "R",
@@ -200,7 +182,6 @@ export default function ReflectionSpace({
               );
             }
 
-            // Show ghost moon for selection
             if (!hasExisting || (expandedDomain && expandedDomain !== domain)) {
               const ghostNode = {
                 id: `ghost-${domain}`,
@@ -258,7 +239,6 @@ export default function ReflectionSpace({
               boxShadow: "0 12px 48px rgba(0, 0, 0, 0.5)",
             }}
           >
-            {/* Header */}
             <div
               style={{
                 display: "flex",
@@ -295,13 +275,8 @@ export default function ReflectionSpace({
               </button>
             </div>
 
-            {/* Individual Moons List */}
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
               {groupedMoons[expandedDomain].moons.map((moon) => (
                 <div
@@ -362,7 +337,6 @@ export default function ReflectionSpace({
                 </div>
               ))}
 
-              {/* Add New Button */}
               <button
                 onClick={() => handleGhostClick(expandedDomain)}
                 style={{
@@ -429,11 +403,7 @@ export default function ReflectionSpace({
           Observation:
         </div>
         <div
-          style={{
-            fontSize: "14px",
-            color: "#E6EEF8",
-            fontStyle: "italic",
-          }}
+          style={{ fontSize: "14px", color: "#E6EEF8", fontStyle: "italic" }}
         >
           {parentNode.text?.substring(0, 80) || "No description"}
           {parentNode.text?.length > 80 ? "..." : ""}
