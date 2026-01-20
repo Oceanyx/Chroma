@@ -1,11 +1,13 @@
-// src/components/ReflectionSpace.jsx - Updated for New Moon System
+// src/components/ReflectionSpace.jsx - V2 with Planet Centered & Orbital Paths
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import Planet from "./Planet";
 import Moon from "./Moon";
 import MoonInputCard from "./MoonInputCard";
 import {
   getGhostMoonPositions,
-  groupMoonsByDomain,
+  groupMoonsByDimension,
+  getOrbitalPaths,
 } from "../lib/orbitalPhysics";
 import { moonConfig } from "../seedData";
 import { db } from "../lib/db";
@@ -16,25 +18,26 @@ export default function ReflectionSpace({
   onSwitchToObservation,
   onNodesUpdate,
 }) {
-  const [hoveredDomain, setHoveredDomain] = useState(null);
-  const [selectedDomain, setSelectedDomain] = useState(null);
-  const [expandedDomain, setExpandedDomain] = useState(null);
+  const [hoveredDimension, setHoveredDimension] = useState(null);
+  const [selectedDimension, setSelectedDimension] = useState(null);
+  const [expandedDimension, setExpandedDimension] = useState(null);
   const [showInputCard, setShowInputCard] = useState(false);
 
   const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
-  const groupedMoons = groupMoonsByDomain(childMoons, parentNode);
+  const groupedMoons = groupMoonsByDimension(childMoons, parentNode);
   const ghostPositions = getGhostMoonPositions(parentNode);
+  const orbitalPaths = getOrbitalPaths(parentNode);
 
-  const handleGhostClick = (domain) => {
-    setSelectedDomain(domain);
+  const handleGhostClick = (dimension) => {
+    setSelectedDimension(dimension);
     setShowInputCard(true);
   };
 
-  const handleAggregateMoonClick = (domain) => {
-    if (expandedDomain === domain) {
-      setExpandedDomain(null);
+  const handleAggregateMoonClick = (dimension) => {
+    if (expandedDimension === dimension) {
+      setExpandedDimension(null);
     } else {
-      setExpandedDomain(domain);
+      setExpandedDimension(dimension);
     }
   };
 
@@ -42,7 +45,7 @@ export default function ReflectionSpace({
     const newMoon = {
       type: "R",
       parentId: parentNode.id,
-      domain: selectedDomain,
+      dimension: selectedDimension,
       text: reflectionData.text,
       lensesUsed: reflectionData.lensesUsed || [],
       orbitAngle: 0,
@@ -52,7 +55,16 @@ export default function ReflectionSpace({
     await onNodesUpdate();
 
     setShowInputCard(false);
-    setSelectedDomain(null);
+    setSelectedDimension(null);
+  };
+
+  // Center planet in viewport
+  const centeredPlanet = {
+    ...parentNode,
+    position: {
+      x: window.innerWidth / 2 - 50,
+      y: window.innerHeight / 2 - 50,
+    },
   };
 
   return (
@@ -113,10 +125,10 @@ export default function ReflectionSpace({
         <div style={{ width: "140px" }} />
       </div>
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, position: "relative" }}>
+      {/* Main Content Area with Planet & Moons */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {/* Instructions */}
-        {!showInputCard && !expandedDomain && (
+        {!showInputCard && !expandedDimension && (
           <div
             style={{
               position: "absolute",
@@ -138,90 +150,102 @@ export default function ReflectionSpace({
           </div>
         )}
 
-        {/* Ghost Moons / Aggregate Moons */}
-        {!showInputCard &&
-          Object.entries(ghostPositions).map(([domain, position]) => {
-            const existingGroup = groupedMoons[domain];
-            const hasExisting = existingGroup && existingGroup.count > 0;
+        {/* SVG Canvas with Planet, Orbital Paths, and Moons */}
+        <svg
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        >
+          <g style={{ pointerEvents: "auto" }}>
+            {/* Orbital Path Circles */}
+            {orbitalPaths.map((path) => (
+              <circle
+                key={path.dimension}
+                cx={path.centerX}
+                cy={path.centerY}
+                r={path.radius}
+                fill="none"
+                stroke={path.color}
+                strokeWidth={1}
+                strokeOpacity={0.3}
+                strokeDasharray="4,4"
+              />
+            ))}
 
-            if (hasExisting && !expandedDomain) {
-              const aggregateNode = {
-                id: `${parentNode.id}-${domain}`,
-                type: "R",
-                domain,
-                text: `${existingGroup.count} ${domain} reflection${
-                  existingGroup.count > 1 ? "s" : ""
-                }`,
-                position,
-              };
+            {/* Central Planet */}
+            <Planet
+              node={centeredPlanet}
+              isHovered={false}
+              isSelected={false}
+              isFocused={true}
+            />
 
-              return (
-                <svg
-                  key={domain}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <g style={{ pointerEvents: "auto" }}>
+            {/* Ghost Moons or Aggregate Moons */}
+            {!showInputCard &&
+              Object.entries(ghostPositions).map(([dimension, position]) => {
+                const existingGroup = groupedMoons[dimension];
+                const hasExisting = existingGroup && existingGroup.count > 0;
+
+                if (hasExisting && !expandedDimension) {
+                  const aggregateNode = {
+                    id: `${parentNode.id}-${dimension}`,
+                    type: "R",
+                    dimension,
+                    text: `${existingGroup.count} ${dimension} reflection${existingGroup.count > 1 ? "s" : ""}`,
+                    position,
+                  };
+
+                  return (
                     <Moon
+                      key={dimension}
                       node={aggregateNode}
                       position={position}
                       count={existingGroup.count}
-                      isHovered={hoveredDomain === domain}
-                      onClick={() => handleAggregateMoonClick(domain)}
-                      onMouseEnter={() => setHoveredDomain(domain)}
-                      onMouseLeave={() => setHoveredDomain(null)}
+                      isHovered={hoveredDimension === dimension}
+                      onClick={() => handleAggregateMoonClick(dimension)}
+                      onMouseEnter={() => setHoveredDimension(dimension)}
+                      onMouseLeave={() => setHoveredDimension(null)}
                     />
-                  </g>
-                </svg>
-              );
-            }
+                  );
+                }
 
-            if (!hasExisting || (expandedDomain && expandedDomain !== domain)) {
-              const ghostNode = {
-                id: `ghost-${domain}`,
-                type: "R",
-                domain,
-                text: domain,
-              };
+                if (
+                  !hasExisting ||
+                  (expandedDimension && expandedDimension !== dimension)
+                ) {
+                  const ghostNode = {
+                    id: `ghost-${dimension}`,
+                    type: "R",
+                    dimension,
+                    text: dimension,
+                  };
 
-              return (
-                <svg
-                  key={domain}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <g style={{ pointerEvents: "auto" }}>
+                  return (
                     <Moon
+                      key={dimension}
                       node={ghostNode}
                       position={position}
                       isGhost={true}
-                      isHovered={hoveredDomain === domain}
-                      onClick={() => handleGhostClick(domain)}
-                      onMouseEnter={() => setHoveredDomain(domain)}
-                      onMouseLeave={() => setHoveredDomain(null)}
+                      isHovered={hoveredDimension === dimension}
+                      onClick={() => handleGhostClick(dimension)}
+                      onMouseEnter={() => setHoveredDimension(dimension)}
+                      onMouseLeave={() => setHoveredDimension(null)}
                     />
-                  </g>
-                </svg>
-              );
-            }
+                  );
+                }
 
-            return null;
-          })}
+                return null;
+              })}
+          </g>
+        </svg>
 
-        {/* Expanded Individual Moons */}
-        {expandedDomain && groupedMoons[expandedDomain] && (
+        {/* Expanded Individual Moons Panel */}
+        {expandedDimension && groupedMoons[expandedDimension] && (
           <div
             style={{
               position: "absolute",
@@ -229,7 +253,7 @@ export default function ReflectionSpace({
               left: "50%",
               transform: "translate(-50%, -50%)",
               background: "rgba(30, 41, 59, 0.95)",
-              border: `2px solid ${moonConfig.domain[expandedDomain].color}`,
+              border: `2px solid ${moonConfig.dimension[expandedDimension].color}`,
               borderRadius: "16px",
               padding: "24px",
               minWidth: "300px",
@@ -237,6 +261,7 @@ export default function ReflectionSpace({
               maxHeight: "60vh",
               overflowY: "auto",
               boxShadow: "0 12px 48px rgba(0, 0, 0, 0.5)",
+              zIndex: 20,
             }}
           >
             <div
@@ -246,7 +271,7 @@ export default function ReflectionSpace({
                 alignItems: "center",
                 marginBottom: "16px",
                 paddingBottom: "12px",
-                borderBottom: `1px solid ${moonConfig.domain[expandedDomain].color}40`,
+                borderBottom: `1px solid ${moonConfig.dimension[expandedDimension].color}40`,
               }}
             >
               <h3
@@ -254,14 +279,14 @@ export default function ReflectionSpace({
                   margin: 0,
                   fontSize: "16px",
                   fontWeight: 600,
-                  color: moonConfig.domain[expandedDomain].color,
+                  color: moonConfig.dimension[expandedDimension].color,
                   textTransform: "capitalize",
                 }}
               >
-                {expandedDomain} Reflections
+                {expandedDimension} Reflections
               </h3>
               <button
-                onClick={() => setExpandedDomain(null)}
+                onClick={() => setExpandedDimension(null)}
                 style={{
                   background: "transparent",
                   border: "none",
@@ -278,25 +303,25 @@ export default function ReflectionSpace({
             <div
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
-              {groupedMoons[expandedDomain].moons.map((moon) => (
+              {groupedMoons[expandedDimension].moons.map((moon) => (
                 <div
                   key={moon.id}
                   style={{
                     padding: "12px",
                     background: "rgba(15, 23, 36, 0.6)",
-                    border: `1px solid ${moonConfig.domain[expandedDomain].color}30`,
+                    border: `1px solid ${moonConfig.dimension[expandedDimension].color}30`,
                     borderRadius: "8px",
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${moonConfig.domain[expandedDomain].color}20`;
+                    e.currentTarget.style.background = `${moonConfig.dimension[expandedDimension].color}20`;
                     e.currentTarget.style.borderColor =
-                      moonConfig.domain[expandedDomain].color;
+                      moonConfig.dimension[expandedDimension].color;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
-                    e.currentTarget.style.borderColor = `${moonConfig.domain[expandedDomain].color}30`;
+                    e.currentTarget.style.borderColor = `${moonConfig.dimension[expandedDimension].color}30`;
                   }}
                 >
                   <div
@@ -322,10 +347,11 @@ export default function ReflectionSpace({
                           key={lens}
                           style={{
                             padding: "2px 6px",
-                            background: `${moonConfig.domain[expandedDomain].color}30`,
+                            background: `${moonConfig.dimension[expandedDimension].color}30`,
                             borderRadius: "4px",
                             fontSize: "10px",
-                            color: moonConfig.domain[expandedDomain].color,
+                            color:
+                              moonConfig.dimension[expandedDimension].color,
                             textTransform: "capitalize",
                           }}
                         >
@@ -338,13 +364,13 @@ export default function ReflectionSpace({
               ))}
 
               <button
-                onClick={() => handleGhostClick(expandedDomain)}
+                onClick={() => handleGhostClick(expandedDimension)}
                 style={{
                   padding: "12px",
                   background: "transparent",
-                  border: `2px dashed ${moonConfig.domain[expandedDomain].color}40`,
+                  border: `2px dashed ${moonConfig.dimension[expandedDimension].color}40`,
                   borderRadius: "8px",
-                  color: moonConfig.domain[expandedDomain].color,
+                  color: moonConfig.dimension[expandedDimension].color,
                   cursor: "pointer",
                   fontSize: "13px",
                   fontWeight: 500,
@@ -352,11 +378,11 @@ export default function ReflectionSpace({
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.borderColor =
-                    moonConfig.domain[expandedDomain].color;
-                  e.target.style.background = `${moonConfig.domain[expandedDomain].color}10`;
+                    moonConfig.dimension[expandedDimension].color;
+                  e.target.style.background = `${moonConfig.dimension[expandedDimension].color}10`;
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.borderColor = `${moonConfig.domain[expandedDomain].color}40`;
+                  e.target.style.borderColor = `${moonConfig.dimension[expandedDimension].color}40`;
                   e.target.style.background = "transparent";
                 }}
               >
@@ -367,13 +393,13 @@ export default function ReflectionSpace({
         )}
 
         {/* Input Card */}
-        {showInputCard && selectedDomain && (
+        {showInputCard && selectedDimension && (
           <MoonInputCard
-            domain={selectedDomain}
+            dimension={selectedDimension}
             onSave={handleSaveReflection}
             onCancel={() => {
               setShowInputCard(false);
-              setSelectedDomain(null);
+              setSelectedDimension(null);
             }}
           />
         )}

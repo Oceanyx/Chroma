@@ -1,12 +1,13 @@
-// src/seedData.js - Final with Moon Sizes & Speeds
+// src/seedData.js - V2 with 4 Dimensions
 
 // ============================================================================
-// DOMAIN COLORS
+// DIMENSION COLORS (Renamed from domain)
 // ============================================================================
-export const domainColors = {
-  private: "#A78BFA", // Violet
-  public: "#10B981", // Green
-  abstract: "#3B82F6", // Blue
+export const dimensionColors = {
+  subjective: "#A78BFA", // Violet (was private)
+  intersubjective: "#10B981", // Green (was public)
+  behavioral: "#F97316", // Orange (NEW)
+  symbolic: "#3B82F6", // Blue (was abstract)
 };
 
 // ============================================================================
@@ -234,36 +235,41 @@ export const planetConfig = {
 };
 
 // ============================================================================
-// MOON CONFIG - Size & Speed per Domain
+// MOON CONFIG - 4 DIMENSIONS (V2)
 // ============================================================================
 export const moonConfig = {
-  domain: {
-    private: {
-      color: domainColors.private,
-      name: "Private",
-      radius: 14, // Smallest
-      orbitRadius: 70, // Closest
-      orbitSpeed: 0.001047, // Fastest (1 full rotation per minute: 2π/60000ms)
-      glowPattern: "inward", // Soft inward pulse
-      glowIntensity: 0.6,
+  dimension: {
+    subjective: {
+      color: dimensionColors.subjective,
+      name: "Subjective",
+      radius: 14,
+      orbitRadius: 90, // Increased from 70 to prevent overlap
+      orbitSpeed: 0.001047,
+      description: "What did you feel/think/sense internally?",
     },
-    public: {
-      color: domainColors.public,
-      name: "Public",
-      radius: 18, // Medium
-      orbitRadius: 100, // Middle
-      orbitSpeed: 0.000698, // Medium (1.5 min rotation)
-      glowPattern: "outward", // Radiating outward
-      glowIntensity: 0.7,
+    intersubjective: {
+      color: dimensionColors.intersubjective,
+      name: "Intersubjective",
+      radius: 18,
+      orbitRadius: 140, // Increased from 100
+      orbitSpeed: 0.000698,
+      description: "What happened between people?",
     },
-    abstract: {
-      color: domainColors.abstract,
-      name: "Abstract",
-      radius: 22, // Largest
-      orbitRadius: 135, // Farthest
-      orbitSpeed: 0.000524, // Slowest (2 min rotation)
-      glowPattern: "shimmer", // Geometric shimmer
-      glowIntensity: 0.8,
+    behavioral: {
+      color: dimensionColors.behavioral,
+      name: "Behavioral",
+      radius: 20,
+      orbitRadius: 180, // NEW - between intersubjective and symbolic
+      orbitSpeed: 0.00075,
+      description: "What did you observably do/say?",
+    },
+    symbolic: {
+      color: dimensionColors.symbolic,
+      name: "Symbolic",
+      radius: 22,
+      orbitRadius: 220, // Increased from 135
+      orbitSpeed: 0.000524,
+      description: "What pattern or meaning do you see?",
     },
   },
 };
@@ -317,7 +323,7 @@ export const lenses = [
 ];
 
 // ============================================================================
-// SEED DATA
+// SEED DATA - Updated for V2
 // ============================================================================
 export const seedNodes = [
   {
@@ -351,7 +357,7 @@ export const seedNodes = [
     id: "r-1",
     type: "R",
     parentId: "o-1",
-    domain: "private",
+    dimension: "subjective",
     text: "I was feeling anxious about being confrontational",
     lensesUsed: ["somatic", "empathy"],
     orbitAngle: 0,
@@ -360,7 +366,7 @@ export const seedNodes = [
     id: "r-2",
     type: "R",
     parentId: "o-1",
-    domain: "public",
+    dimension: "intersubjective",
     text: "The team dynamic was strained - roles unclear",
     lensesUsed: ["systems"],
     orbitAngle: 0,
@@ -372,12 +378,14 @@ export const seedEdges = [
     id: "e-1",
     sourceId: "o-1",
     targetId: "a-1",
+    type: "temporal",
     createdAt: Date.now() - 43200000,
   },
   {
     id: "e-2",
     sourceId: "a-1",
     targetId: "o-2",
+    type: "temporal",
     createdAt: Date.now() - 21600000,
   },
 ];

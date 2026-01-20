@@ -1,4 +1,4 @@
-// src/components/ObservationEditor.jsx - Immersive Planet Background
+// src/components/ObservationEditor.jsx - V2 Immersive with Huge Planet
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import Planet from "./Planet";
@@ -11,7 +11,7 @@ export default function ObservationEditor({
 }) {
   const [title, setTitle] = useState(node.text || "");
   const [state, setState] = useState(
-    node.state || (node.type === "O" ? "present" : "present")
+    node.state || (node.type === "O" ? "present" : "present"),
   );
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -43,12 +43,12 @@ export default function ObservationEditor({
     onSwitchToReflections();
   };
 
-  // Create a large centered version of the planet for background
-  const centeredPlanet = {
+  // Create massive planet for background (5x normal size)
+  const hugePlanet = {
     ...node,
     position: {
-      x: window.innerWidth / 2 - 150,
-      y: window.innerHeight / 2 - 200,
+      x: window.innerWidth * 0.15 - 125, // Position at 15% from left
+      y: window.innerHeight / 2 - 125,
     },
   };
 
@@ -64,33 +64,55 @@ export default function ObservationEditor({
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+        background: "rgba(10, 15, 30, 0.6)",
       }}
     >
-      {/* Large Planet Background */}
+      {/* Huge Planet Background */}
       <div
         style={{
           position: "absolute",
+          left: "15%",
           top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%) scale(3)",
-          opacity: 0.3,
-          filter: "blur(8px)",
+          transform: "translate(-50%, -50%) scale(5)",
+          opacity: 0.4,
+          filter: "blur(20px)",
           pointerEvents: "none",
           zIndex: 0,
         }}
       >
-        <svg width="300" height="300" style={{ overflow: "visible" }}>
-          <Planet node={centeredPlanet} isHovered={false} isSelected={false} />
+        <svg width="250" height="250" style={{ overflow: "visible" }}>
+          <Planet node={hugePlanet} isHovered={false} isSelected={false} />
         </svg>
       </div>
+
+      {/* Pulsing Glow for State */}
+      {state === "present" && (
+        <div
+          style={{
+            position: "absolute",
+            left: "15%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "600px",
+            height: "600px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)",
+            animation: "pulse 2s ease-in-out infinite",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      )}
 
       {/* Glassmorphic Form Card */}
       <div
         style={{
           position: "relative",
           zIndex: 1,
-          width: "600px",
-          maxWidth: "90vw",
+          marginLeft: "25%", // Push card to right side
+          width: "500px",
+          maxWidth: "45vw",
           maxHeight: "80vh",
           background: "rgba(30, 41, 59, 0.85)",
           backdropFilter: "blur(40px)",
@@ -462,6 +484,20 @@ export default function ObservationEditor({
           </button>
         </div>
       </div>
+
+      {/* Pulse Animation */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 0.15;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          50% {
+            opacity: 0.25;
+            transform: translate(-50%, -50%) scale(1.1);
+          }
+        }
+      `}</style>
     </div>
   );
 }

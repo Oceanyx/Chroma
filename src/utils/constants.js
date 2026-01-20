@@ -1,4 +1,4 @@
-// src/utils/constants.js - Visual & Interaction Constants
+// src/utils/constants.js - V2 with 4 Dimensions
 
 // ============================================================================
 // CANVAS SETTINGS
@@ -17,36 +17,33 @@ export const CANVAS = {
 // PLANET SIZES & COLORS
 // ============================================================================
 export const PLANET = {
-  // Observation planets
   O: {
     radius: 50,
     colors: {
-      core: ["#1E3A8A", "#1E40AF"], // Dark to medium blue
-      surface: ["#3B82F6", "#60A5FA"], // Medium to light blue
-      atmosphere: ["#60A5FA", "#93C5FD"], // Light to pale blue
-      glow: "rgba(147, 197, 253, 0.4)", // Pale blue glow
+      core: ["#1E3A8A", "#1E40AF"],
+      surface: ["#3B82F6", "#60A5FA"],
+      atmosphere: ["#60A5FA", "#93C5FD"],
+      glow: "rgba(147, 197, 253, 0.4)",
     },
-    highlightOffset: { x: -0.3, y: -0.3 }, // Top-left highlight
+    highlightOffset: { x: -0.3, y: -0.3 },
     glowRadius: 70,
     icon: "👁️",
     iconSize: 24,
   },
 
-  // Action planets
   A: {
     radius: 50,
     colors: {
-      core: ["#9A3412", "#C2410C"], // Dark to medium orange
-      surface: ["#EA580C", "#FB923C"], // Medium to light orange
-      atmosphere: ["#FB923C", "#FDBA74"], // Light to pale orange
-      glow: "rgba(253, 186, 116, 0.4)", // Pale orange glow
+      core: ["#9A3412", "#C2410C"],
+      surface: ["#EA580C", "#FB923C"],
+      atmosphere: ["#FB923C", "#FDBA74"],
+      glow: "rgba(253, 186, 116, 0.4)",
     },
     highlightOffset: { x: -0.3, y: -0.3 },
     glowRadius: 70,
     icon: "⚡",
     iconSize: 24,
 
-    // State-specific overlays
     states: {
       past: {
         trailColor: "rgba(100, 116, 139, 0.3)",
@@ -65,33 +62,40 @@ export const PLANET = {
 };
 
 // ============================================================================
-// MOON SETTINGS
+// MOON SETTINGS - 4 DIMENSIONS (V2)
 // ============================================================================
 export const MOON = {
-  radius: 18,
-  orbitRadius: 90, // Distance from parent center
-  orbitSpeed: 0.0005, // Radians per frame (very slow)
-
-  // Domain colors
-  domains: {
-    private: {
+  dimensions: {
+    subjective: {
       color: "#A78BFA",
       glow: "rgba(167, 139, 250, 0.5)",
-      name: "Private",
+      name: "Subjective",
+      radius: 14,
+      orbitRadius: 90,
     },
-    public: {
+    intersubjective: {
       color: "#10B981",
       glow: "rgba(16, 185, 129, 0.5)",
-      name: "Public",
+      name: "Intersubjective",
+      radius: 18,
+      orbitRadius: 140,
     },
-    abstract: {
+    behavioral: {
+      color: "#F97316",
+      glow: "rgba(249, 115, 22, 0.5)",
+      name: "Behavioral",
+      radius: 20,
+      orbitRadius: 180,
+    },
+    symbolic: {
       color: "#3B82F6",
       glow: "rgba(59, 130, 246, 0.5)",
-      name: "Abstract",
+      name: "Symbolic",
+      radius: 22,
+      orbitRadius: 220,
     },
   },
 
-  // Aggregation display
   aggregateIndicator: {
     radius: 8,
     color: "#FFFFFF",
@@ -99,12 +103,11 @@ export const MOON = {
     fontWeight: "bold",
   },
 
-  // Ghost moons (selection state)
   ghost: {
     opacity: 0.3,
     hoverOpacity: 0.7,
     selectedOpacity: 1,
-    fadeOutDuration: 300, // ms
+    fadeOutDuration: 300,
   },
 };
 
@@ -113,21 +116,20 @@ export const MOON = {
 // ============================================================================
 export const REFLECTION_MODE = {
   zoomLevel: 2.5,
-  transitionDuration: 600, // ms
-  backgroundDimming: 0.3, // Opacity of non-focused elements
-  blurAmount: 8, // px
+  transitionDuration: 600,
+  backgroundDimming: 0.3,
+  blurAmount: 8,
 
-  // Ghost moon positions (angles in radians)
   ghostAngles: {
-    private: Math.PI * 1.5, // Top (270°)
-    public: Math.PI * 0.5, // Bottom (90°)
-    abstract: 0, // Right (0°)
+    subjective: Math.PI * 1.5,
+    intersubjective: Math.PI * 0.5,
+    behavioral: 0,
+    symbolic: Math.PI,
   },
 
-  // Input card
   inputCard: {
     width: 320,
-    offsetX: 40, // Distance from moon
+    offsetX: 40,
     offsetY: -80,
     borderRadius: 12,
     backgroundColor: "rgba(30, 41, 59, 0.95)",
@@ -145,20 +147,24 @@ export const CONNECTION = {
   colorHover: "rgba(255, 255, 255, 0.7)",
   arrowSize: 8,
 
-  // Connection styles
   types: {
-    causality: {
-      stroke: "#6C63FF",
+    temporal: {
+      stroke: "#94A3B8",
       dashArray: "none",
       arrow: true,
     },
-    resonance: {
-      stroke: "#10B981",
-      dashArray: "5,5",
+    causal: {
+      stroke: "#3B82F6",
+      dashArray: "none",
+      arrow: true,
+    },
+    associative: {
+      stroke: "#94A3B8",
+      dashArray: "6,4",
       arrow: false,
     },
-    refinement: {
-      stroke: "#F59E0B",
+    contradictory: {
+      stroke: "#FB923C",
       dashArray: "none",
       arrow: true,
     },
@@ -169,9 +175,9 @@ export const CONNECTION = {
 // PATTERN ZONES
 // ============================================================================
 export const PATTERN_ZONE = {
-  minNodes: 3, // Min nodes to suggest pattern
-  clusterRadius: 250, // Max distance for clustering
-  blobPadding: 40, // Padding around nodes
+  minNodes: 3,
+  clusterRadius: 250,
+  blobPadding: 40,
 
   colors: {
     auto: "rgba(108, 99, 255, 0.08)",
@@ -188,11 +194,10 @@ export const PATTERN_ZONE = {
 // INTERACTION
 // ============================================================================
 export const INTERACTION = {
-  doubleClickDelay: 300, // ms
-  dragThreshold: 5, // px
-  hoverDelay: 200, // ms
+  doubleClickDelay: 300,
+  dragThreshold: 5,
+  hoverDelay: 200,
 
-  // Node selection
   selectionRing: {
     color: "#FFFFFF",
     width: 3,

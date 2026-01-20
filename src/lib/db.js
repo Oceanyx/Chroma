@@ -1,18 +1,52 @@
-// src/lib/db.js - NEW Schema with Parent-Child Support
+// src/lib/db.js - V2 with Dimension Migration
 import Dexie from "dexie";
 import { seedNodes, seedEdges, lenses } from "../seedData";
 
 export const db = new Dexie("PerceptionMapDB_v2");
 
 // ============================================================================
-// DATABASE SCHEMA
+// DATABASE SCHEMA V2
 // ============================================================================
-db.version(1).stores({
-  nodes: "++id, type, parentId, timestamp, domain",
-  edges: "++id, sourceId, targetId, createdAt",
-  lenses: "++id, label",
-  patterns: "++id, label",
-});
+db.version(2)
+  .stores({
+    nodes: "++id, type, parentId, timestamp, dimension",
+    edges: "++id, sourceId, targetId, createdAt, type",
+    lenses: "++id, label",
+    patterns: "++id, label",
+    settings: "key",
+  })
+  .upgrade(async (tx) => {
+    // Migrate old 'domain' to new 'dimension'
+    const nodes = await tx.table("nodes").toArray();
+
+    const dimensionMapping = {
+      private: "subjective",
+      public: "intersubjective",
+      abstract: "symbolic",
+    };
+
+    for (const node of nodes) {
+      if (node.domain && !node.dimension) {
+        const newDimension = dimensionMapping[node.domain] || node.domain;
+        await tx.table("nodes").update(node.id, {
+          dimension: newDimension,
+        });
+        console.log(
+          `Migrated node ${node.id}: ${node.domain} → ${newDimension}`,
+        );
+      }
+    }
+
+    // Add default edge types
+    const edges = await tx.table("edges").toArray();
+    for (const edge of edges) {
+      if (!edge.type) {
+        await tx.table("edges").update(edge.id, { type: "temporal" });
+      }
+    }
+
+    console.log("✅ Database migration to V2 complete");
+  });
 
 // ============================================================================
 // INITIALIZE WITH SEED DATA
@@ -22,17 +56,18 @@ export async function initializeDB() {
     const nodeCount = await db.nodes.count();
 
     if (nodeCount === 0) {
-      // Seed nodes
       await db.nodes.bulkAdd(seedNodes);
       console.log("✅ Seeded nodes");
 
-      // Seed edges
       await db.edges.bulkAdd(seedEdges);
       console.log("✅ Seeded edges");
 
-      // Seed lenses
       await db.lenses.bulkAdd(lenses);
       console.log("✅ Seeded lenses");
+
+      // Add default settings
+      await db.settings.put({ key: "showOrbitalPaths", value: true });
+      console.log("✅ Seeded settings");
     }
   } catch (error) {
     console.error("❌ Database initialization failed:", error);
@@ -60,17 +95,12 @@ export async function updateNode(id, updates) {
 }
 
 export async function deleteNode(id) {
-  // Get the node to check if it's a parent
   const node = await db.nodes.get(id);
-
   if (!node) return;
 
-  // If it's a parent (O or A), find all child moons
   if (node.type === "O" || node.type === "A") {
     const childMoons = await db.nodes.where("parentId").equals(id).toArray();
-
     if (childMoons.length > 0) {
-      // Return info for confirmation dialog
       return {
         requiresConfirmation: true,
         childCount: childMoons.length,
@@ -79,51 +109,40 @@ export async function deleteNode(id) {
     }
   }
 
-  // Delete the node
   await db.nodes.delete(id);
-
-  // Delete all connected edges
   const connectedEdges = await db.edges
     .filter((e) => e.sourceId === id || e.targetId === id)
     .toArray();
-
   await db.edges.bulkDelete(connectedEdges.map((e) => e.id));
 
   return { success: true };
 }
 
-// CASCADE DELETE - Call this after user confirms
 export async function cascadeDeleteNode(id) {
-  // Delete all child moons first
   const childMoons = await db.nodes.where("parentId").equals(id).toArray();
   await db.nodes.bulkDelete(childMoons.map((m) => m.id));
-
-  // Delete the parent node
   await db.nodes.delete(id);
 
-  // Delete all connected edges
   const connectedEdges = await db.edges
     .filter((e) => e.sourceId === id || e.targetId === id)
     .toArray();
-
   await db.edges.bulkDelete(connectedEdges.map((e) => e.id));
 
   return { success: true };
 }
 
-// Get all moons for a parent planet
 export async function getMoonsByParentId(parentId) {
   return await db.nodes.where("parentId").equals(parentId).toArray();
 }
 
-// Get moons grouped by domain for a parent
-export async function getMoonsGroupedByDomain(parentId) {
+export async function getMoonsGroupedByDimension(parentId) {
   const moons = await getMoonsByParentId(parentId);
 
   return {
-    private: moons.filter((m) => m.domain === "private"),
-    public: moons.filter((m) => m.domain === "public"),
-    abstract: moons.filter((m) => m.domain === "abstract"),
+    subjective: moons.filter((m) => m.dimension === "subjective"),
+    intersubjective: moons.filter((m) => m.dimension === "intersubjective"),
+    behavioral: moons.filter((m) => m.dimension === "behavioral"),
+    symbolic: moons.filter((m) => m.dimension === "symbolic"),
   };
 }
 
@@ -136,7 +155,6 @@ export async function getAllEdges() {
 }
 
 export async function addEdge(edge) {
-  // Validate timestamp constraint
   const source = await db.nodes.get(edge.sourceId);
   const target = await db.nodes.get(edge.targetId);
 
@@ -144,6 +162,11 @@ export async function addEdge(edge) {
     if (target.timestamp <= source.timestamp) {
       throw new Error("Target timestamp must be greater than source timestamp");
     }
+  }
+
+  // Default to temporal if no type specified
+  if (!edge.type) {
+    edge.type = "temporal";
   }
 
   return await db.edges.add(edge);
@@ -190,4 +213,17 @@ export async function addPattern(pattern) {
 
 export async function deletePattern(id) {
   return await db.patterns.delete(id);
+}
+
+// ============================================================================
+// SETTINGS OPERATIONS
+// ============================================================================
+
+export async function getSetting(key) {
+  const setting = await db.settings.get(key);
+  return setting?.value;
+}
+
+export async function setSetting(key, value) {
+  return await db.settings.put({ key, value });
 }

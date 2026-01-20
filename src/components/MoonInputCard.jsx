@@ -1,18 +1,17 @@
-// src/components/MoonInputCard.jsx
+// src/components/MoonInputCard.jsx - V2 with 4 Dimensions
 import React, { useState } from "react";
-import { MOON } from "../utils/constants";
-import { lenses } from "../seedData";
+import { moonConfig, lenses } from "../seedData";
 
-export default function MoonInputCard({ domain, onSave, onCancel }) {
+export default function MoonInputCard({ dimension, onSave, onCancel }) {
   const [text, setText] = useState("");
   const [selectedLenses, setSelectedLenses] = useState([]);
-  const domainConfig = MOON.domains[domain];
+  const dimensionConfig = moonConfig.dimension[dimension];
 
   const toggleLens = (lensId) => {
     setSelectedLenses((prev) =>
       prev.includes(lensId)
         ? prev.filter((id) => id !== lensId)
-        : [...prev, lensId]
+        : [...prev, lensId],
     );
   };
 
@@ -37,11 +36,12 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
         background:
           "linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 36, 0.98) 100%)",
         backdropFilter: "blur(20px)",
-        border: `2px solid ${domainConfig.color}`,
+        border: `2px solid ${dimensionConfig.color}`,
         borderRadius: "16px",
         padding: "24px",
-        boxShadow: `0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px ${domainConfig.color}40`,
+        boxShadow: `0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px ${dimensionConfig.color}40`,
         animation: "scaleIn 0.3s ease",
+        zIndex: 300,
       }}
     >
       {/* Header */}
@@ -49,7 +49,7 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
         style={{
           marginBottom: "20px",
           paddingBottom: "16px",
-          borderBottom: `1px solid ${domainConfig.color}40`,
+          borderBottom: `1px solid ${dimensionConfig.color}40`,
         }}
       >
         <div
@@ -65,8 +65,8 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
               width: "12px",
               height: "12px",
               borderRadius: "50%",
-              background: domainConfig.color,
-              boxShadow: `0 0 12px ${domainConfig.color}80`,
+              background: dimensionConfig.color,
+              boxShadow: `0 0 12px ${dimensionConfig.color}80`,
             }}
           />
           <h3
@@ -74,11 +74,11 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
               margin: 0,
               fontSize: "18px",
               fontWeight: 600,
-              color: domainConfig.color,
+              color: dimensionConfig.color,
               textTransform: "capitalize",
             }}
           >
-            {domainConfig.name} Reflection
+            {dimensionConfig.name} Reflection
           </h3>
         </div>
         <p
@@ -89,10 +89,7 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
             fontStyle: "italic",
           }}
         >
-          {domain === "private" && "Internal experiences, thoughts, feelings"}
-          {domain === "public" &&
-            "External actions, interactions, observable behaviors"}
-          {domain === "abstract" && "Concepts, frameworks, patterns, theories"}
+          {dimensionConfig.description}
         </p>
       </div>
 
@@ -112,14 +109,14 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`What are you noticing in the ${domain} domain?`}
+          placeholder={`${dimensionConfig.description}`}
           autoFocus
           rows={4}
           style={{
             width: "100%",
             padding: "12px",
             background: "rgba(15, 23, 36, 0.8)",
-            border: `1px solid ${domainConfig.color}40`,
+            border: `1px solid ${dimensionConfig.color}40`,
             borderRadius: "8px",
             color: "#E6EEF8",
             fontSize: "14px",
@@ -130,11 +127,11 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
             boxSizing: "border-box",
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = domainConfig.color;
-            e.target.style.boxShadow = `0 0 0 2px ${domainConfig.color}20`;
+            e.target.style.borderColor = dimensionConfig.color;
+            e.target.style.boxShadow = `0 0 0 2px ${dimensionConfig.color}20`;
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = `${domainConfig.color}40`;
+            e.target.style.borderColor = `${dimensionConfig.color}40`;
             e.target.style.boxShadow = "none";
           }}
         />
@@ -151,7 +148,7 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
             marginBottom: "10px",
           }}
         >
-          Interpretive Lenses
+          Interpretive Lenses (Optional)
         </label>
         <div
           style={{
@@ -251,7 +248,7 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
             flex: 1,
             padding: "12px",
             background: text.trim()
-              ? `linear-gradient(135deg, ${domainConfig.color} 0%, ${domainConfig.color}CC 100%)`
+              ? `linear-gradient(135deg, ${dimensionConfig.color} 0%, ${dimensionConfig.color}CC 100%)`
               : "rgba(30, 41, 59, 0.6)",
             border: "none",
             borderRadius: "8px",
@@ -261,20 +258,20 @@ export default function MoonInputCard({ domain, onSave, onCancel }) {
             fontWeight: 600,
             transition: "all 0.2s",
             boxShadow: text.trim()
-              ? `0 4px 16px ${domainConfig.color}40`
+              ? `0 4px 16px ${dimensionConfig.color}40`
               : "none",
             opacity: text.trim() ? 1 : 0.5,
           }}
           onMouseEnter={(e) => {
             if (text.trim()) {
               e.target.style.transform = "translateY(-2px)";
-              e.target.style.boxShadow = `0 6px 24px ${domainConfig.color}60`;
+              e.target.style.boxShadow = `0 6px 24px ${dimensionConfig.color}60`;
             }
           }}
           onMouseLeave={(e) => {
             if (text.trim()) {
               e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = `0 4px 16px ${domainConfig.color}40`;
+              e.target.style.boxShadow = `0 4px 16px ${dimensionConfig.color}40`;
             }
           }}
         >

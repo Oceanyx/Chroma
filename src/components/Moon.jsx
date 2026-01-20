@@ -1,4 +1,4 @@
-// src/components/Moon.jsx - Size Variations & Glow Patterns
+// src/components/Moon.jsx - V2 with No Auras, 4 Dimensions
 import React from "react";
 import { moonConfig } from "../seedData";
 
@@ -13,130 +13,14 @@ export default function Moon({
   onMouseEnter,
   onMouseLeave,
 }) {
-  const domainConfig = moonConfig.domain[node?.domain || "private"];
-  const radius = domainConfig.radius;
+  const dimensionConfig = moonConfig.dimension[node?.dimension || "subjective"];
+  const radius = dimensionConfig.radius;
 
   const x = position?.x || node.position?.x || 0;
   const y = position?.y || node.position?.y || 0;
 
   const gradientId = `moon-gradient-${node?.id || Math.random()}`;
-  const glowId = `moon-glow-${node?.id || Math.random()}`;
-
   const opacity = isGhost ? (isHovered ? 0.7 : 0.3) : 1;
-
-  // Glow pattern based on domain
-  const renderGlowPattern = () => {
-    if (isGhost) return null;
-
-    switch (domainConfig.glowPattern) {
-      case "inward": // Private - soft inward pulse
-        return (
-          <circle
-            cx={x}
-            cy={y}
-            r={radius * 1.8}
-            fill={domainConfig.color}
-            opacity={domainConfig.glowIntensity * 0.3}
-          >
-            <animate
-              attributeName="r"
-              values={`${radius * 2};${radius * 1.6};${radius * 2}`}
-              dur="4s"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="opacity"
-              values={`${domainConfig.glowIntensity * 0.2};${
-                domainConfig.glowIntensity * 0.4
-              };${domainConfig.glowIntensity * 0.2}`}
-              dur="4s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        );
-
-      case "outward": // Public - radiating outward
-        return (
-          <>
-            <circle
-              cx={x}
-              cy={y}
-              r={radius * 1.5}
-              fill={domainConfig.color}
-              opacity={domainConfig.glowIntensity * 0.3}
-            >
-              <animate
-                attributeName="r"
-                values={`${radius * 1.3};${radius * 2.2};${radius * 1.3}`}
-                dur="3s"
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="opacity"
-                values={`${domainConfig.glowIntensity * 0.4};${
-                  domainConfig.glowIntensity * 0.1
-                };${domainConfig.glowIntensity * 0.4}`}
-                dur="3s"
-                repeatCount="indefinite"
-              />
-            </circle>
-            <circle
-              cx={x}
-              cy={y}
-              r={radius * 2.5}
-              fill={domainConfig.color}
-              opacity={domainConfig.glowIntensity * 0.15}
-            >
-              <animate
-                attributeName="r"
-                values={`${radius * 2};${radius * 3};${radius * 2}`}
-                dur="5s"
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="opacity"
-                values={`${domainConfig.glowIntensity * 0.2};${
-                  domainConfig.glowIntensity * 0.05
-                };${domainConfig.glowIntensity * 0.2}`}
-                dur="5s"
-                repeatCount="indefinite"
-              />
-            </circle>
-          </>
-        );
-
-      case "shimmer": // Abstract - geometric shimmer
-        return (
-          <>
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-              const rad = (angle * Math.PI) / 180;
-              const distance = radius * 1.8;
-              return (
-                <circle
-                  key={i}
-                  cx={x + Math.cos(rad) * distance}
-                  cy={y + Math.sin(rad) * distance}
-                  r={radius * 0.3}
-                  fill={domainConfig.color}
-                  opacity={domainConfig.glowIntensity * 0.4}
-                >
-                  <animate
-                    attributeName="opacity"
-                    values={`0;${domainConfig.glowIntensity * 0.6};0`}
-                    dur="3s"
-                    begin={`${i * 0.5}s`}
-                    repeatCount="indefinite"
-                  />
-                </circle>
-              );
-            })}
-          </>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   return (
     <g
@@ -151,18 +35,23 @@ export default function Moon({
     >
       <defs>
         <radialGradient id={gradientId}>
-          <stop offset="0%" stopColor={domainConfig.color} stopOpacity="0.95" />
-          <stop offset="60%" stopColor={domainConfig.color} stopOpacity="0.8" />
+          <stop
+            offset="0%"
+            stopColor={dimensionConfig.color}
+            stopOpacity="0.95"
+          />
+          <stop
+            offset="60%"
+            stopColor={dimensionConfig.color}
+            stopOpacity="0.8"
+          />
           <stop
             offset="100%"
-            stopColor={domainConfig.color}
+            stopColor={dimensionConfig.color}
             stopOpacity="0.6"
           />
         </radialGradient>
       </defs>
-
-      {/* Glow Pattern */}
-      {renderGlowPattern()}
 
       {/* Main Moon Body */}
       <circle
@@ -170,7 +59,7 @@ export default function Moon({
         cy={y}
         r={radius}
         fill={`url(#${gradientId})`}
-        stroke={isSelected ? "#FFFFFF" : domainConfig.color}
+        stroke={isSelected ? "#FFFFFF" : dimensionConfig.color}
         strokeWidth={isSelected ? 2 : 1}
         strokeOpacity={isGhost ? 0.5 : 0.8}
       />
@@ -217,7 +106,7 @@ export default function Moon({
             cy={y - radius * 0.7}
             r={8}
             fill="#FFFFFF"
-            stroke={domainConfig.color}
+            stroke={dimensionConfig.color}
             strokeWidth={2}
           />
           <text
@@ -227,25 +116,25 @@ export default function Moon({
             dominantBaseline="central"
             fontSize={10}
             fontWeight="bold"
-            fill={domainConfig.color}
+            fill={dimensionConfig.color}
           >
             {count}
           </text>
         </g>
       )}
 
-      {/* Ghost Moon Domain Label */}
+      {/* Ghost Moon Dimension Label */}
       {isGhost && isHovered && (
         <text
           x={x}
           y={y + radius + 16}
           textAnchor="middle"
           fontSize={12}
-          fill={domainConfig.color}
+          fill={dimensionConfig.color}
           fontWeight={600}
           opacity={0.9}
         >
-          {domainConfig.name}
+          {dimensionConfig.name}
         </text>
       )}
 
@@ -282,7 +171,7 @@ export default function Moon({
             height={32}
             rx={5}
             fill="rgba(15, 23, 36, 0.95)"
-            stroke={domainConfig.color}
+            stroke={dimensionConfig.color}
             strokeWidth={1}
             strokeOpacity={0.5}
           />

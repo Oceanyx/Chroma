@@ -1,54 +1,56 @@
-// src/lib/orbitalPhysics.js - Fixed for Continuous Animation
+// src/lib/orbitalPhysics.js - V2 with 4 Dimensions
 import { moonConfig, planetConfig } from "../seedData";
 
 /**
  * Calculate orbital position for a moon around its parent planet
  */
-export function calculateMoonPosition(parent, angle, domain = "private") {
-  const domainConfig = moonConfig.domain[domain];
+export function calculateMoonPosition(parent, angle, dimension = "subjective") {
+  const dimensionConfig = moonConfig.dimension[dimension];
   const planetRadius = planetConfig.baseRadius;
   const centerX = parent.position.x + planetRadius;
   const centerY = parent.position.y + planetRadius;
 
   return {
-    x: centerX + Math.cos(angle) * domainConfig.orbitRadius,
-    y: centerY + Math.sin(angle) * domainConfig.orbitRadius,
+    x: centerX + Math.cos(angle) * dimensionConfig.orbitRadius,
+    y: centerY + Math.sin(angle) * dimensionConfig.orbitRadius,
   };
 }
 
 /**
- * Group moons by domain - returns domain info without cached positions
+ * Group moons by dimension - returns dimension info without cached positions
  */
-export function groupMoonsByDomain(moons, parent) {
+export function groupMoonsByDimension(moons, parent) {
   const grouped = {
-    private: [],
-    public: [],
-    abstract: [],
+    subjective: [],
+    intersubjective: [],
+    behavioral: [],
+    symbolic: [],
   };
 
   moons.forEach((moon) => {
-    if (grouped[moon.domain]) {
-      grouped[moon.domain].push(moon);
+    if (grouped[moon.dimension]) {
+      grouped[moon.dimension].push(moon);
     }
   });
 
-  // Fixed angles for each domain
-  const domainAngles = {
-    private: Math.PI * 1.5, // Top (270°)
-    public: Math.PI * 0.5, // Bottom (90°)
-    abstract: 0, // Right (0°)
+  // Fixed angles for each dimension
+  const dimensionAngles = {
+    subjective: Math.PI * 1.5, // Top (270°)
+    intersubjective: Math.PI * 0.5, // Bottom (90°)
+    behavioral: 0, // Right (0°)
+    symbolic: Math.PI, // Left (180°)
   };
 
   const result = {};
 
-  Object.keys(grouped).forEach((domain) => {
-    const moonsInDomain = grouped[domain];
-    if (moonsInDomain.length > 0) {
-      result[domain] = {
-        moons: moonsInDomain,
-        count: moonsInDomain.length,
-        baseAngle: domainAngles[domain], // Store base angle, not position
-        isAggregate: moonsInDomain.length > 1,
+  Object.keys(grouped).forEach((dimension) => {
+    const moonsInDimension = grouped[dimension];
+    if (moonsInDimension.length > 0) {
+      result[dimension] = {
+        moons: moonsInDimension,
+        count: moonsInDimension.length,
+        baseAngle: dimensionAngles[dimension],
+        isAggregate: moonsInDimension.length > 1,
       };
     }
   });
@@ -68,7 +70,7 @@ export function distributeMoonsEvenly(moons, parent) {
 
   return moons.map((moon, index) => {
     const angle = startAngle + angleStep * index;
-    const position = calculateMoonPosition(parent, angle, moon.domain);
+    const position = calculateMoonPosition(parent, angle, moon.dimension);
 
     return {
       ...moon,
@@ -80,69 +82,69 @@ export function distributeMoonsEvenly(moons, parent) {
 
 /**
  * Calculate animated orbital position based on time and initial angle
- * NOW PROPERLY ANIMATED!
  */
 export function calculateAnimatedOrbit(
   moon,
   parent,
   time,
   paused = false,
-  domain = "private"
+  dimension = "subjective",
 ) {
-  const domainConfig = moonConfig.domain[domain];
+  const dimensionConfig = moonConfig.dimension[dimension];
   const baseAngle = moon.orbitAngle || 0;
 
-  // If paused (hovered), return static position
   if (paused) {
-    return calculateMoonPosition(parent, baseAngle, domain);
+    return calculateMoonPosition(parent, baseAngle, dimension);
   }
 
-  // Animate with domain-specific speed
-  const animatedAngle = baseAngle + time * domainConfig.orbitSpeed;
-  return calculateMoonPosition(parent, animatedAngle, domain);
+  const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
+  return calculateMoonPosition(parent, animatedAngle, dimension);
 }
 
 /**
- * Calculate animated position for aggregate moon (domain-specific)
+ * Calculate animated position for aggregate moon (dimension-specific)
  */
 export function calculateAnimatedAggregatePosition(
   baseAngle,
-  domain,
+  dimension,
   parent,
   time,
-  paused = false
+  paused = false,
 ) {
-  const domainConfig = moonConfig.domain[domain];
+  const dimensionConfig = moonConfig.dimension[dimension];
 
   if (paused) {
-    return calculateMoonPosition(parent, baseAngle, domain);
+    return calculateMoonPosition(parent, baseAngle, dimension);
   }
 
-  // Animate with domain-specific speed
-  const animatedAngle = baseAngle + time * domainConfig.orbitSpeed;
-  return calculateMoonPosition(parent, animatedAngle, domain);
+  const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
+  return calculateMoonPosition(parent, animatedAngle, dimension);
 }
 
 /**
  * Get ghost moon positions for reflection mode
- * Fixed positions in viewport center
+ * Fixed positions in viewport center with 4 dimensions
  */
 export function getGhostMoonPositions(parent) {
   const viewportCenterX = window.innerWidth / 2;
   const viewportCenterY = window.innerHeight / 2;
 
-  // West, East, North positions
+  // Cardinal positions for 4 dimensions
   return {
-    private: {
+    subjective: {
       x: viewportCenterX,
-      y: viewportCenterY - moonConfig.domain.private.orbitRadius,
+      y: viewportCenterY - moonConfig.dimension.subjective.orbitRadius,
     },
-    public: {
-      x: viewportCenterX - moonConfig.domain.public.orbitRadius,
+    intersubjective: {
+      x: viewportCenterX,
+      y: viewportCenterY + moonConfig.dimension.intersubjective.orbitRadius,
+    },
+    behavioral: {
+      x: viewportCenterX + moonConfig.dimension.behavioral.orbitRadius,
       y: viewportCenterY,
     },
-    abstract: {
-      x: viewportCenterX + moonConfig.domain.abstract.orbitRadius,
+    symbolic: {
+      x: viewportCenterX - moonConfig.dimension.symbolic.orbitRadius,
       y: viewportCenterY,
     },
   };
@@ -159,12 +161,12 @@ export function calculateBinaryLock(moon1, moon2, parent) {
     moon1Position: calculateMoonPosition(
       parent,
       midpointAngle - separation,
-      moon1.domain
+      moon1.dimension,
     ),
     moon2Position: calculateMoonPosition(
       parent,
       midpointAngle + separation,
-      moon2.domain
+      moon2.dimension,
     ),
     lockAngle: midpointAngle,
   };
@@ -189,11 +191,28 @@ export function calculateTidalLock(moon, parent, target) {
   const dy = targetCenter.y - parentCenter.y;
   const angleToTarget = Math.atan2(dy, dx);
 
-  const position = calculateMoonPosition(parent, angleToTarget, moon.domain);
+  const position = calculateMoonPosition(parent, angleToTarget, moon.dimension);
 
   return {
     position,
     rotation: angleToTarget,
     isTidalLocked: true,
   };
+}
+
+/**
+ * Get orbital path circle data for rendering
+ */
+export function getOrbitalPaths(parent) {
+  const planetRadius = planetConfig.baseRadius;
+  const centerX = parent.position.x + planetRadius;
+  const centerY = parent.position.y + planetRadius;
+
+  return Object.entries(moonConfig.dimension).map(([key, config]) => ({
+    dimension: key,
+    centerX,
+    centerY,
+    radius: config.orbitRadius,
+    color: config.color,
+  }));
 }
