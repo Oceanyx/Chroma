@@ -87,16 +87,13 @@ export function calculateAnimatedOrbit(
   moon,
   parent,
   time,
-  paused = false,
+  paused = false, // Kept for compatibility but not used
   dimension = "subjective",
 ) {
   const dimensionConfig = moonConfig.dimension[dimension];
   const baseAngle = moon.orbitAngle || 0;
 
-  if (paused) {
-    return calculateMoonPosition(parent, baseAngle, dimension);
-  }
-
+  // Always calculate animated angle (pausing is handled at higher level)
   const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
   return calculateMoonPosition(parent, animatedAngle, dimension);
 }

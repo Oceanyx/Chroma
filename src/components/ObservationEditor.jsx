@@ -1,5 +1,5 @@
 // src/components/ObservationEditor.jsx - V2 Immersive with Huge Planet
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ArrowRight } from "lucide-react";
 import Planet from "./Planet";
 import { db } from "../lib/db";
@@ -43,14 +43,11 @@ export default function ObservationEditor({
     onSwitchToReflections();
   };
 
-  // Create massive planet for background (5x normal size)
-  const hugePlanet = {
-    ...node,
-    position: {
-      x: window.innerWidth * 0.15 - 125, // Position at 15% from left
-      y: window.innerHeight / 2 - 125,
-    },
-  };
+  // Calculate planet size dynamically
+  const planetSize = useMemo(
+    () => Math.min(window.innerWidth * 0.35, window.innerHeight * 0.65),
+    [],
+  );
 
   return (
     <div
@@ -71,17 +68,28 @@ export default function ObservationEditor({
       <div
         style={{
           position: "absolute",
-          left: "15%",
+          left: `${window.innerWidth * 0.15}px`,
           top: "50%",
-          transform: "translate(-50%, -50%) scale(5)",
+          width: `${planetSize}px`,
+          height: `${planetSize}px`,
+          transform: "translate(-50%, -50%)",
           opacity: 0.4,
           filter: "blur(20px)",
           pointerEvents: "none",
           zIndex: 0,
         }}
       >
-        <svg width="250" height="250" style={{ overflow: "visible" }}>
-          <Planet node={hugePlanet} isHovered={false} isSelected={false} />
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <Planet
+            node={{ ...node, position: { x: 0, y: 0 } }}
+            isHovered={false}
+            isSelected={false}
+          />
         </svg>
       </div>
 

@@ -23,10 +23,22 @@ export default function ReflectionSpace({
   const [expandedDimension, setExpandedDimension] = useState(null);
   const [showInputCard, setShowInputCard] = useState(false);
 
+  // Center planet in viewport
+  const viewportCenterX = window.innerWidth / 2;
+  const viewportCenterY = (window.innerHeight - 60) / 2 + 60; // Account for top bar
+
+  const centeredPlanet = {
+    ...parentNode,
+    position: {
+      x: viewportCenterX - 50,
+      y: viewportCenterY - 50,
+    },
+  };
+
   const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
-  const groupedMoons = groupMoonsByDimension(childMoons, parentNode);
-  const ghostPositions = getGhostMoonPositions(parentNode);
-  const orbitalPaths = getOrbitalPaths(parentNode);
+  const groupedMoons = groupMoonsByDimension(childMoons, centeredPlanet);
+  const ghostPositions = getGhostMoonPositions(centeredPlanet);
+  const orbitalPaths = getOrbitalPaths(centeredPlanet);
 
   const handleGhostClick = (dimension) => {
     setSelectedDimension(dimension);
@@ -56,15 +68,6 @@ export default function ReflectionSpace({
 
     setShowInputCard(false);
     setSelectedDimension(null);
-  };
-
-  // Center planet in viewport
-  const centeredPlanet = {
-    ...parentNode,
-    position: {
-      x: window.innerWidth / 2 - 50,
-      y: window.innerHeight / 2 - 50,
-    },
   };
 
   return (
@@ -162,7 +165,7 @@ export default function ReflectionSpace({
           }}
         >
           <g style={{ pointerEvents: "auto" }}>
-            {/* Orbital Path Circles */}
+            {/* Orbital Path Circles - More Visible */}
             {orbitalPaths.map((path) => (
               <circle
                 key={path.dimension}
@@ -171,8 +174,8 @@ export default function ReflectionSpace({
                 r={path.radius}
                 fill="none"
                 stroke={path.color}
-                strokeWidth={1}
-                strokeOpacity={0.3}
+                strokeWidth={1.5}
+                strokeOpacity={0.5}
                 strokeDasharray="4,4"
               />
             ))}

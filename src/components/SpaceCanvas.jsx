@@ -1,12 +1,6 @@
 // src/components/SpaceCanvas.jsx - V2 Complete with Fixed Shift+Drag
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  db,
-  initializeDB,
-  getAllNodes,
-  getAllEdges,
-  getSetting,
-} from "../lib/db";
+import { db, initializeDB, getAllNodes, getAllEdges } from "../lib/db";
 import {
   groupMoonsByDimension,
   distributeMoonsEvenly,
@@ -55,9 +49,7 @@ export default function SpaceCanvas({ purposeData }) {
   // Animation state
   const [orbitTime, setOrbitTime] = useState(0);
   const animationFrameRef = useRef();
-
-  // Settings
-  const [showOrbitalPaths, setShowOrbitalPaths] = useState(true);
+  const pausedTimeRef = useRef(null);
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -70,11 +62,9 @@ export default function SpaceCanvas({ purposeData }) {
       await initializeDB();
       const loadedNodes = await getAllNodes();
       const loadedEdges = await getAllEdges();
-      const orbitalPathSetting = await getSetting("showOrbitalPaths");
 
       setNodes(loadedNodes);
       setEdges(loadedEdges);
-      setShowOrbitalPaths(orbitalPathSetting !== false);
 
       console.log(
         "📊 Loaded:",
@@ -222,7 +212,13 @@ export default function SpaceCanvas({ purposeData }) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === " " && !e.repeat && tool === "select") {
+      // Check if user is typing in an input field
+      const isTyping =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.isContentEditable;
+
+      if (e.key === " " && !e.repeat && tool === "select" && !isTyping) {
         e.preventDefault();
         setTool("hand");
       }
@@ -232,7 +228,13 @@ export default function SpaceCanvas({ purposeData }) {
     };
 
     const handleKeyUp = (e) => {
-      if (e.key === " " && tool === "hand") {
+      // Check if user is typing in an input field
+      const isTyping =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.isContentEditable;
+
+      if (e.key === " " && tool === "hand" && !isTyping) {
         setTool("select");
       }
     };
@@ -301,12 +303,21 @@ export default function SpaceCanvas({ purposeData }) {
     }
   }, []);
 
-  const handlePlanetHover = useCallback((node) => {
-    setHoveredNodeId(node.id);
-  }, []);
+  const handlePlanetHover = useCallback(
+    (node) => {
+      setHoveredNodeId(node.id);
+      // Capture current orbit time when starting to hover
+      if (pausedTimeRef.current === null) {
+        pausedTimeRef.current = orbitTime;
+      }
+    },
+    [orbitTime],
+  );
 
   const handlePlanetLeave = useCallback(() => {
     setHoveredNodeId(null);
+    // Reset paused time when leaving
+    pausedTimeRef.current = null;
   }, []);
 
   // ============================================================================
@@ -424,10 +435,16 @@ export default function SpaceCanvas({ purposeData }) {
       const childMoons = nodes.filter((n) => n.parentId === parent.id);
       const distributedMoons = distributeMoonsEvenly(childMoons, parent);
       const grouped = groupMoonsByDimension(childMoons, parent);
-      const isPaused = hoveredNodeId === parent.id;
+      const isHovered = hoveredNodeId === parent.id;
 
-      // Render orbital paths if enabled
-      if (showOrbitalPaths && childMoons.length > 0) {
+      // Use paused time if hovering, otherwise use current time
+      const effectiveTime =
+        isHovered && pausedTimeRef.current !== null
+          ? pausedTimeRef.current
+          : orbitTime;
+
+      // Render orbital paths ONLY when hovering this specific planet
+      if (isHovered && childMoons.length > 0) {
         const orbitalPaths = getOrbitalPaths(parent);
         orbitalPaths.forEach((path) => {
           moonElements.push(
@@ -438,54 +455,85 @@ export default function SpaceCanvas({ purposeData }) {
               r={path.radius}
               fill="none"
               stroke={path.color}
-              strokeWidth={1}
-              strokeOpacity={0.2}
-              strokeDasharray="3,3"
+              strokeWidth={2}
+              strokeOpacity={0.6}
+              strokeDasharray="5,5"
             />,
           );
         });
       }
 
-      // Render aggregate moons for each dimension
+      // Render moons for each dimension
       Object.entries(grouped).forEach(([dimension, data]) => {
         if (data.count > 0) {
-          const firstMoon = data.moons[0];
-          const distributedMoon = distributedMoons.find(
-            (m) => m.id === firstMoon.id,
-          );
-
-          const animatedPosition = distributedMoon
-            ? calculateAnimatedOrbit(
-                distributedMoon,
+          // Show individual moons if count <= 3
+          if (data.count <= 3) {
+            const dimensionMoons = distributedMoons.filter(
+              (m) => m.dimension === dimension,
+            );
+            dimensionMoons.forEach((moon) => {
+              const animatedPosition = calculateAnimatedOrbit(
+                moon,
                 parent,
-                orbitTime,
-                isPaused,
+                effectiveTime,
+                false,
                 dimension,
-              )
-            : data.position;
+              );
 
-          const aggregateNode = {
-            id: `${parent.id}-${dimension}`,
-            type: "R",
-            dimension,
-            text: `${data.count} ${dimension} reflection${data.count > 1 ? "s" : ""}`,
-            position: animatedPosition,
-            parentId: parent.id,
-          };
+              moonElements.push(
+                <Moon
+                  key={moon.id}
+                  node={moon}
+                  position={animatedPosition}
+                  count={1}
+                  isHovered={hoveredNodeId === moon.id}
+                  isSelected={selectedNodeId === moon.id}
+                  onClick={handlePlanetClick}
+                  onMouseEnter={handlePlanetHover}
+                  onMouseLeave={handlePlanetLeave}
+                />,
+              );
+            });
+          } else {
+            // Show aggregate moon when count > 3
+            const firstMoon = data.moons[0];
+            const distributedMoon = distributedMoons.find(
+              (m) => m.id === firstMoon.id,
+            );
 
-          moonElements.push(
-            <Moon
-              key={aggregateNode.id}
-              node={aggregateNode}
-              position={animatedPosition}
-              count={data.count}
-              isHovered={hoveredNodeId === aggregateNode.id}
-              isSelected={selectedNodeId === aggregateNode.id}
-              onClick={handlePlanetClick}
-              onMouseEnter={handlePlanetHover}
-              onMouseLeave={handlePlanetLeave}
-            />,
-          );
+            const animatedPosition = distributedMoon
+              ? calculateAnimatedOrbit(
+                  distributedMoon,
+                  parent,
+                  effectiveTime,
+                  false,
+                  dimension,
+                )
+              : data.position;
+
+            const aggregateNode = {
+              id: `${parent.id}-${dimension}`,
+              type: "R",
+              dimension,
+              text: `${data.count} ${dimension} reflection${data.count > 1 ? "s" : ""}`,
+              position: animatedPosition,
+              parentId: parent.id,
+            };
+
+            moonElements.push(
+              <Moon
+                key={aggregateNode.id}
+                node={aggregateNode}
+                position={animatedPosition}
+                count={data.count}
+                isHovered={hoveredNodeId === aggregateNode.id}
+                isSelected={selectedNodeId === aggregateNode.id}
+                onClick={handlePlanetClick}
+                onMouseEnter={handlePlanetHover}
+                onMouseLeave={handlePlanetLeave}
+              />,
+            );
+          }
         }
       });
     });
@@ -496,7 +544,6 @@ export default function SpaceCanvas({ purposeData }) {
     hoveredNodeId,
     selectedNodeId,
     orbitTime,
-    showOrbitalPaths,
     handlePlanetClick,
     handlePlanetHover,
     handlePlanetLeave,
