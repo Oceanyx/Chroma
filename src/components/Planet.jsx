@@ -1,4 +1,4 @@
-// src/components/Planet.jsx - More Planet-like, No Icons
+// src/components/Planet.jsx - With Archetype System
 import React from "react";
 import { planetVariants, planetConfig } from "../seedData";
 
@@ -14,11 +14,13 @@ export default function Planet({
   onMouseDown,
 }) {
   const variantType = node.type === "O" ? "observation" : "action";
-  const defaultVariant = variantType === "observation" ? "deep-ocean" : "ember";
-  const variantKey = node.variant || defaultVariant;
+
+  // Use archetype if present, otherwise fall back to variant
+  const archetype = node.archetype || "neutral";
   const variant =
-    planetVariants[variantType]?.[variantKey] ||
-    planetVariants[variantType][defaultVariant];
+    planetVariants[variantType]?.[archetype] ||
+    planetVariants[variantType]?.[node.variant] ||
+    planetVariants[variantType]["neutral"];
 
   const { x, y } = node.position;
   const radius = planetConfig.baseRadius;
@@ -61,8 +63,8 @@ export default function Planet({
         <filter id={noiseId}>
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.02"
-            numOctaves="3"
+            baseFrequency={archetype === "turbulent" ? "0.04" : "0.02"}
+            numOctaves={archetype === "turbulent" ? 4 : 2}
             result="noise"
           />
           <feDiffuseLighting
@@ -196,6 +198,32 @@ export default function Planet({
         fill="rgba(255, 255, 255, 0.3)"
         opacity={0.5}
       />
+
+      {/* Archetype Badge (Bottom Right) - Shows current archetype */}
+      {archetype && archetype !== "neutral" && (
+        <g>
+          <circle
+            cx={centerX + radius * 0.7}
+            cy={centerY + radius * 0.7}
+            r={10}
+            fill="rgba(15, 23, 36, 0.95)"
+            stroke={variant.colors.glow}
+            strokeWidth={1.5}
+          />
+          <text
+            x={centerX + radius * 0.7}
+            y={centerY + radius * 0.7}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={8}
+            fill="#E6EEF8"
+            fontWeight="600"
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            {archetype === "calm" ? "C" : archetype === "turbulent" ? "T" : "E"}
+          </text>
+        </g>
+      )}
 
       {/* Title Label Below Planet */}
       <text

@@ -1,6 +1,7 @@
-// src/components/MoonInputCard.jsx - V2 with 4 Dimensions
-import React, { useState } from "react";
+// src/components/MoonInputCard.jsx - V2.2 with Progressive Unlock
+import React, { useState, useEffect } from "react";
 import { moonConfig, lenses } from "../seedData";
+import { getUnlockedDimensions } from "../lib/db";
 
 export default function MoonInputCard({ dimension, onSave, onCancel }) {
   const [text, setText] = useState("");
@@ -23,6 +24,17 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
       });
     }
   };
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
 
   return (
     <div
@@ -109,7 +121,7 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`${dimensionConfig.description}`}
+          placeholder={dimensionConfig.description}
           autoFocus
           rows={4}
           style={{
@@ -179,6 +191,9 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
                 fontWeight: selectedLenses.includes(lens.id) ? 600 : 500,
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
               }}
               onMouseEnter={(e) => {
                 if (!selectedLenses.includes(lens.id)) {
@@ -193,7 +208,8 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
                 }
               }}
             >
-              {lens.label}
+              <span>{lens.emoji}</span>
+              <span>{lens.label}</span>
             </button>
           ))}
         </div>

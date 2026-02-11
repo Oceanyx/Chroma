@@ -87,7 +87,7 @@ export function calculateAnimatedOrbit(
   moon,
   parent,
   time,
-  paused = false, // Kept for compatibility but not used
+  paused = false,
   dimension = "subjective",
 ) {
   const dimensionConfig = moonConfig.dimension[dimension];

@@ -1,51 +1,57 @@
-// src/lib/db.js - V2 with Dimension Migration
+// src/lib/db.js - V2.2 with Archetype System & Progressive Unlock
 import Dexie from "dexie";
-import { seedNodes, seedEdges, lenses } from "../seedData";
+import { seedNodes, seedEdges, lenses, calculateArchetype } from "../seedData";
 
-export const db = new Dexie("PerceptionMapDB_v2");
+export const db = new Dexie("PerceptionMapDB_v3");
 
 // ============================================================================
-// DATABASE SCHEMA V2
+// DATABASE SCHEMA V3
 // ============================================================================
-db.version(2)
+db.version(3)
   .stores({
-    nodes: "++id, type, parentId, timestamp, dimension",
+    nodes:
+      "++id, type, parentId, timestamp, dimension, constellationId, archetype",
     edges: "++id, sourceId, targetId, createdAt, type",
     lenses: "++id, label",
     patterns: "++id, label",
     settings: "key",
   })
   .upgrade(async (tx) => {
-    // Migrate old 'domain' to new 'dimension'
+    console.log("🔄 Upgrading database to V3...");
+
+    // Add archetype field to existing nodes
     const nodes = await tx.table("nodes").toArray();
-
-    const dimensionMapping = {
-      private: "subjective",
-      public: "intersubjective",
-      abstract: "symbolic",
-    };
-
     for (const node of nodes) {
-      if (node.domain && !node.dimension) {
-        const newDimension = dimensionMapping[node.domain] || node.domain;
+      if ((node.type === "O" || node.type === "A") && !node.archetype) {
+        const moons = await tx
+          .table("nodes")
+          .where("parentId")
+          .equals(node.id)
+          .toArray();
+        const archetype = calculateArchetype(node, moons);
         await tx.table("nodes").update(node.id, {
-          dimension: newDimension,
+          archetype,
+          variant: node.variant || "deep-ocean", // Ensure variant exists
         });
-        console.log(
-          `Migrated node ${node.id}: ${node.domain} → ${newDimension}`,
-        );
+        console.log(`Migrated node ${node.id}: archetype → ${archetype}`);
       }
     }
 
-    // Add default edge types
-    const edges = await tx.table("edges").toArray();
-    for (const edge of edges) {
-      if (!edge.type) {
-        await tx.table("edges").update(edge.id, { type: "temporal" });
+    // Add confidence and versions to moons if missing
+    const moons = await tx.table("nodes").where("type").equals("R").toArray();
+    for (const moon of moons) {
+      if (!moon.confidence) {
+        await tx.table("nodes").update(moon.id, {
+          confidence: "stable",
+          intensity: moon.intensity || "medium",
+          temporality: moon.temporality || "concurrent",
+          versions: moon.versions || [],
+          relationships: moon.relationships || [],
+        });
       }
     }
 
-    console.log("✅ Database migration to V2 complete");
+    console.log("✅ Database migration to V3 complete");
   });
 
 // ============================================================================
@@ -67,6 +73,8 @@ export async function initializeDB() {
 
       // Add default settings
       await db.settings.put({ key: "showOrbitalPaths", value: true });
+      await db.settings.put({ key: "showAllDimensions", value: false }); // Progressive unlock enabled by default
+      await db.settings.put({ key: "totalReflectionCount", value: 0 }); // Track for unlocking
       console.log("✅ Seeded settings");
     }
   } catch (error) {
@@ -87,6 +95,10 @@ export async function getNodeById(id) {
 }
 
 export async function addNode(node) {
+  // Set default archetype for O and A nodes
+  if (node.type === "O" || node.type === "A") {
+    node.archetype = node.archetype || "neutral";
+  }
   return await db.nodes.add(node);
 }
 
@@ -144,6 +156,89 @@ export async function getMoonsGroupedByDimension(parentId) {
     behavioral: moons.filter((m) => m.dimension === "behavioral"),
     symbolic: moons.filter((m) => m.dimension === "symbolic"),
   };
+}
+
+// ============================================================================
+// ARCHETYPE OPERATIONS
+// ============================================================================
+
+export async function recalculateArchetype(nodeId) {
+  const node = await db.nodes.get(nodeId);
+  if (!node || (node.type !== "O" && node.type !== "A")) {
+    return null;
+  }
+
+  const moons = await getMoonsByParentId(nodeId);
+  const newArchetype = calculateArchetype(node, moons);
+
+  if (node.archetype !== newArchetype) {
+    await db.nodes.update(nodeId, { archetype: newArchetype });
+    console.log(`🔄 Archetype changed: ${node.archetype} → ${newArchetype}`);
+    return {
+      changed: true,
+      from: node.archetype,
+      to: newArchetype,
+    };
+  }
+
+  return {
+    changed: false,
+    archetype: newArchetype,
+  };
+}
+
+// ============================================================================
+// PROGRESSIVE UNLOCK OPERATIONS
+// ============================================================================
+
+export async function getTotalReflectionCount() {
+  const count = await db.nodes.where("type").equals("R").count();
+  await db.settings.put({ key: "totalReflectionCount", value: count });
+  return count;
+}
+
+export async function getUnlockedDimensions() {
+  const totalReflections = await getTotalReflectionCount();
+  const showAll = await getSetting("showAllDimensions");
+
+  if (showAll) {
+    return ["subjective", "behavioral", "intersubjective", "symbolic"];
+  }
+
+  const unlocked = ["subjective", "intersubjective"]; // Always available
+
+  if (totalReflections >= 5) {
+    unlocked.push("behavioral");
+  }
+
+  if (totalReflections >= 15) {
+    unlocked.push("symbolic");
+  }
+
+  return unlocked;
+}
+
+export async function checkDimensionUnlock(previousCount, newCount) {
+  // Check if we crossed a threshold
+  const unlocks = [];
+
+  if (previousCount < 5 && newCount >= 5) {
+    unlocks.push({
+      dimension: "behavioral",
+      message:
+        "🎉 Behavioral dimension unlocked! Track what you actually did or said.",
+    });
+  }
+
+  if (previousCount < 15 && newCount >= 15) {
+    unlocks.push({
+      dimension: "symbolic",
+      message:
+        "🎉 Symbolic dimension unlocked! Recognize patterns and meanings.",
+    });
+  }
+
+  return unlocks;
 }
 
 // ============================================================================

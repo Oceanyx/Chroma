@@ -1,20 +1,56 @@
-// src/seedData.js - V2 with 4 Dimensions
+// src/seedData.js - V2.2 with Archetype Emergence & Corrected Dimension Names
 
 // ============================================================================
-// DIMENSION COLORS (Renamed from domain)
+// DIMENSION COLORS
 // ============================================================================
 export const dimensionColors = {
-  subjective: "#A78BFA", // Violet (was private)
-  intersubjective: "#10B981", // Green (was public)
-  behavioral: "#F97316", // Orange (NEW)
-  symbolic: "#3B82F6", // Blue (was abstract)
+  subjective: "#A78BFA", // Violet (Inner Experience)
+  intersubjective: "#10B981", // Green (External)
+  behavioral: "#F97316", // Orange
+  symbolic: "#3B82F6", // Blue
 };
 
 // ============================================================================
-// PLANET VARIANTS
+// PLANET VARIANTS (ARCHETYPES)
 // ============================================================================
 export const planetVariants = {
   observation: {
+    neutral: {
+      name: "Neutral",
+      colors: {
+        core: ["#475569", "#64748B"],
+        surface: ["#64748B", "#94A3B8"],
+        atmosphere: ["#94A3B8", "#CBD5E1"],
+        glow: "rgba(148, 163, 184, 0.3)",
+      },
+    },
+    calm: {
+      name: "Calm",
+      colors: {
+        core: ["#BAE6FD", "#7DD3FC"],
+        surface: ["#38BDF8", "#0EA5E9"],
+        atmosphere: ["#7DD3FC", "#BAE6FD"],
+        glow: "rgba(125, 211, 252, 0.4)",
+      },
+    },
+    turbulent: {
+      name: "Turbulent",
+      colors: {
+        core: ["#334155", "#475569"],
+        surface: ["#64748B", "#475569"],
+        atmosphere: ["#94A3B8", "#64748B"],
+        glow: "rgba(100, 116, 139, 0.4)",
+      },
+    },
+    energized: {
+      name: "Energized",
+      colors: {
+        core: ["#0D9488", "#14B8A6"],
+        surface: ["#2DD4BF", "#5EEAD4"],
+        atmosphere: ["#5EEAD4", "#99F6E4"],
+        glow: "rgba(94, 234, 212, 0.5)",
+      },
+    },
     "deep-ocean": {
       name: "Deep Ocean",
       colors: {
@@ -107,6 +143,42 @@ export const planetVariants = {
     },
   },
   action: {
+    neutral: {
+      name: "Neutral",
+      colors: {
+        core: ["#78350F", "#92400E"],
+        surface: ["#B45309", "#D97706"],
+        atmosphere: ["#F59E0B", "#FBBF24"],
+        glow: "rgba(245, 158, 11, 0.3)",
+      },
+    },
+    calm: {
+      name: "Calm",
+      colors: {
+        core: ["#C2410C", "#EA580C"],
+        surface: ["#FB923C", "#FDBA74"],
+        atmosphere: ["#FED7AA", "#FFEDD5"],
+        glow: "rgba(251, 146, 60, 0.4)",
+      },
+    },
+    turbulent: {
+      name: "Turbulent",
+      colors: {
+        core: ["#7F1D1D", "#991B1B"],
+        surface: ["#DC2626", "#B91C1C"],
+        atmosphere: ["#EF4444", "#F87171"],
+        glow: "rgba(239, 68, 68, 0.4)",
+      },
+    },
+    energized: {
+      name: "Energized",
+      colors: {
+        core: ["#EA580C", "#F97316"],
+        surface: ["#FB923C", "#FDBA74"],
+        atmosphere: ["#FED7AA", "#FFEDD5"],
+        glow: "rgba(253, 186, 116, 0.5)",
+      },
+    },
     "solar-flare": {
       name: "Solar Flare",
       colors: {
@@ -202,8 +274,12 @@ export const planetVariants = {
 
 export function getRandomVariant(nodeType) {
   const variantType = nodeType === "O" ? "observation" : "action";
-  const variants = Object.keys(planetVariants[variantType]);
-  const randomKey = variants[Math.floor(Math.random() * variants.length)];
+  // Exclude archetype variants (neutral, calm, turbulent, energized) from random selection
+  const decorativeVariants = Object.keys(planetVariants[variantType]).filter(
+    (k) => !["neutral", "calm", "turbulent", "energized"].includes(k),
+  );
+  const randomKey =
+    decorativeVariants[Math.floor(Math.random() * decorativeVariants.length)];
   return randomKey;
 }
 
@@ -235,44 +311,95 @@ export const planetConfig = {
 };
 
 // ============================================================================
-// MOON CONFIG - 4 DIMENSIONS (V2)
+// MOON CONFIG - 4 DIMENSIONS (V2.2)
 // ============================================================================
 export const moonConfig = {
   dimension: {
     subjective: {
       color: dimensionColors.subjective,
-      name: "Subjective",
-      radius: 14,
-      orbitRadius: 90, // Increased from 70 to prevent overlap
+      name: "Inner Experience",
+      radius: 16,
+      orbitRadius: 90,
       orbitSpeed: 0.001047,
-      description: "What did you feel/think/sense internally?",
-    },
-    intersubjective: {
-      color: dimensionColors.intersubjective,
-      name: "Intersubjective",
-      radius: 18,
-      orbitRadius: 140, // Increased from 100
-      orbitSpeed: 0.000698,
-      description: "What happened between people?",
+      description: "What did you feel, think, or sense internally?",
+      unlockThreshold: 0, // Available from start
     },
     behavioral: {
       color: dimensionColors.behavioral,
       name: "Behavioral",
-      radius: 20,
-      orbitRadius: 180, // NEW - between intersubjective and symbolic
+      radius: 24,
+      orbitRadius: 140,
       orbitSpeed: 0.00075,
-      description: "What did you observably do/say?",
+      description: "What did you observably do or say?",
+      unlockThreshold: 5, // Unlocks after 5 reflections
+    },
+    intersubjective: {
+      color: dimensionColors.intersubjective,
+      name: "External",
+      radius: 32,
+      orbitRadius: 180,
+      orbitSpeed: 0.000698,
+      description: "What can be externally verified?",
+      unlockThreshold: 0, // Available from start
     },
     symbolic: {
       color: dimensionColors.symbolic,
       name: "Symbolic",
-      radius: 22,
-      orbitRadius: 220, // Increased from 135
+      radius: 40,
+      orbitRadius: 220,
       orbitSpeed: 0.000524,
-      description: "What pattern or meaning do you see?",
+      description: "What patterns or meanings do you recognize?",
+      unlockThreshold: 15, // Unlocks after 15 reflections
     },
   },
 };
+
+// ============================================================================
+// ARCHETYPE CALCULATION SYSTEM
+// ============================================================================
+export const archetypeThresholds = {
+  tensionForTurbulent: 2, // 2+ tension relationships → turbulent
+  wobbleRatioForTurbulent: 0.5, // 50%+ wobbly moons → turbulent
+  versionRatioForEnergized: 2.5, // versions > moons × 2.5 → energized
+};
+
+export function calculateArchetype(node, moons) {
+  if (!moons || moons.length === 0) {
+    return "neutral"; // Default before any reflection
+  }
+
+  // Count tension relationships
+  const tensionCount = moons.reduce(
+    (sum, moon) =>
+      sum +
+      (moon.relationships?.filter((r) => r.type === "tension").length || 0),
+    0,
+  );
+
+  // Count total versions across all moons
+  const totalVersions = moons.reduce(
+    (sum, moon) => sum + (moon.versions?.length || 1),
+    0,
+  );
+
+  // Count wobbles (low confidence)
+  const wobbleCount = moons.filter((m) => m.confidence === "wobbly").length;
+
+  // Determine archetype
+  if (
+    tensionCount >= archetypeThresholds.tensionForTurbulent ||
+    wobbleCount >= moons.length * archetypeThresholds.wobbleRatioForTurbulent
+  ) {
+    return "turbulent"; // High internal conflict or uncertainty
+  } else if (
+    totalVersions >
+    moons.length * archetypeThresholds.versionRatioForEnergized
+  ) {
+    return "energized"; // Active editing/refinement
+  } else {
+    return "calm"; // Stable, coherent
+  }
+}
 
 // ============================================================================
 // LENSES
@@ -281,49 +408,56 @@ export const lenses = [
   {
     id: "psychological",
     label: "Psychological",
+    emoji: "💭",
     color: "#EC4899",
     promptText: "What inner drives, fears, or wounds might be active here?",
   },
   {
     id: "somatic",
     label: "Somatic",
+    emoji: "🫀",
     color: "#F59E0B",
     promptText: "What is my body telling me through sensations?",
   },
   {
     id: "aesthetic",
     label: "Aesthetic",
+    emoji: "🎨",
     color: "#8B5CF6",
     promptText: "What is the felt quality or texture of this moment?",
   },
   {
     id: "empathy",
     label: "Empathy",
+    emoji: "🫶",
     color: "#10B981",
     promptText: "How might this feel from someone else's perspective?",
   },
   {
     id: "systems",
     label: "Systems",
+    emoji: "⚙️",
     color: "#3B82F6",
     promptText: "What structures or incentives shape this situation?",
   },
   {
     id: "existential",
     label: "Existential",
+    emoji: "🌌",
     color: "#6366F1",
     promptText: "What does this mean in context of mortality and freedom?",
   },
   {
     id: "mythic",
     label: "Mythic",
+    emoji: "📖",
     color: "#EF4444",
     promptText: "What archetypal pattern is playing out here?",
   },
 ];
 
 // ============================================================================
-// SEED DATA - Updated for V2
+// SEED DATA
 // ============================================================================
 export const seedNodes = [
   {
@@ -333,6 +467,7 @@ export const seedNodes = [
     timestamp: Date.now() - 86400000,
     state: "past",
     variant: "deep-ocean",
+    archetype: "neutral", // Starts neutral
     position: { x: 200, y: 300 },
   },
   {
@@ -342,6 +477,7 @@ export const seedNodes = [
     timestamp: Date.now() - 43200000,
     state: "past",
     variant: "ember",
+    archetype: "neutral", // Starts neutral
     position: { x: 500, y: 300 },
   },
   {
@@ -351,6 +487,7 @@ export const seedNodes = [
     timestamp: Date.now() - 21600000,
     state: "present",
     variant: "ice-crystal",
+    archetype: "calm", // Has reflections, calculated as calm
     position: { x: 800, y: 300 },
   },
   {
@@ -358,9 +495,14 @@ export const seedNodes = [
     type: "R",
     parentId: "o-1",
     dimension: "subjective",
-    text: "I was feeling anxious about being confrontational",
+    text: "I felt anxious about being confrontational",
     lensesUsed: ["somatic", "empathy"],
     orbitAngle: 0,
+    confidence: "stable",
+    intensity: "medium",
+    temporality: "concurrent",
+    versions: [],
+    relationships: [],
   },
   {
     id: "r-2",
@@ -370,6 +512,11 @@ export const seedNodes = [
     text: "The team dynamic was strained - roles unclear",
     lensesUsed: ["systems"],
     orbitAngle: 0,
+    confidence: "stable",
+    intensity: "medium",
+    temporality: "concurrent",
+    versions: [],
+    relationships: [],
   },
 ];
 

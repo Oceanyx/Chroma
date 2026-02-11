@@ -1,16 +1,23 @@
-// src/components/ReflectionSpace.jsx - V2 with Planet Centered & Orbital Paths
-import React, { useState } from "react";
+// src/components/ReflectionSpace.jsx - V2.2 with Progressive Unlock & Archetype Recalc
+import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import MoonInputCard from "./MoonInputCard";
+import DimensionUnlockNotification from "./DimensionUnlockNotification";
 import {
   getGhostMoonPositions,
   groupMoonsByDimension,
   getOrbitalPaths,
 } from "../lib/orbitalPhysics";
 import { moonConfig } from "../seedData";
-import { db } from "../lib/db";
+import {
+  db,
+  recalculateArchetype,
+  getTotalReflectionCount,
+  checkDimensionUnlock,
+  getUnlockedDimensions,
+} from "../lib/db";
 
 export default function ReflectionSpace({
   parentNode,
@@ -22,10 +29,12 @@ export default function ReflectionSpace({
   const [selectedDimension, setSelectedDimension] = useState(null);
   const [expandedDimension, setExpandedDimension] = useState(null);
   const [showInputCard, setShowInputCard] = useState(false);
+  const [unlockNotification, setUnlockNotification] = useState(null);
+  const [unlockedDimensions, setUnlockedDimensions] = useState([]);
 
   // Center planet in viewport
   const viewportCenterX = window.innerWidth / 2;
-  const viewportCenterY = (window.innerHeight - 60) / 2 + 60; // Account for top bar
+  const viewportCenterY = (window.innerHeight - 60) / 2 + 60;
 
   const centeredPlanet = {
     ...parentNode,
@@ -39,6 +48,22 @@ export default function ReflectionSpace({
   const groupedMoons = groupMoonsByDimension(childMoons, centeredPlanet);
   const ghostPositions = getGhostMoonPositions(centeredPlanet);
   const orbitalPaths = getOrbitalPaths(centeredPlanet);
+
+  // Load unlocked dimensions on mount
+  useEffect(() => {
+    async function loadUnlocked() {
+      const unlocked = await getUnlockedDimensions();
+      setUnlockedDimensions(unlocked);
+    }
+    loadUnlocked();
+  }, []);
+
+  // Filter ghost positions by unlocked dimensions
+  const availableGhostPositions = Object.fromEntries(
+    Object.entries(ghostPositions).filter(([dimension]) =>
+      unlockedDimensions.includes(dimension),
+    ),
+  );
 
   const handleGhostClick = (dimension) => {
     setSelectedDimension(dimension);
@@ -54,6 +79,9 @@ export default function ReflectionSpace({
   };
 
   const handleSaveReflection = async (reflectionData) => {
+    // Track count before adding (for unlock check)
+    const previousCount = await getTotalReflectionCount();
+
     const newMoon = {
       type: "R",
       parentId: parentNode.id,
@@ -61,9 +89,32 @@ export default function ReflectionSpace({
       text: reflectionData.text,
       lensesUsed: reflectionData.lensesUsed || [],
       orbitAngle: 0,
+      confidence: "stable",
+      intensity: "medium",
+      temporality: "concurrent",
+      versions: [],
+      relationships: [],
     };
 
     await db.nodes.add(newMoon);
+
+    // Recalculate parent archetype
+    const archetypeResult = await recalculateArchetype(parentNode.id);
+    if (archetypeResult.changed) {
+      console.log(
+        `🔄 Archetype changed: ${archetypeResult.from} → ${archetypeResult.to}`,
+      );
+    }
+
+    // Check if dimension unlocked
+    const newCount = await getTotalReflectionCount();
+    const unlocks = await checkDimensionUnlock(previousCount, newCount);
+    if (unlocks.length > 0) {
+      setUnlockNotification(unlocks[0]);
+      const newUnlocked = await getUnlockedDimensions();
+      setUnlockedDimensions(newUnlocked);
+    }
+
     await onNodesUpdate();
 
     setShowInputCard(false);
@@ -165,20 +216,22 @@ export default function ReflectionSpace({
           }}
         >
           <g style={{ pointerEvents: "auto" }}>
-            {/* Orbital Path Circles - More Visible */}
-            {orbitalPaths.map((path) => (
-              <circle
-                key={path.dimension}
-                cx={path.centerX}
-                cy={path.centerY}
-                r={path.radius}
-                fill="none"
-                stroke={path.color}
-                strokeWidth={1.5}
-                strokeOpacity={0.5}
-                strokeDasharray="4,4"
-              />
-            ))}
+            {/* Orbital Path Circles */}
+            {orbitalPaths
+              .filter((path) => unlockedDimensions.includes(path.dimension))
+              .map((path) => (
+                <circle
+                  key={path.dimension}
+                  cx={path.centerX}
+                  cy={path.centerY}
+                  r={path.radius}
+                  fill="none"
+                  stroke={path.color}
+                  strokeWidth={1.5}
+                  strokeOpacity={0.5}
+                  strokeDasharray="4,4"
+                />
+              ))}
 
             {/* Central Planet */}
             <Planet
@@ -190,60 +243,62 @@ export default function ReflectionSpace({
 
             {/* Ghost Moons or Aggregate Moons */}
             {!showInputCard &&
-              Object.entries(ghostPositions).map(([dimension, position]) => {
-                const existingGroup = groupedMoons[dimension];
-                const hasExisting = existingGroup && existingGroup.count > 0;
+              Object.entries(availableGhostPositions).map(
+                ([dimension, position]) => {
+                  const existingGroup = groupedMoons[dimension];
+                  const hasExisting = existingGroup && existingGroup.count > 0;
 
-                if (hasExisting && !expandedDimension) {
-                  const aggregateNode = {
-                    id: `${parentNode.id}-${dimension}`,
-                    type: "R",
-                    dimension,
-                    text: `${existingGroup.count} ${dimension} reflection${existingGroup.count > 1 ? "s" : ""}`,
-                    position,
-                  };
+                  if (hasExisting && !expandedDimension) {
+                    const aggregateNode = {
+                      id: `${parentNode.id}-${dimension}`,
+                      type: "R",
+                      dimension,
+                      text: `${existingGroup.count} ${dimension} reflection${existingGroup.count > 1 ? "s" : ""}`,
+                      position,
+                    };
 
-                  return (
-                    <Moon
-                      key={dimension}
-                      node={aggregateNode}
-                      position={position}
-                      count={existingGroup.count}
-                      isHovered={hoveredDimension === dimension}
-                      onClick={() => handleAggregateMoonClick(dimension)}
-                      onMouseEnter={() => setHoveredDimension(dimension)}
-                      onMouseLeave={() => setHoveredDimension(null)}
-                    />
-                  );
-                }
+                    return (
+                      <Moon
+                        key={dimension}
+                        node={aggregateNode}
+                        position={position}
+                        count={existingGroup.count}
+                        isHovered={hoveredDimension === dimension}
+                        onClick={() => handleAggregateMoonClick(dimension)}
+                        onMouseEnter={() => setHoveredDimension(dimension)}
+                        onMouseLeave={() => setHoveredDimension(null)}
+                      />
+                    );
+                  }
 
-                if (
-                  !hasExisting ||
-                  (expandedDimension && expandedDimension !== dimension)
-                ) {
-                  const ghostNode = {
-                    id: `ghost-${dimension}`,
-                    type: "R",
-                    dimension,
-                    text: dimension,
-                  };
+                  if (
+                    !hasExisting ||
+                    (expandedDimension && expandedDimension !== dimension)
+                  ) {
+                    const ghostNode = {
+                      id: `ghost-${dimension}`,
+                      type: "R",
+                      dimension,
+                      text: dimension,
+                    };
 
-                  return (
-                    <Moon
-                      key={dimension}
-                      node={ghostNode}
-                      position={position}
-                      isGhost={true}
-                      isHovered={hoveredDimension === dimension}
-                      onClick={() => handleGhostClick(dimension)}
-                      onMouseEnter={() => setHoveredDimension(dimension)}
-                      onMouseLeave={() => setHoveredDimension(null)}
-                    />
-                  );
-                }
+                    return (
+                      <Moon
+                        key={dimension}
+                        node={ghostNode}
+                        position={position}
+                        isGhost={true}
+                        isHovered={hoveredDimension === dimension}
+                        onClick={() => handleGhostClick(dimension)}
+                        onMouseEnter={() => setHoveredDimension(dimension)}
+                        onMouseLeave={() => setHoveredDimension(null)}
+                      />
+                    );
+                  }
 
-                return null;
-              })}
+                  return null;
+                },
+              )}
           </g>
         </svg>
 
@@ -286,7 +341,7 @@ export default function ReflectionSpace({
                   textTransform: "capitalize",
                 }}
               >
-                {expandedDimension} Reflections
+                {moonConfig.dimension[expandedDimension].name} Reflections
               </h3>
               <button
                 onClick={() => setExpandedDimension(null)}
@@ -404,6 +459,14 @@ export default function ReflectionSpace({
               setShowInputCard(false);
               setSelectedDimension(null);
             }}
+          />
+        )}
+
+        {/* Unlock Notification */}
+        {unlockNotification && (
+          <DimensionUnlockNotification
+            dimension={unlockNotification.dimension}
+            onDismiss={() => setUnlockNotification(null)}
           />
         )}
       </div>

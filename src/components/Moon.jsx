@@ -1,193 +1,152 @@
-// src/components/Moon.jsx - V2 with No Auras, 4 Dimensions
+// src/components/Moon.jsx - V2.2 Basic (RadialMenu integration is Phase 2)
 import React from "react";
 import { moonConfig } from "../seedData";
 
 export default function Moon({
   node,
   position,
-  isHovered,
-  isSelected,
+  count,
   isGhost = false,
-  count = 1,
+  isHovered = false,
   onClick,
   onMouseEnter,
   onMouseLeave,
 }) {
-  const dimensionConfig = moonConfig.dimension[node?.dimension || "subjective"];
-  const radius = dimensionConfig.radius;
+  const dimension = node.dimension;
+  const config = moonConfig.dimension[dimension];
 
+  if (!config) {
+    console.error(`Unknown dimension: ${dimension}`);
+    return null;
+  }
+
+  const radius = config.radius;
   const x = position?.x || node.position?.x || 0;
   const y = position?.y || node.position?.y || 0;
 
-  const gradientId = `moon-gradient-${node?.id || Math.random()}`;
-  const opacity = isGhost ? (isHovered ? 0.7 : 0.3) : 1;
+  const opacity = isGhost ? 0.3 : 1;
+  const strokeOpacity = isGhost ? 0.2 : 0.5;
+  const glowOpacity = isHovered ? 0.6 : isGhost ? 0.1 : 0.3;
 
   return (
     <g
       onClick={(e) => {
         e.stopPropagation();
-        onClick?.(node, e);
+        onClick?.(node);
       }}
-      onMouseEnter={() => onMouseEnter?.(node)}
-      onMouseLeave={() => onMouseLeave?.()}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{ cursor: "pointer" }}
-      opacity={opacity}
     >
       <defs>
-        <radialGradient id={gradientId}>
-          <stop
-            offset="0%"
-            stopColor={dimensionConfig.color}
-            stopOpacity="0.95"
-          />
-          <stop
-            offset="60%"
-            stopColor={dimensionConfig.color}
-            stopOpacity="0.8"
-          />
-          <stop
-            offset="100%"
-            stopColor={dimensionConfig.color}
-            stopOpacity="0.6"
-          />
+        <radialGradient id={`moon-gradient-${node.id}`}>
+          <stop offset="0%" stopColor={config.color} stopOpacity="1" />
+          <stop offset="100%" stopColor={config.color} stopOpacity="0.6" />
         </radialGradient>
+
+        <filter
+          id={`moon-glow-${node.id}`}
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur stdDeviation={isHovered ? "4" : "2"} result="blur" />
+          <feFlood floodColor={config.color} floodOpacity="1" />
+          <feComposite in2="blur" operator="in" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
+
+      {/* Outer Glow */}
+      <circle
+        cx={x}
+        cy={y}
+        r={radius * 1.5}
+        fill={config.color}
+        opacity={glowOpacity}
+        filter={`url(#moon-glow-${node.id})`}
+        style={{ transition: "all 0.3s ease" }}
+      />
 
       {/* Main Moon Body */}
       <circle
         cx={x}
         cy={y}
         r={radius}
-        fill={`url(#${gradientId})`}
-        stroke={isSelected ? "#FFFFFF" : dimensionConfig.color}
-        strokeWidth={isSelected ? 2 : 1}
-        strokeOpacity={isGhost ? 0.5 : 0.8}
-      />
-
-      {/* Surface Craters (random pattern) */}
-      {!isGhost && (
-        <>
-          <circle
-            cx={x - radius * 0.3}
-            cy={y - radius * 0.2}
-            r={radius * 0.15}
-            fill="rgba(0,0,0,0.1)"
-          />
-          <circle
-            cx={x + radius * 0.2}
-            cy={y + radius * 0.3}
-            r={radius * 0.12}
-            fill="rgba(0,0,0,0.08)"
-          />
-          <circle
-            cx={x + radius * 0.35}
-            cy={y - radius * 0.25}
-            r={radius * 0.08}
-            fill="rgba(0,0,0,0.06)"
-          />
-        </>
-      )}
-
-      {/* Highlight Spot */}
-      <ellipse
-        cx={x - radius * 0.35}
-        cy={y - radius * 0.35}
-        rx={radius * 0.4}
-        ry={radius * 0.3}
-        fill="rgba(255, 255, 255, 0.5)"
-        opacity={isGhost ? 0.2 : 0.7}
+        fill={`url(#moon-gradient-${node.id})`}
+        stroke={config.color}
+        strokeWidth={isHovered ? 2 : 1}
+        strokeOpacity={strokeOpacity}
+        opacity={opacity}
+        style={{ transition: "all 0.2s ease" }}
       />
 
       {/* Aggregate Count Badge */}
-      {!isGhost && count > 1 && (
+      {count && count > 1 && (
         <g>
           <circle
-            cx={x + radius * 0.7}
-            cy={y - radius * 0.7}
+            cx={x + radius * 0.6}
+            cy={y - radius * 0.6}
             r={8}
-            fill="#FFFFFF"
-            stroke={dimensionConfig.color}
-            strokeWidth={2}
+            fill="rgba(15, 23, 36, 0.95)"
+            stroke={config.color}
+            strokeWidth={1.5}
           />
           <text
-            x={x + radius * 0.7}
-            y={y - radius * 0.7}
+            x={x + radius * 0.6}
+            y={y - radius * 0.6}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={10}
+            fontSize={9}
             fontWeight="bold"
-            fill={dimensionConfig.color}
+            fill="#E6EEF8"
+            style={{ pointerEvents: "none", userSelect: "none" }}
           >
             {count}
           </text>
         </g>
       )}
 
-      {/* Ghost Moon Dimension Label */}
-      {isGhost && isHovered && (
+      {/* Ghost Label */}
+      {isGhost && (
         <text
           x={x}
           y={y + radius + 16}
           textAnchor="middle"
-          fontSize={12}
-          fill={dimensionConfig.color}
-          fontWeight={600}
-          opacity={0.9}
+          fontSize={11}
+          fill={config.color}
+          opacity={0.6}
+          fontWeight={500}
+          style={{ pointerEvents: "none", textTransform: "capitalize" }}
         >
-          {dimensionConfig.name}
+          {config.name}
         </text>
       )}
 
-      {/* Selection Ring */}
-      {isSelected && !isGhost && (
+      {/* Hover Ring */}
+      {isHovered && !isGhost && (
         <circle
           cx={x}
           cy={y}
           r={radius + 4}
           fill="none"
-          stroke="#FFFFFF"
-          strokeWidth={1.5}
+          stroke={config.color}
+          strokeWidth={2}
           strokeDasharray="3,3"
           opacity={0.8}
         >
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from={`0 ${x} ${y}`}
-            to={`360 ${x} ${y}`}
-            dur="3s"
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="12"
+            dur="1s"
             repeatCount="indefinite"
           />
         </circle>
-      )}
-
-      {/* Hover Text Preview */}
-      {isHovered && !isGhost && node?.text && (
-        <g>
-          <rect
-            x={x - 70}
-            y={y + radius + 10}
-            width={140}
-            height={32}
-            rx={5}
-            fill="rgba(15, 23, 36, 0.95)"
-            stroke={dimensionConfig.color}
-            strokeWidth={1}
-            strokeOpacity={0.5}
-          />
-          <text
-            x={x}
-            y={y + radius + 26}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={11}
-            fill="#E6EEF8"
-            fontWeight={400}
-            style={{ pointerEvents: "none" }}
-          >
-            {node.text.length > 16 ? node.text.slice(0, 16) + "..." : node.text}
-          </text>
-        </g>
       )}
     </g>
   );
