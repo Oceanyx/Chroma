@@ -13,7 +13,6 @@ import {
 import { moonConfig } from "../seedData";
 import {
   db,
-  recalculateArchetype,
   getTotalReflectionCount,
   checkDimensionUnlock,
   getUnlockedDimensions,
@@ -97,14 +96,6 @@ export default function ReflectionSpace({
     };
 
     await db.nodes.add(newMoon);
-
-    // Recalculate parent archetype
-    const archetypeResult = await recalculateArchetype(parentNode.id);
-    if (archetypeResult.changed) {
-      console.log(
-        `🔄 Archetype changed: ${archetypeResult.from} → ${archetypeResult.to}`,
-      );
-    }
 
     // Check if dimension unlocked
     const newCount = await getTotalReflectionCount();

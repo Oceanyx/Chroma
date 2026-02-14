@@ -1,9 +1,106 @@
-// src/components/Planet.jsx - With Archetype System
+// src/components/Planet.jsx - V3.0 Moon-Based Coloring
 import React from "react";
-import { planetVariants, planetConfig } from "../seedData";
+import { planetConfig } from "../seedData";
+
+// ============================================================================
+// COLOR CALCULATION - Planet color based on dominant dimension
+// ============================================================================
+
+function calculatePlanetColor(moons) {
+  if (!moons || moons.length === 0) {
+    // No reflections = gray planet
+    return {
+      core: ["#475569", "#64748B"],
+      surface: ["#64748B", "#94A3B8"],
+      atmosphere: ["#94A3B8", "#CBD5E1"],
+      glow: "rgba(148, 163, 184, 0.3)",
+    };
+  }
+
+  // Count moons per dimension
+  const counts = {
+    subjective: 0,
+    behavioral: 0,
+    intersubjective: 0,
+    symbolic: 0,
+  };
+
+  moons.forEach((moon) => {
+    if (counts[moon.dimension] !== undefined) {
+      counts[moon.dimension]++;
+    }
+  });
+
+  // Find dominant dimension (most moons)
+  let dominant = "subjective";
+  let maxCount = 0;
+  Object.entries(counts).forEach(([dim, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      dominant = dim;
+    }
+  });
+
+  // Return color scheme based on dominant dimension
+  const dimensionColors = {
+    subjective: {
+      // Violet - Inner Experience
+      core: ["#7C3AED", "#8B5CF6"],
+      surface: ["#A78BFA", "#C4B5FD"],
+      atmosphere: ["#DDD6FE", "#EDE9FE"],
+      glow: "rgba(167, 139, 250, 0.4)",
+    },
+    behavioral: {
+      // Orange - Actions
+      core: ["#EA580C", "#F97316"],
+      surface: ["#FB923C", "#FDBA74"],
+      atmosphere: ["#FED7AA", "#FFEDD5"],
+      glow: "rgba(249, 115, 22, 0.4)",
+    },
+    intersubjective: {
+      // Green - External/Measurable
+      core: ["#059669", "#10B981"],
+      surface: ["#34D399", "#6EE7B7"],
+      atmosphere: ["#A7F3D0", "#D1FAE5"],
+      glow: "rgba(16, 185, 129, 0.4)",
+    },
+    symbolic: {
+      // Blue - Patterns/Meaning
+      core: ["#2563EB", "#3B82F6"],
+      surface: ["#60A5FA", "#93C5FD"],
+      atmosphere: ["#DBEAFE", "#EFF6FF"],
+      glow: "rgba(59, 130, 246, 0.4)",
+    },
+  };
+
+  return dimensionColors[dominant];
+}
+
+function calculateSurfaceState(moons) {
+  if (!moons || moons.length === 0) {
+    return "calm";
+  }
+
+  // Count tension relationships across all moons
+  const tensionCount = moons.reduce(
+    (sum, moon) =>
+      sum +
+      (moon.relationships?.filter((r) => r.type === "tension").length || 0),
+    0,
+  );
+
+  if (tensionCount === 0) return "calm";
+  if (tensionCount <= 2) return "rippled";
+  return "stormy";
+}
+
+// ============================================================================
+// PLANET COMPONENT
+// ============================================================================
 
 export default function Planet({
   node,
+  moons = [], // NEW: Accept moons prop
   isHovered,
   isSelected,
   isFocused,
@@ -13,14 +110,9 @@ export default function Planet({
   onMouseLeave,
   onMouseDown,
 }) {
-  const variantType = node.type === "O" ? "observation" : "action";
-
-  // Use archetype if present, otherwise fall back to variant
-  const archetype = node.archetype || "neutral";
-  const variant =
-    planetVariants[variantType]?.[archetype] ||
-    planetVariants[variantType]?.[node.variant] ||
-    planetVariants[variantType]["neutral"];
+  // Calculate colors from moons
+  const colors = calculatePlanetColor(moons);
+  const surfaceState = calculateSurfaceState(moons);
 
   const { x, y } = node.position;
   const radius = planetConfig.baseRadius;
@@ -53,23 +145,23 @@ export default function Planet({
       <defs>
         {/* Core to Surface Gradient */}
         <radialGradient id={gradientId}>
-          <stop offset="0%" stopColor={variant.colors.core[0]} />
-          <stop offset="40%" stopColor={variant.colors.core[1]} />
-          <stop offset="70%" stopColor={variant.colors.surface[0]} />
-          <stop offset="100%" stopColor={variant.colors.surface[1]} />
+          <stop offset="0%" stopColor={colors.core[0]} />
+          <stop offset="40%" stopColor={colors.core[1]} />
+          <stop offset="70%" stopColor={colors.surface[0]} />
+          <stop offset="100%" stopColor={colors.surface[1]} />
         </radialGradient>
 
         {/* Surface Texture Pattern */}
         <filter id={noiseId}>
           <feTurbulence
             type="fractalNoise"
-            baseFrequency={archetype === "turbulent" ? "0.04" : "0.02"}
-            numOctaves={archetype === "turbulent" ? 4 : 2}
+            baseFrequency="0.02"
+            numOctaves={2}
             result="noise"
           />
           <feDiffuseLighting
             in="noise"
-            lightingColor={variant.colors.surface[1]}
+            lightingColor={colors.surface[1]}
             surfaceScale="2"
           >
             <feDistantLight azimuth="45" elevation="60" />
@@ -81,7 +173,7 @@ export default function Planet({
         {/* Glow Filter */}
         <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation={isHovered ? "8" : "5"} result="blur" />
-          <feFlood floodColor={variant.colors.glow} floodOpacity="1" />
+          <feFlood floodColor={colors.glow} floodOpacity="1" />
           <feComposite in2="blur" operator="in" />
           <feMerge>
             <feMergeNode />
@@ -95,7 +187,7 @@ export default function Planet({
         cx={centerX}
         cy={centerY}
         r={glowRadius}
-        fill={variant.colors.glow}
+        fill={colors.glow}
         opacity={glowOpacity}
         filter={`url(#${glowId})`}
         style={{ transition: "all 0.3s ease" }}
@@ -175,7 +267,7 @@ export default function Planet({
         cx={centerX}
         cy={centerY}
         r={radius}
-        fill={variant.colors.atmosphere[0]}
+        fill={colors.atmosphere[0]}
         opacity={0.15}
       />
 
@@ -199,28 +291,103 @@ export default function Planet({
         opacity={0.5}
       />
 
-      {/* Archetype Badge (Bottom Right) - Shows current archetype */}
-      {archetype && archetype !== "neutral" && (
+      {/* Surface Animation - Tension-based */}
+      {surfaceState === "rippled" && (
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={radius + 3}
+          fill="none"
+          stroke={colors.surface[1]}
+          strokeWidth={1}
+          opacity={0.4}
+        >
+          <animate
+            attributeName="r"
+            values={`${radius + 2};${radius + 5};${radius + 2}`}
+            dur="3s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="0.2;0.5;0.2"
+            dur="3s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      )}
+
+      {surfaceState === "stormy" && (
+        <>
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={radius + 3}
+            fill="none"
+            stroke="#EF4444"
+            strokeWidth={2}
+            opacity={0.6}
+          >
+            <animate
+              attributeName="r"
+              values={`${radius + 2};${radius + 8};${radius + 2}`}
+              dur="1.5s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.3;0.7;0.3"
+              dur="1.5s"
+              repeatCount="indefinite"
+            />
+          </circle>
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={radius + 6}
+            fill="none"
+            stroke="#F97316"
+            strokeWidth={1}
+            opacity={0.4}
+          >
+            <animate
+              attributeName="r"
+              values={`${radius + 4};${radius + 10};${radius + 4}`}
+              dur="2s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.2;0.5;0.2"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </>
+      )}
+
+      {/* Moon Count Badge (Bottom Right) */}
+      {moons && moons.length > 0 && (
         <g>
           <circle
             cx={centerX + radius * 0.7}
             cy={centerY + radius * 0.7}
-            r={10}
+            r={12}
             fill="rgba(15, 23, 36, 0.95)"
-            stroke={variant.colors.glow}
-            strokeWidth={1.5}
+            stroke={colors.glow}
+            strokeWidth={2}
           />
           <text
             x={centerX + radius * 0.7}
             y={centerY + radius * 0.7}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={8}
+            fontSize={10}
             fill="#E6EEF8"
             fontWeight="600"
             style={{ pointerEvents: "none", userSelect: "none" }}
           >
-            {archetype === "calm" ? "C" : archetype === "turbulent" ? "T" : "E"}
+            {moons.length}
           </text>
         </g>
       )}

@@ -9,8 +9,7 @@ export const db = new Dexie("PerceptionMapDB_v3");
 // ============================================================================
 db.version(3)
   .stores({
-    nodes:
-      "++id, type, parentId, timestamp, dimension, constellationId, archetype",
+    nodes: "++id, type, parentId, timestamp, dimension, constellationId",
     edges: "++id, sourceId, targetId, createdAt, type",
     lenses: "++id, label",
     patterns: "++id, label",
@@ -18,24 +17,6 @@ db.version(3)
   })
   .upgrade(async (tx) => {
     console.log("🔄 Upgrading database to V3...");
-
-    // Add archetype field to existing nodes
-    const nodes = await tx.table("nodes").toArray();
-    for (const node of nodes) {
-      if ((node.type === "O" || node.type === "A") && !node.archetype) {
-        const moons = await tx
-          .table("nodes")
-          .where("parentId")
-          .equals(node.id)
-          .toArray();
-        const archetype = calculateArchetype(node, moons);
-        await tx.table("nodes").update(node.id, {
-          archetype,
-          variant: node.variant || "deep-ocean", // Ensure variant exists
-        });
-        console.log(`Migrated node ${node.id}: archetype → ${archetype}`);
-      }
-    }
 
     // Add confidence and versions to moons if missing
     const moons = await tx.table("nodes").where("type").equals("R").toArray();
@@ -155,35 +136,6 @@ export async function getMoonsGroupedByDimension(parentId) {
     intersubjective: moons.filter((m) => m.dimension === "intersubjective"),
     behavioral: moons.filter((m) => m.dimension === "behavioral"),
     symbolic: moons.filter((m) => m.dimension === "symbolic"),
-  };
-}
-
-// ============================================================================
-// ARCHETYPE OPERATIONS
-// ============================================================================
-
-export async function recalculateArchetype(nodeId) {
-  const node = await db.nodes.get(nodeId);
-  if (!node || (node.type !== "O" && node.type !== "A")) {
-    return null;
-  }
-
-  const moons = await getMoonsByParentId(nodeId);
-  const newArchetype = calculateArchetype(node, moons);
-
-  if (node.archetype !== newArchetype) {
-    await db.nodes.update(nodeId, { archetype: newArchetype });
-    console.log(`🔄 Archetype changed: ${node.archetype} → ${newArchetype}`);
-    return {
-      changed: true,
-      from: node.archetype,
-      to: newArchetype,
-    };
-  }
-
-  return {
-    changed: false,
-    archetype: newArchetype,
   };
 }
 
