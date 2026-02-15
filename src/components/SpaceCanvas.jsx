@@ -12,6 +12,8 @@ import Planet from "./Planet";
 import Moon from "./Moon";
 import ConnectionLine from "./ConnectionLine";
 import ReflectionMode from "./ReflectionMode";
+import NodeTypePicker from "./NodeTypePicker";
+import NodeTextInput from "./NodeTextInput";
 import TopNav from "./TopNav";
 import { CANVAS } from "../utils/constants";
 
@@ -32,6 +34,13 @@ export default function SpaceCanvas({ purposeData }) {
 	// Dragging state
 	const [draggingNodeId, setDraggingNodeId] = useState(null);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+	// Node creation state
+	const [showNodeTypePicker, setShowNodeTypePicker] = useState(false);
+	const [nodeTypePickerPos, setNodeTypePickerPos] = useState({ x: 0, y: 0 });
+	const [showNodeTextInput, setShowNodeTextInput] = useState(false);
+	const [nodeTextInputType, setNodeTextInputType] = useState(null);
+	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 }); // World position
 
 	// Connection creation state
 	const [creatingConnection, setCreatingConnection] = useState(false);
@@ -117,11 +126,32 @@ export default function SpaceCanvas({ purposeData }) {
 	}, []);
 
 	const handleCanvasMouseDown = (e) => {
-		// Don't interfere with shift+drag on planets
+		// Shift+drag for connection creation - don't interfere
 		if (e.shiftKey && tool === "select") {
 			return;
 		}
 
+		// Click empty canvas to create node
+		if (
+			tool === "select" &&
+			(e.target === containerRef.current || e.target === canvasRef.current)
+		) {
+			// Show type picker at click position
+			setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
+
+			// Calculate world position for node creation
+			const canvasRect = canvasRef.current.getBoundingClientRect();
+			const worldX =
+				(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
+			const worldY =
+				(e.clientY - canvasRect.top - pan.y) / zoom - planetConfig.baseRadius;
+			setNodeCreationPos({ x: worldX, y: worldY });
+
+			setShowNodeTypePicker(true);
+			return;
+		}
+
+		// Pan with hand tool or empty canvas
 		if (
 			tool === "hand" ||
 			e.target === containerRef.current ||
@@ -180,10 +210,41 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 	};
 
+	// Node creation handlers
+	const handleNodeTypeSelect = (type) => {
+		setNodeTextInputType(type);
+		setShowNodeTypePicker(false);
+		setShowNodeTextInput(true);
+	};
+
+	const handleNodeTextSave = async (text) => {
+		const newNode = {
+			type: nodeTextInputType,
+			text: text,
+			timestamp: Date.now(),
+			state: nodeTextInputType === "O" ? "present" : "present",
+			position: nodeCreationPos,
+		};
+
+		await db.nodes.add(newNode);
+		const updated = await getAllNodes();
+		setNodes(updated);
+
+		// Clear state
+		setShowNodeTextInput(false);
+		setNodeTextInputType(null);
+	};
+
+	const handleNodeInputCancel = () => {
+		setShowNodeTypePicker(false);
+		setShowNodeTextInput(false);
+		setNodeTextInputType(null);
+	};
+
 	// Keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e) => {
-			// Check if user is typing in an input field
+			// Check if user is typing
 			const isTyping =
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
@@ -196,10 +257,19 @@ export default function SpaceCanvas({ purposeData }) {
 			if (e.key === "Escape" && reflectionMode.active) {
 				exitReflectionMode();
 			}
+			// NEW: Cancel connection creation
+			if (e.key === "Escape" && creatingConnection) {
+				setCreatingConnection(false);
+				setConnectionSource(null);
+				setConnectionPreview(null);
+			}
+			// NEW: Cancel node creation
+			if (e.key === "Escape" && (showNodeTypePicker || showNodeTextInput)) {
+				handleNodeInputCancel();
+			}
 		};
 
 		const handleKeyUp = (e) => {
-			// Check if user is typing in an input field
 			const isTyping =
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
@@ -216,17 +286,25 @@ export default function SpaceCanvas({ purposeData }) {
 			window.removeEventListener("keydown", handleKeyDown);
 			window.removeEventListener("keyup", handleKeyUp);
 		};
-	}, [tool, reflectionMode.active]);
+	}, [
+		tool,
+		reflectionMode.active,
+		creatingConnection,
+		showNodeTypePicker,
+		showNodeTextInput,
+	]);
 
 	// ============================================================================
 	// PLANET INTERACTIONS
 	// ============================================================================
 	const handlePlanetMouseDown = useCallback(
 		(node, e) => {
-			if (e.shiftKey) {
+			if (e.shiftKey && tool === "select") {
 				e.stopPropagation();
+				// START connection mode (don't create yet)
 				setCreatingConnection(true);
 				setConnectionSource(node);
+				setConnectionPreview(null);
 				return;
 			}
 
@@ -268,8 +346,7 @@ export default function SpaceCanvas({ purposeData }) {
 	);
 
 	const handlePlanetDoubleClick = useCallback((node, e) => {
-		e.stopPropagation();
-		if (node.type === "O" || node.type === "A") {
+		if (node.type === "O" || node.type === "A" || node.type === "I") {
 			enterReflectionMode(node);
 		}
 	}, []);
@@ -356,7 +433,9 @@ export default function SpaceCanvas({ purposeData }) {
 	// RENDER MOONS WITH ORBIT ANIMATION
 	// ============================================================================
 	const renderMoons = useCallback(() => {
-		const parentNodes = nodes.filter((n) => n.type === "O" || n.type === "A");
+		const parentNodes = nodes.filter(
+			(n) => n.type === "O" || n.type === "A" || n.type === "I",
+		);
 		const moonElements = [];
 
 		parentNodes.forEach((parent) => {
@@ -480,7 +559,9 @@ export default function SpaceCanvas({ purposeData }) {
 	// ============================================================================
 	// RENDER
 	// ============================================================================
-	const parentNodes = nodes.filter((n) => n.type === "O" || n.type === "A");
+	const parentNodes = nodes.filter(
+		(n) => n.type === "O" || n.type === "A" || n.type === "I",
+	);
 	const focusedParent = reflectionMode.active
 		? nodes.find((n) => n.id === reflectionMode.parentNodeId)
 		: null;
@@ -600,6 +681,23 @@ export default function SpaceCanvas({ purposeData }) {
 							const updated = await getAllNodes();
 							setNodes(updated);
 						}}
+					/>
+				)}
+				{/* Node Creation UI */}
+				{showNodeTypePicker && (
+					<NodeTypePicker
+						position={nodeTypePickerPos}
+						onSelect={handleNodeTypeSelect}
+						onCancel={handleNodeInputCancel}
+					/>
+				)}
+
+				{showNodeTextInput && (
+					<NodeTextInput
+						position={nodeTypePickerPos}
+						nodeType={nodeTextInputType}
+						onSave={handleNodeTextSave}
+						onCancel={handleNodeInputCancel}
 					/>
 				)}
 			</div>

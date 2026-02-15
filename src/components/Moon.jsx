@@ -37,7 +37,7 @@ export default function Moon({
 		<g
 			onClick={(e) => {
 				e.stopPropagation();
-				onClick?.(node);
+				onClick?.(node, e);
 			}}
 			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}

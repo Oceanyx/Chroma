@@ -44,7 +44,7 @@ export const moonConfig = {
 			color: dimensionColors.subjective,
 			name: "Inner Experience",
 			radius: 16,
-			orbitRadius: 90,
+			orbitRadius: 100,
 			orbitSpeed: 0.001047,
 			description: "What did you feel, think, or sense internally?",
 			unlockThreshold: 0, // Available from start
@@ -53,7 +53,7 @@ export const moonConfig = {
 			color: dimensionColors.behavioral,
 			name: "Behavioral",
 			radius: 24,
-			orbitRadius: 140,
+			orbitRadius: 145,
 			orbitSpeed: 0.00075,
 			description: "What did you observably do or say?",
 			unlockThreshold: 5, // Unlocks after 5 reflections
@@ -62,7 +62,7 @@ export const moonConfig = {
 			color: dimensionColors.intersubjective,
 			name: "External",
 			radius: 32,
-			orbitRadius: 180,
+			orbitRadius: 190,
 			orbitSpeed: 0.000698,
 			description: "What can be externally verified?",
 			unlockThreshold: 0, // Available from start
@@ -71,7 +71,7 @@ export const moonConfig = {
 			color: dimensionColors.symbolic,
 			name: "Symbolic",
 			radius: 40,
-			orbitRadius: 220,
+			orbitRadius: 240,
 			orbitSpeed: 0.000524,
 			description: "What patterns or meanings do you recognize?",
 			unlockThreshold: 15, // Unlocks after 15 reflections
