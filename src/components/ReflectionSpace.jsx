@@ -571,6 +571,20 @@ export default function ReflectionSpace({
 						<svg width="100%" height="100%" style={{ pointerEvents: "auto" }}>
 							<RadialMenu
 								moon={radialMenuMoon}
+								moonPosition={(() => {
+									// Calculate current position of this moon
+									const moonData = distributedMoons.find(
+										(m) => m.id === radialMenuMoon.id,
+									);
+									if (!moonData) return { x: 400, y: 400 };
+									return calculateAnimatedOrbit(
+										moonData,
+										centeredPlanet,
+										orbitTime,
+										radialMenuMoon.isLocked,
+										radialMenuMoon.dimension,
+									);
+								})()}
 								onAction={(action) => handleMoonAction(action, radialMenuMoon)}
 								onClose={() => setRadialMenuMoon(null)}
 								dimensionColor={

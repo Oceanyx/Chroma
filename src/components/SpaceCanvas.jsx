@@ -23,7 +23,7 @@ export default function SpaceCanvas({ purposeData }) {
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
 	const [hoveredNodeId, setHoveredNodeId] = useState(null);
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
-
+	const [canvasRadialMenuMoon, setCanvasRadialMenuMoon] = useState(null);
 	// Pan/Zoom state
 	const [zoom, setZoom] = useState(CANVAS.defaultZoom);
 	const [pan, setPan] = useState(CANVAS.defaultPan);
@@ -350,6 +350,61 @@ export default function SpaceCanvas({ purposeData }) {
 			enterReflectionMode(node);
 		}
 	}, []);
+	const handleMoonRightClick = useCallback((moon, e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setCanvasRadialMenuMoon(moon);
+	}, []);
+
+	const handleCanvasRadialMenuAction = async (action, moon) => {
+		switch (action) {
+			case "edit":
+				console.log("Edit moon:", moon.id);
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			case "versions":
+				console.log("Show versions for:", moon.id);
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			case "toggleLock":
+				await db.nodes.update(moon.id, { isLocked: !moon.isLocked });
+				const updated = await getAllNodes();
+				setNodes(updated);
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			case "tension":
+			case "support":
+				alert(
+					"Create relationships in Reflection Mode (double-click the planet)",
+				);
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			case "toggleWobble":
+				const newConfidence =
+					moon.confidence === "wobbly" ? "stable" : "wobbly";
+				await db.nodes.update(moon.id, { confidence: newConfidence });
+				const updated2 = await getAllNodes();
+				setNodes(updated2);
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			case "delete":
+				if (window.confirm(`Delete this ${moon.dimension} reflection?`)) {
+					await db.nodes.delete(moon.id);
+					const updated3 = await getAllNodes();
+					setNodes(updated3);
+				}
+				setCanvasRadialMenuMoon(null);
+				break;
+
+			default:
+				setCanvasRadialMenuMoon(null);
+		}
+	};
 
 	const handlePlanetHover = useCallback(
 		(node) => {
