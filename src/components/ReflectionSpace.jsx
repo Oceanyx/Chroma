@@ -7,11 +7,12 @@ import MoonInputCard from "./MoonInputCard";
 import DimensionUnlockNotification from "./DimensionUnlockNotification";
 import SupportLine from "./SupportLine";
 import TensionLine from "./TensionLine";
-import RadialMenu from "./RadialMenu";
 import {
 	getGhostMoonPositions,
 	groupMoonsByDimension,
 	getOrbitalPaths,
+	distributeMoonsEvenly,
+	calculateAnimatedOrbit,
 } from "../lib/orbitalPhysics";
 import { moonConfig } from "../seedData";
 import {
@@ -31,9 +32,6 @@ export default function ReflectionSpace({
 	const [creatingRelationship, setCreatingRelationship] = useState(null); // 'tension' | 'support'
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
 
-	// RadialMenu state
-	const [radialMenuMoon, setRadialMenuMoon] = useState(null);
-
 	// Hover state for relationship lines
 	const [hoveredRelationshipId, setHoveredRelationshipId] = useState(null);
 	const [hoveredDimension, setHoveredDimension] = useState(null);
@@ -42,6 +40,7 @@ export default function ReflectionSpace({
 	const [showInputCard, setShowInputCard] = useState(false);
 	const [unlockNotification, setUnlockNotification] = useState(null);
 	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
+	const [orbitTime, setOrbitTime] = useState(0);
 
 	// Center planet in viewport
 	const viewportCenterX = window.innerWidth / 2;
@@ -57,8 +56,24 @@ export default function ReflectionSpace({
 
 	const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
 	const groupedMoons = groupMoonsByDimension(childMoons, centeredPlanet);
+	const distributedMoons = distributeMoonsEvenly(childMoons, centeredPlanet);
 	const ghostPositions = getGhostMoonPositions(centeredPlanet);
 	const orbitalPaths = getOrbitalPaths(centeredPlanet);
+
+	// Orbit animation
+	useEffect(() => {
+		let animationFrameId;
+		const animate = () => {
+			setOrbitTime((prev) => prev + 1);
+			animationFrameId = requestAnimationFrame(animate);
+		};
+		animationFrameId = requestAnimationFrame(animate);
+		return () => {
+			if (animationFrameId) {
+				cancelAnimationFrame(animationFrameId);
+			}
+		};
+	}, []);
 
 	// Load unlocked dimensions on mount
 	useEffect(() => {
@@ -78,18 +93,12 @@ export default function ReflectionSpace({
 					setRelationshipSourceMoon(null);
 					return;
 				}
-				// Close radial menu
-				if (radialMenuMoon) {
-					setRadialMenuMoon(null);
-					return;
-				}
-				// Exit reflection mode
 			}
 		};
 
 		window.addEventListener("keydown", handleEscape);
 		return () => window.removeEventListener("keydown", handleEscape);
-	}, [creatingRelationship, radialMenuMoon]);
+	}, [creatingRelationship]);
 
 	// Filter ghost positions by unlocked dimensions
 	const availableGhostPositions = Object.fromEntries(
@@ -118,60 +127,37 @@ export default function ReflectionSpace({
 			setExpandedDimension(dimension);
 		}
 	};
-	// RadialMenu action handler
+	// Handle moon actions from hover buttons
 	const handleMoonAction = async (action, moon) => {
 		switch (action) {
-			case "edit":
-				// Open edit modal (Phase 2 feature)
-				console.log("Edit moon:", moon.id);
-				setRadialMenuMoon(null);
-				break;
-
-			case "versions":
-				// Show version history (Phase 2 feature)
-				console.log("Show versions for:", moon.id);
-				setRadialMenuMoon(null);
-				break;
-
-			case "toggleLock":
-				// Toggle locked state
+			case "lock":
 				await db.nodes.update(moon.id, { isLocked: !moon.isLocked });
 				await onNodesUpdate();
-				setRadialMenuMoon(null);
 				break;
 
 			case "tension":
 				setCreatingRelationship("tension");
 				setRelationshipSourceMoon(moon);
-				setRadialMenuMoon(null);
 				break;
 
 			case "support":
 				setCreatingRelationship("support");
 				setRelationshipSourceMoon(moon);
-				setRadialMenuMoon(null);
 				break;
 
-			case "toggleWobble":
-				// Toggle confidence
+			case "wobble":
 				const newConfidence =
 					moon.confidence === "wobbly" ? "stable" : "wobbly";
 				await db.nodes.update(moon.id, { confidence: newConfidence });
 				await onNodesUpdate();
-				setRadialMenuMoon(null);
 				break;
 
 			case "delete":
-				// Delete moon with confirmation
 				if (window.confirm(`Delete this ${moon.dimension} reflection?`)) {
 					await db.nodes.delete(moon.id);
 					await onNodesUpdate();
 				}
-				setRadialMenuMoon(null);
 				break;
-
-			default:
-				setRadialMenuMoon(null);
 		}
 	};
 
@@ -361,21 +347,25 @@ export default function ReflectionSpace({
 					}}>
 					<g style={{ pointerEvents: "auto" }}>
 						{/* Orbital Path Circles */}
-						{orbitalPaths
-							.filter((path) => unlockedDimensions.includes(path.dimension))
-							.map((path) => (
-								<circle
-									key={path.dimension}
-									cx={path.centerX}
-									cy={path.centerY}
-									r={path.radius}
-									fill="none"
-									stroke={path.color}
-									strokeWidth={1.5}
-									strokeOpacity={0.5}
-									strokeDasharray="4,4"
-								/>
-							))}
+						{(() => {
+							console.log("Orbital paths:", orbitalPaths);
+							console.log("Unlocked dimensions:", unlockedDimensions);
+							return orbitalPaths
+								.filter((path) => unlockedDimensions.includes(path.dimension))
+								.map((path) => (
+									<circle
+										key={path.dimension}
+										cx={path.centerX}
+										cy={path.centerY}
+										r={path.radius}
+										fill="none"
+										stroke={path.color}
+										strokeWidth={3}
+										strokeOpacity={0.8}
+										strokeDasharray="4,4"
+									/>
+								));
+						})()}
 						{/* Render relationship lines */}
 						{!showInputCard &&
 							childMoons.map((moon) => {
@@ -557,44 +547,6 @@ export default function ReflectionSpace({
 					</g>
 				</svg>
 
-				{/* RadialMenu */}
-				{radialMenuMoon && (
-					<div
-						style={{
-							position: "absolute",
-							top: 0,
-							left: 0,
-							width: "100%",
-							height: "100%",
-							pointerEvents: "none",
-						}}>
-						<svg width="100%" height="100%" style={{ pointerEvents: "auto" }}>
-							<RadialMenu
-								moon={radialMenuMoon}
-								moonPosition={(() => {
-									// Calculate current position of this moon
-									const moonData = distributedMoons.find(
-										(m) => m.id === radialMenuMoon.id,
-									);
-									if (!moonData) return { x: 400, y: 400 };
-									return calculateAnimatedOrbit(
-										moonData,
-										centeredPlanet,
-										orbitTime,
-										radialMenuMoon.isLocked,
-										radialMenuMoon.dimension,
-									);
-								})()}
-								onAction={(action) => handleMoonAction(action, radialMenuMoon)}
-								onClose={() => setRadialMenuMoon(null)}
-								dimensionColor={
-									moonConfig.dimension[radialMenuMoon.dimension].color
-								}
-							/>
-						</svg>
-					</div>
-				)}
-
 				{/* Relationship creation overlay */}
 				{creatingRelationship && (
 					<div
@@ -696,8 +648,6 @@ export default function ReflectionSpace({
 											setRelationshipSourceMoon(null);
 											return;
 										}
-										// Otherwise show radial menu
-										setRadialMenuMoon(moon);
 									}}
 									style={{
 										padding: "12px",

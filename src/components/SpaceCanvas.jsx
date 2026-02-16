@@ -1,13 +1,20 @@
 // src/components/SpaceCanvas.jsx - V2 Complete with Fixed Shift+Drag
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { db, initializeDB, getAllNodes, getAllEdges } from "../lib/db";
+import {
+	db,
+	initializeDB,
+	getAllNodes,
+	getAllEdges,
+	getUnlockedDimensions,
+} from "../lib/db";
 import {
 	groupMoonsByDimension,
 	distributeMoonsEvenly,
 	calculateAnimatedOrbit,
 	getOrbitalPaths,
 } from "../lib/orbitalPhysics";
-import { planetConfig } from "../seedData";
+import RadialMenu from "./RadialMenu";
+import { planetConfig, moonConfig } from "../seedData";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import ConnectionLine from "./ConnectionLine";
@@ -24,6 +31,7 @@ export default function SpaceCanvas({ purposeData }) {
 	const [hoveredNodeId, setHoveredNodeId] = useState(null);
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
 	const [canvasRadialMenuMoon, setCanvasRadialMenuMoon] = useState(null);
+	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
 	// Pan/Zoom state
 	const [zoom, setZoom] = useState(CANVAS.defaultZoom);
 	const [pan, setPan] = useState(CANVAS.defaultPan);
@@ -84,6 +92,15 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 		loadData();
 	}, []);
+
+	// Load unlocked dimensions
+	useEffect(() => {
+		async function loadUnlocked() {
+			const unlocked = await getUnlockedDimensions();
+			setUnlockedDimensions(unlocked);
+		}
+		loadUnlocked();
+	}, [nodes]); // Reload when nodes change
 
 	// ============================================================================
 	// ORBIT ANIMATION
@@ -350,6 +367,7 @@ export default function SpaceCanvas({ purposeData }) {
 			enterReflectionMode(node);
 		}
 	}, []);
+
 	const handleMoonRightClick = useCallback((moon, e) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -551,6 +569,7 @@ export default function SpaceCanvas({ purposeData }) {
 									isHovered={hoveredNodeId === moon.id}
 									isSelected={selectedNodeId === moon.id}
 									onClick={handlePlanetClick}
+									onContextMenu={handleMoonRightClick}
 									onMouseEnter={handlePlanetHover}
 									onMouseLeave={handlePlanetLeave}
 								/>,
@@ -591,6 +610,7 @@ export default function SpaceCanvas({ purposeData }) {
 								isHovered={hoveredNodeId === aggregateNode.id}
 								isSelected={selectedNodeId === aggregateNode.id}
 								onClick={handlePlanetClick}
+								onContextMenu={handleMoonRightClick}
 								onMouseEnter={handlePlanetHover}
 								onMouseLeave={handlePlanetLeave}
 							/>,
@@ -756,6 +776,56 @@ export default function SpaceCanvas({ purposeData }) {
 					/>
 				)}
 			</div>
+			{/* Canvas RadialMenu - right-click on moons */}
+			{canvasRadialMenuMoon && (
+				<div
+					onClick={() => setCanvasRadialMenuMoon(null)}
+					style={{
+						position: "fixed",
+						inset: 0,
+						zIndex: 1000,
+					}}>
+					<svg width="100%" height="100%" style={{ pointerEvents: "auto" }}>
+						<g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+							<RadialMenu
+								moon={canvasRadialMenuMoon}
+								moonPosition={(() => {
+									// Calculate the moon's current animated position
+									const parent = nodes.find(
+										(n) => n.id === canvasRadialMenuMoon.parentId,
+									);
+									if (!parent) return { x: 400, y: 400 };
+
+									const childMoons = nodes.filter(
+										(n) => n.parentId === parent.id,
+									);
+									const distributed = distributeMoonsEvenly(childMoons, parent);
+									const moonData = distributed.find(
+										(m) => m.id === canvasRadialMenuMoon.id,
+									);
+
+									if (!moonData) return { x: 400, y: 400 };
+
+									return calculateAnimatedOrbit(
+										moonData,
+										parent,
+										orbitTime,
+										false,
+										canvasRadialMenuMoon.dimension,
+									);
+								})()}
+								onAction={(action) =>
+									handleCanvasRadialMenuAction(action, canvasRadialMenuMoon)
+								}
+								onClose={() => setCanvasRadialMenuMoon(null)}
+								dimensionColor={
+									moonConfig.dimension[canvasRadialMenuMoon.dimension].color
+								}
+							/>
+						</g>
+					</svg>
+				</div>
+			)}
 		</div>
 	);
 }

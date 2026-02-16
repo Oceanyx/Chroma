@@ -9,6 +9,7 @@ export default function Moon({
 	isGhost = false,
 	isHovered = false,
 	onClick,
+	onContextMenu,
 	onMouseEnter,
 	onMouseLeave,
 }) {
@@ -38,6 +39,11 @@ export default function Moon({
 			onClick={(e) => {
 				e.stopPropagation();
 				onClick?.(node, e);
+			}}
+			onContextMenu={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				onContextMenu?.(node, e);
 			}}
 			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}
