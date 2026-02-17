@@ -1,4 +1,4 @@
-// src/components/SpaceCanvas.jsx - V2 Complete with Fixed Shift+Drag
+// src/components/SpaceCanvas.jsx - V3.0 Clean
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
 	db,
@@ -13,7 +13,6 @@ import {
 	calculateAnimatedOrbit,
 	getOrbitalPaths,
 } from "../lib/orbitalPhysics";
-import RadialMenu from "./RadialMenu";
 import { planetConfig, moonConfig } from "../seedData";
 import Planet from "./Planet";
 import Moon from "./Moon";
@@ -30,8 +29,8 @@ export default function SpaceCanvas({ purposeData }) {
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
 	const [hoveredNodeId, setHoveredNodeId] = useState(null);
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
-	const [canvasRadialMenuMoon, setCanvasRadialMenuMoon] = useState(null);
 	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
+
 	// Pan/Zoom state
 	const [zoom, setZoom] = useState(CANVAS.defaultZoom);
 	const [pan, setPan] = useState(CANVAS.defaultPan);
@@ -48,7 +47,7 @@ export default function SpaceCanvas({ purposeData }) {
 	const [nodeTypePickerPos, setNodeTypePickerPos] = useState({ x: 0, y: 0 });
 	const [showNodeTextInput, setShowNodeTextInput] = useState(false);
 	const [nodeTextInputType, setNodeTextInputType] = useState(null);
-	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 }); // World position
+	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 });
 
 	// Connection creation state
 	const [creatingConnection, setCreatingConnection] = useState(false);
@@ -81,14 +80,6 @@ export default function SpaceCanvas({ purposeData }) {
 
 			setNodes(loadedNodes);
 			setEdges(loadedEdges);
-
-			console.log(
-				"📊 Loaded:",
-				loadedNodes.length,
-				"nodes,",
-				loadedEdges.length,
-				"edges",
-			);
 		}
 		loadData();
 	}, []);
@@ -100,7 +91,7 @@ export default function SpaceCanvas({ purposeData }) {
 			setUnlockedDimensions(unlocked);
 		}
 		loadUnlocked();
-	}, [nodes]); // Reload when nodes change
+	}, [nodes]);
 
 	// ============================================================================
 	// ORBIT ANIMATION
@@ -153,10 +144,8 @@ export default function SpaceCanvas({ purposeData }) {
 			tool === "select" &&
 			(e.target === containerRef.current || e.target === canvasRef.current)
 		) {
-			// Show type picker at click position
 			setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
 
-			// Calculate world position for node creation
 			const canvasRect = canvasRef.current.getBoundingClientRect();
 			const worldX =
 				(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
@@ -219,7 +208,6 @@ export default function SpaceCanvas({ purposeData }) {
 			setDraggingNodeId(null);
 		}
 
-		// Don't cancel connection here - it should complete when clicking target
 		if (creatingConnection && !connectionPreview) {
 			setCreatingConnection(false);
 			setConnectionSource(null);
@@ -247,7 +235,6 @@ export default function SpaceCanvas({ purposeData }) {
 		const updated = await getAllNodes();
 		setNodes(updated);
 
-		// Clear state
 		setShowNodeTextInput(false);
 		setNodeTextInputType(null);
 	};
@@ -261,7 +248,6 @@ export default function SpaceCanvas({ purposeData }) {
 	// Keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e) => {
-			// Check if user is typing
 			const isTyping =
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
@@ -274,13 +260,11 @@ export default function SpaceCanvas({ purposeData }) {
 			if (e.key === "Escape" && reflectionMode.active) {
 				exitReflectionMode();
 			}
-			// NEW: Cancel connection creation
 			if (e.key === "Escape" && creatingConnection) {
 				setCreatingConnection(false);
 				setConnectionSource(null);
 				setConnectionPreview(null);
 			}
-			// NEW: Cancel node creation
 			if (e.key === "Escape" && (showNodeTypePicker || showNodeTextInput)) {
 				handleNodeInputCancel();
 			}
@@ -318,7 +302,6 @@ export default function SpaceCanvas({ purposeData }) {
 		(node, e) => {
 			if (e.shiftKey && tool === "select") {
 				e.stopPropagation();
-				// START connection mode (don't create yet)
 				setCreatingConnection(true);
 				setConnectionSource(node);
 				setConnectionPreview(null);
@@ -342,7 +325,6 @@ export default function SpaceCanvas({ purposeData }) {
 		(node, e) => {
 			e.stopPropagation();
 
-			// Complete connection if creating one
 			if (
 				creatingConnection &&
 				connectionSource &&
@@ -368,66 +350,9 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 	}, []);
 
-	const handleMoonRightClick = useCallback((moon, e) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setCanvasRadialMenuMoon(moon);
-	}, []);
-
-	const handleCanvasRadialMenuAction = async (action, moon) => {
-		switch (action) {
-			case "edit":
-				console.log("Edit moon:", moon.id);
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			case "versions":
-				console.log("Show versions for:", moon.id);
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			case "toggleLock":
-				await db.nodes.update(moon.id, { isLocked: !moon.isLocked });
-				const updated = await getAllNodes();
-				setNodes(updated);
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			case "tension":
-			case "support":
-				alert(
-					"Create relationships in Reflection Mode (double-click the planet)",
-				);
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			case "toggleWobble":
-				const newConfidence =
-					moon.confidence === "wobbly" ? "stable" : "wobbly";
-				await db.nodes.update(moon.id, { confidence: newConfidence });
-				const updated2 = await getAllNodes();
-				setNodes(updated2);
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			case "delete":
-				if (window.confirm(`Delete this ${moon.dimension} reflection?`)) {
-					await db.nodes.delete(moon.id);
-					const updated3 = await getAllNodes();
-					setNodes(updated3);
-				}
-				setCanvasRadialMenuMoon(null);
-				break;
-
-			default:
-				setCanvasRadialMenuMoon(null);
-		}
-	};
-
 	const handlePlanetHover = useCallback(
 		(node) => {
 			setHoveredNodeId(node.id);
-			// Capture current orbit time when starting to hover
 			if (pausedTimeRef.current === null) {
 				pausedTimeRef.current = orbitTime;
 			}
@@ -437,7 +362,6 @@ export default function SpaceCanvas({ purposeData }) {
 
 	const handlePlanetLeave = useCallback(() => {
 		setHoveredNodeId(null);
-		// Reset paused time when leaving
 		pausedTimeRef.current = null;
 	}, []);
 
@@ -517,13 +441,12 @@ export default function SpaceCanvas({ purposeData }) {
 			const grouped = groupMoonsByDimension(childMoons, parent);
 			const isHovered = hoveredNodeId === parent.id;
 
-			// Use paused time if hovering, otherwise use current time
 			const effectiveTime =
 				isHovered && pausedTimeRef.current !== null
 					? pausedTimeRef.current
 					: orbitTime;
 
-			// Render orbital paths ONLY when hovering this specific planet
+			// Render orbital paths when hovering
 			if (isHovered && childMoons.length > 0) {
 				const orbitalPaths = getOrbitalPaths(parent);
 				orbitalPaths.forEach((path) => {
@@ -536,7 +459,7 @@ export default function SpaceCanvas({ purposeData }) {
 							fill="none"
 							stroke={path.color}
 							strokeWidth={2}
-							strokeOpacity={0.6}
+							strokeOpacity={0.3}
 							strokeDasharray="5,5"
 						/>,
 					);
@@ -546,7 +469,6 @@ export default function SpaceCanvas({ purposeData }) {
 			// Render moons for each dimension
 			Object.entries(grouped).forEach(([dimension, data]) => {
 				if (data.count > 0) {
-					// Show individual moons if count <= 3
 					if (data.count <= 3) {
 						const dimensionMoons = distributedMoons.filter(
 							(m) => m.dimension === dimension,
@@ -569,14 +491,12 @@ export default function SpaceCanvas({ purposeData }) {
 									isHovered={hoveredNodeId === moon.id}
 									isSelected={selectedNodeId === moon.id}
 									onClick={handlePlanetClick}
-									onContextMenu={handleMoonRightClick}
 									onMouseEnter={handlePlanetHover}
 									onMouseLeave={handlePlanetLeave}
 								/>,
 							);
 						});
 					} else {
-						// Show aggregate moon when count > 3
 						const firstMoon = data.moons[0];
 						const distributedMoon = distributedMoons.find(
 							(m) => m.id === firstMoon.id,
@@ -610,7 +530,6 @@ export default function SpaceCanvas({ purposeData }) {
 								isHovered={hoveredNodeId === aggregateNode.id}
 								isSelected={selectedNodeId === aggregateNode.id}
 								onClick={handlePlanetClick}
-								onContextMenu={handleMoonRightClick}
 								onMouseEnter={handlePlanetHover}
 								onMouseLeave={handlePlanetLeave}
 							/>,
@@ -758,7 +677,7 @@ export default function SpaceCanvas({ purposeData }) {
 						}}
 					/>
 				)}
-				{/* Node Creation UI */}
+
 				{showNodeTypePicker && (
 					<NodeTypePicker
 						position={nodeTypePickerPos}
@@ -776,56 +695,6 @@ export default function SpaceCanvas({ purposeData }) {
 					/>
 				)}
 			</div>
-			{/* Canvas RadialMenu - right-click on moons */}
-			{canvasRadialMenuMoon && (
-				<div
-					onClick={() => setCanvasRadialMenuMoon(null)}
-					style={{
-						position: "fixed",
-						inset: 0,
-						zIndex: 1000,
-					}}>
-					<svg width="100%" height="100%" style={{ pointerEvents: "auto" }}>
-						<g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-							<RadialMenu
-								moon={canvasRadialMenuMoon}
-								moonPosition={(() => {
-									// Calculate the moon's current animated position
-									const parent = nodes.find(
-										(n) => n.id === canvasRadialMenuMoon.parentId,
-									);
-									if (!parent) return { x: 400, y: 400 };
-
-									const childMoons = nodes.filter(
-										(n) => n.parentId === parent.id,
-									);
-									const distributed = distributeMoonsEvenly(childMoons, parent);
-									const moonData = distributed.find(
-										(m) => m.id === canvasRadialMenuMoon.id,
-									);
-
-									if (!moonData) return { x: 400, y: 400 };
-
-									return calculateAnimatedOrbit(
-										moonData,
-										parent,
-										orbitTime,
-										false,
-										canvasRadialMenuMoon.dimension,
-									);
-								})()}
-								onAction={(action) =>
-									handleCanvasRadialMenuAction(action, canvasRadialMenuMoon)
-								}
-								onClose={() => setCanvasRadialMenuMoon(null)}
-								dimensionColor={
-									moonConfig.dimension[canvasRadialMenuMoon.dimension].color
-								}
-							/>
-						</g>
-					</svg>
-				</div>
-			)}
 		</div>
 	);
 }

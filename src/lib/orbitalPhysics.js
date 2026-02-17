@@ -1,4 +1,4 @@
-// src/lib/orbitalPhysics.js - V2 with 4 Dimensions
+// src/lib/orbitalPhysics.js - FIXED
 import { moonConfig, planetConfig } from "../seedData";
 
 /**
@@ -93,7 +93,6 @@ export function calculateAnimatedOrbit(
 	const dimensionConfig = moonConfig.dimension[dimension];
 	const baseAngle = moon.orbitAngle || 0;
 
-	// Always calculate animated angle (pausing is handled at higher level)
 	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
 	return calculateMoonPosition(parent, animatedAngle, dimension);
 }
@@ -198,10 +197,8 @@ export function calculateTidalLock(moon, parent, target) {
 }
 
 /**
- * Get orbital path circle data for rendering
- */
-/**
  * Get orbital paths for each dimension
+ * ✅ FIXED: Changed orbitalRadius → orbitRadius
  */
 export function getOrbitalPaths(planet) {
 	const centerX = planet.position.x + planetConfig.baseRadius;
@@ -212,28 +209,28 @@ export function getOrbitalPaths(planet) {
 			dimension: "subjective",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.subjective.orbitalRadius, // Use config radius
+			radius: moonConfig.dimension.subjective.orbitRadius, // ✅ FIXED
 			color: moonConfig.dimension.subjective.color,
 		},
 		{
 			dimension: "behavioral",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.behavioral.orbitalRadius, // Use config radius
+			radius: moonConfig.dimension.behavioral.orbitRadius, // ✅ FIXED
 			color: moonConfig.dimension.behavioral.color,
 		},
 		{
 			dimension: "intersubjective",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.intersubjective.orbitalRadius, // Use config radius
+			radius: moonConfig.dimension.intersubjective.orbitRadius, // ✅ FIXED
 			color: moonConfig.dimension.intersubjective.color,
 		},
 		{
 			dimension: "symbolic",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.symbolic.orbitalRadius, // Use config radius
+			radius: moonConfig.dimension.symbolic.orbitRadius, // ✅ FIXED
 			color: moonConfig.dimension.symbolic.color,
 		},
 	];

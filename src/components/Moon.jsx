@@ -1,4 +1,4 @@
-// src/components/Moon.jsx - V3.0 High Contrast Distinctive Textures
+// src/components/Moon.jsx - V3.1 with ghostLabel prop
 import React from "react";
 import { moonConfig } from "../seedData";
 
@@ -7,6 +7,7 @@ export default function Moon({
 	position,
 	count,
 	isGhost = false,
+	ghostLabel,
 	isHovered = false,
 	onClick,
 	onContextMenu,
@@ -75,13 +76,11 @@ export default function Moon({
 							<stop offset="50%" stopColor="#FB923C" stopOpacity="1" />
 							<stop offset="100%" stopColor="#EA580C" stopOpacity="0.9" />
 						</radialGradient>
-						{/* THICK diagonal crosshatch - much more visible */}
 						<pattern
 							id={patternId}
 							width="10"
 							height="10"
 							patternUnits="userSpaceOnUse">
-							{/* Diagonal lines going both ways */}
 							<line
 								x1="0"
 								y1="0"
@@ -105,7 +104,7 @@ export default function Moon({
 				)}
 
 				{/* ========================================== */}
-				{/* EXTERNAL (Green) - Concentric Circles (Radar) */}
+				{/* EXTERNAL (Green) - Concentric Circles     */}
 				{/* ========================================== */}
 				{dimension === "intersubjective" && (
 					<>
@@ -114,7 +113,6 @@ export default function Moon({
 							<stop offset="60%" stopColor="#34D399" stopOpacity="0.95" />
 							<stop offset="100%" stopColor="#10B981" stopOpacity="0.9" />
 						</radialGradient>
-						{/* Concentric circle pattern - like radar rings */}
 						<pattern
 							id={patternId}
 							width="40"
@@ -152,7 +150,7 @@ export default function Moon({
 				)}
 
 				{/* ========================================== */}
-				{/* SYMBOLIC (Blue) - Mandala Gradient */}
+				{/* SYMBOLIC (Blue) - Mandala Gradient        */}
 				{/* ========================================== */}
 				{dimension === "symbolic" && (
 					<radialGradient id={gradientId}>
@@ -197,13 +195,12 @@ export default function Moon({
 			/>
 
 			{/* ========================================== */}
-			{/* DIMENSION-SPECIFIC TEXTURES & HIGHLIGHTS */}
+			{/* DIMENSION-SPECIFIC TEXTURES               */}
 			{/* ========================================== */}
 
-			{/* INNER EXPERIENCE: Soft frosted overlay + gentle highlight */}
+			{/* INNER EXPERIENCE: Soft frosted overlay */}
 			{dimension === "subjective" && !isGhost && (
 				<>
-					{/* Frosted overlay */}
 					<circle
 						cx={x}
 						cy={y}
@@ -212,7 +209,6 @@ export default function Moon({
 						opacity={0.6}
 						filter={`url(#${blurId})`}
 					/>
-					{/* Soft top-left shine */}
 					<ellipse
 						cx={x - radius * 0.25}
 						cy={y - radius * 0.25}
@@ -225,10 +221,9 @@ export default function Moon({
 				</>
 			)}
 
-			{/* BEHAVIORAL: Sharp crosshatch + multiple crystal facets */}
+			{/* BEHAVIORAL: Crosshatch + crystal facets */}
 			{dimension === "behavioral" && !isGhost && (
 				<>
-					{/* Crosshatch overlay - CLIPPED to moon */}
 					<circle
 						cx={x}
 						cy={y}
@@ -236,8 +231,6 @@ export default function Moon({
 						fill={`url(#${patternId})`}
 						style={{ mixBlendMode: "multiply" }}
 					/>
-
-					{/* Multiple sharp highlights (crystal facets) */}
 					<ellipse
 						cx={x - radius * 0.3}
 						cy={y - radius * 0.3}
@@ -265,17 +258,15 @@ export default function Moon({
 				</>
 			)}
 
-			{/* EXTERNAL: Thick grid + technical highlight */}
+			{/* EXTERNAL: Concentric rings + technical highlight */}
 			{dimension === "intersubjective" && !isGhost && (
 				<>
-					{/* Grid overlay with proper rotation */}
 					<circle
 						cx={x}
 						cy={y}
 						r={radius}
 						fill={`url(#${patternId})`}
 						style={{ mixBlendMode: "multiply" }}>
-						{/* Rotation centered on moon position (x, y) */}
 						<animateTransform
 							attributeName="transform"
 							type="rotate"
@@ -285,8 +276,6 @@ export default function Moon({
 							repeatCount="indefinite"
 						/>
 					</circle>
-
-					{/* Technical square highlight (not round) */}
 					<rect
 						x={x - radius * 0.35}
 						y={y - radius * 0.35}
@@ -299,10 +288,9 @@ export default function Moon({
 				</>
 			)}
 
-			{/* SYMBOLIC: Thick spokes + center glow */}
+			{/* SYMBOLIC: Center glow + mandala spokes */}
 			{dimension === "symbolic" && !isGhost && (
 				<>
-					{/* Center glow */}
 					<circle
 						cx={x}
 						cy={y}
@@ -310,15 +298,12 @@ export default function Moon({
 						fill="rgba(255, 255, 255, 0.4)"
 						opacity={0.8}
 					/>
-
-					{/* THICK mandala spokes (6 spokes) */}
 					{[0, 60, 120, 180, 240, 300].map((angle) => {
 						const rad = (angle * Math.PI) / 180;
 						const x1 = x + Math.cos(rad) * (radius * 0.2);
 						const y1 = y + Math.sin(rad) * (radius * 0.2);
 						const x2 = x + Math.cos(rad) * (radius * 0.9);
 						const y2 = y + Math.sin(rad) * (radius * 0.9);
-
 						return (
 							<line
 								key={angle}
@@ -332,8 +317,6 @@ export default function Moon({
 							/>
 						);
 					})}
-
-					{/* Top-left shine */}
 					<ellipse
 						cx={x - radius * 0.25}
 						cy={y - radius * 0.25}
@@ -381,7 +364,6 @@ export default function Moon({
 						const angle = (i * 60 * Math.PI) / 180;
 						const px = x + Math.cos(angle) * radius * 1.4;
 						const py = y + Math.sin(angle) * radius * 1.4;
-
 						return (
 							<circle key={i} cx={px} cy={py} r="4" fill={config.color}>
 								<animate
@@ -429,18 +411,18 @@ export default function Moon({
 				</g>
 			)}
 
-			{/* Ghost Label */}
+			{/* Ghost Label - uses ghostLabel prop if provided, falls back to config.name */}
 			{isGhost && (
 				<text
 					x={x}
-					y={y + radius + 20}
+					y={y + radius + 18}
 					textAnchor="middle"
-					fontSize={12}
+					fontSize={11}
 					fill={config.color}
-					opacity={0.7}
+					opacity={isHovered ? 0.9 : 0.6}
 					fontWeight={600}
-					style={{ pointerEvents: "none", textTransform: "capitalize" }}>
-					{config.name}
+					style={{ pointerEvents: "none" }}>
+					{ghostLabel || config.name}
 				</text>
 			)}
 
@@ -460,6 +442,27 @@ export default function Moon({
 						from="0"
 						to="24"
 						dur="1.5s"
+						repeatCount="indefinite"
+					/>
+				</circle>
+			)}
+
+			{/* Ghost hover ring */}
+			{isHovered && isGhost && (
+				<circle
+					cx={x}
+					cy={y}
+					r={radius + 8}
+					fill="none"
+					stroke={config.color}
+					strokeWidth={2}
+					strokeDasharray="4,4"
+					opacity={0.7}>
+					<animate
+						attributeName="stroke-dashoffset"
+						from="0"
+						to="16"
+						dur="2s"
 						repeatCount="indefinite"
 					/>
 				</circle>
