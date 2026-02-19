@@ -1,4 +1,4 @@
-// src/components/Moon.jsx - V3.1 with ghostLabel prop
+// src/components/Moon.jsx - V4.0 with number badges
 import React from "react";
 import { moonConfig } from "../seedData";
 
@@ -9,6 +9,8 @@ export default function Moon({
 	isGhost = false,
 	ghostLabel,
 	isHovered = false,
+	isSelected = false,
+	moonNumber,
 	onClick,
 	onContextMenu,
 	onMouseEnter,
@@ -411,7 +413,30 @@ export default function Moon({
 				</g>
 			)}
 
-			{/* Ghost Label - uses ghostLabel prop if provided, falls back to config.name */}
+			{/* Number Badge (for individual moons in ReflectionSpace) */}
+			{moonNumber && !isGhost && (
+				<g>
+					<circle
+						cx={x}
+						cy={y - radius * 0.8}
+						r={11}
+						fill="rgba(10, 15, 28, 0.95)"
+						stroke={config.color}
+						strokeWidth={1.5}
+					/>
+					<text
+						x={x}
+						y={y - radius * 0.8 + 1}
+						textAnchor="middle"
+						dominantBaseline="central"
+						fontSize={12}
+						style={{ pointerEvents: "none", userSelect: "none" }}>
+						{moonNumber}
+					</text>
+				</g>
+			)}
+
+			{/* Ghost Label */}
 			{isGhost && (
 				<text
 					x={x}
@@ -441,6 +466,25 @@ export default function Moon({
 						attributeName="stroke-dashoffset"
 						from="0"
 						to="24"
+						dur="1.5s"
+						repeatCount="indefinite"
+					/>
+				</circle>
+			)}
+
+			{/* Selected Ring (stronger than hover) */}
+			{isSelected && !isGhost && (
+				<circle
+					cx={x}
+					cy={y}
+					r={radius + 8}
+					fill="none"
+					stroke={config.color}
+					strokeWidth={3}
+					opacity={1}>
+					<animate
+						attributeName="r"
+						values={`${radius + 6};${radius + 10};${radius + 6}`}
 						dur="1.5s"
 						repeatCount="indefinite"
 					/>

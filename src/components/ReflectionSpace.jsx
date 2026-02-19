@@ -1,6 +1,6 @@
-// src/components/ReflectionSpace.jsx - V4.0 Individual Orbiting Moons + Side Panel
+// src/components/ReflectionSpace.jsx - V4.1 Comparison Mode + Readability Fixes
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, ChevronDown, ChevronRight } from "lucide-react";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import MoonInputCard from "./MoonInputCard";
@@ -31,7 +31,21 @@ const DIMENSION_ANGLES = {
 	symbolic: Math.PI,
 };
 
-const PANEL_WIDTH = 300;
+const PANEL_WIDTH = 380;
+const ORBIT_SCALE = 1; // Tighter orbits in ReflectionSpace
+
+const MOON_EMOJIS = [
+	"1️⃣",
+	"2️⃣",
+	"3️⃣",
+	"4️⃣",
+	"5️⃣",
+	"6️⃣",
+	"7️⃣",
+	"8️⃣",
+	"9️⃣",
+	"🔟",
+];
 
 // ============================================================================
 // HELPERS
@@ -39,9 +53,21 @@ const PANEL_WIDTH = 300;
 
 function getMoonPosition(moon, parent, time) {
 	if (moon.isLocked) {
-		return calculateMoonPosition(parent, moon.orbitAngle || 0, moon.dimension);
+		return calculateMoonPosition(
+			parent,
+			moon.orbitAngle || 0,
+			moon.dimension,
+			ORBIT_SCALE,
+		);
 	}
-	return calculateAnimatedOrbit(moon, parent, time, false, moon.dimension);
+	return calculateAnimatedOrbit(
+		moon,
+		parent,
+		time,
+		false,
+		moon.dimension,
+		ORBIT_SCALE,
+	);
 }
 
 function buildGhostMoons(childMoons, unlockedDimensions, parent) {
@@ -58,8 +84,23 @@ function buildGhostMoons(childMoons, unlockedDimensions, parent) {
 				parent,
 				DIMENSION_ANGLES[dimension],
 				dimension,
+				ORBIT_SCALE,
 			),
 		}));
+}
+
+function getScaledOrbitalPaths(parent) {
+	const paths = [];
+	Object.entries(moonConfig.dimension).forEach(([dimension, config]) => {
+		paths.push({
+			dimension,
+			centerX: parent.position.x + planetConfig.baseRadius,
+			centerY: parent.position.y + planetConfig.baseRadius,
+			radius: config.orbitRadius * ORBIT_SCALE,
+			color: config.color,
+		});
+	});
+	return paths;
 }
 
 // ============================================================================
@@ -67,18 +108,21 @@ function buildGhostMoons(childMoons, unlockedDimensions, parent) {
 // ============================================================================
 function MoonSidePanel({
 	moon,
+	moonNumber,
 	allMoons,
 	dimColor,
 	onClose,
 	onAction,
 	onStartRelationship,
+	isComparison = false,
 }) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState(moon.text);
 	const [editLenses, setEditLenses] = useState(moon.lensesUsed || []);
+	const [relsSectionOpen, setRelsSectionOpen] = useState(true);
+	const [lensesSectionOpen, setLensesSectionOpen] = useState(true);
 	const config = moonConfig.dimension[moon.dimension];
 
-	// Reset edit state when moon changes
 	useEffect(() => {
 		setEditText(moon.text);
 		setEditLenses(moon.lensesUsed || []);
@@ -120,7 +164,7 @@ function MoonSidePanel({
 			onClick={onClick}
 			style={{
 				width: "100%",
-				padding: "10px 12px",
+				padding: "12px 14px",
 				background: active ? `${activeColor}15` : "rgba(30,41,59,0.4)",
 				border: `1px solid ${active ? activeColor : "rgba(255,255,255,0.07)"}`,
 				borderRadius: "8px",
@@ -129,8 +173,8 @@ function MoonSidePanel({
 				transition: "all 0.2s",
 				display: "flex",
 				alignItems: "center",
-				gap: "10px",
-				marginBottom: "6px",
+				gap: "12px",
+				marginBottom: "7px",
 			}}
 			onMouseEnter={(e) => {
 				e.currentTarget.style.borderColor = `${hoverColor}70`;
@@ -144,13 +188,13 @@ function MoonSidePanel({
 					? `${activeColor}15`
 					: "rgba(30,41,59,0.4)";
 			}}>
-			<span style={{ fontSize: "16px", lineHeight: 1, flexShrink: 0 }}>
+			<span style={{ fontSize: "18px", lineHeight: 1, flexShrink: 0 }}>
 				{emoji}
 			</span>
 			<div style={{ minWidth: 0 }}>
 				<div
 					style={{
-						fontSize: "12px",
+						fontSize: "13px",
 						fontWeight: 600,
 						color: active ? activeColor : "#94A3B8",
 					}}>
@@ -158,10 +202,10 @@ function MoonSidePanel({
 				</div>
 				<div
 					style={{
-						fontSize: "11px",
+						fontSize: "12px",
 						color: "#475569",
-						marginTop: "1px",
-						lineHeight: "1.3",
+						marginTop: "2px",
+						lineHeight: "1.4",
 					}}>
 					{sublabel}
 				</div>
@@ -175,7 +219,8 @@ function MoonSidePanel({
 				width: `${PANEL_WIDTH}px`,
 				height: "100%",
 				background: "rgba(8, 13, 25, 0.98)",
-				borderLeft: `2px solid ${dimColor}40`,
+				borderLeft: isComparison ? "none" : `2px solid ${dimColor}40`,
+				borderRight: isComparison ? `2px solid ${dimColor}40` : "none",
 				display: "flex",
 				flexDirection: "column",
 				overflow: "hidden",
@@ -183,7 +228,7 @@ function MoonSidePanel({
 			{/* Header */}
 			<div
 				style={{
-					padding: "14px 16px 12px",
+					padding: "16px 18px 14px",
 					borderBottom: `1px solid ${dimColor}20`,
 					display: "flex",
 					alignItems: "flex-start",
@@ -196,13 +241,14 @@ function MoonSidePanel({
 						style={{
 							display: "inline-flex",
 							alignItems: "center",
-							gap: "6px",
-							padding: "3px 9px",
+							gap: "7px",
+							padding: "4px 11px",
 							background: `${dimColor}18`,
 							border: `1px solid ${dimColor}45`,
 							borderRadius: "20px",
-							marginBottom: "6px",
+							marginBottom: "7px",
 						}}>
+						<span style={{ fontSize: "14px" }}>{moonNumber}</span>
 						<div
 							style={{
 								width: "6px",
@@ -214,7 +260,7 @@ function MoonSidePanel({
 						/>
 						<span
 							style={{
-								fontSize: "9px",
+								fontSize: "10px",
 								fontWeight: 700,
 								color: dimColor,
 								textTransform: "uppercase",
@@ -226,7 +272,7 @@ function MoonSidePanel({
 					<p
 						style={{
 							margin: 0,
-							fontSize: "10px",
+							fontSize: "11px",
 							color: "#334155",
 							fontStyle: "italic",
 							lineHeight: "1.4",
@@ -234,42 +280,44 @@ function MoonSidePanel({
 						{config.description}
 					</p>
 				</div>
-				<button
-					onClick={onClose}
-					style={{
-						background: "transparent",
-						border: "none",
-						color: "#334155",
-						cursor: "pointer",
-						padding: "2px",
-						flexShrink: 0,
-						transition: "color 0.2s",
-					}}
-					onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
-					onMouseLeave={(e) => (e.currentTarget.style.color = "#334155")}>
-					<X size={15} />
-				</button>
+				{!isComparison && (
+					<button
+						onClick={onClose}
+						style={{
+							background: "transparent",
+							border: "none",
+							color: "#334155",
+							cursor: "pointer",
+							padding: "2px",
+							flexShrink: 0,
+							transition: "color 0.2s",
+						}}
+						onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
+						onMouseLeave={(e) => (e.currentTarget.style.color = "#334155")}>
+						<X size={15} />
+					</button>
+				)}
 			</div>
 
 			{/* Scrollable body */}
-			<div style={{ flex: 1, overflowY: "auto", padding: "14px 16px" }}>
+			<div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
 				{/* Reflection text */}
 				{!isEditing ? (
 					<div
 						style={{
-							fontSize: "13px",
-							color: "#CBD5E1",
+							fontSize: "15px",
+							color: "#E2E8F0",
 							lineHeight: "1.6",
-							padding: "11px 12px",
+							padding: "13px 14px",
 							background: "rgba(30,41,59,0.4)",
 							borderRadius: "8px",
 							border: "1px solid rgba(255,255,255,0.05)",
-							marginBottom: "16px",
+							marginBottom: "18px",
 						}}>
 						{moon.text}
 					</div>
 				) : (
-					<div style={{ marginBottom: "16px" }}>
+					<div style={{ marginBottom: "18px" }}>
 						<textarea
 							value={editText}
 							onChange={(e) => setEditText(e.target.value)}
@@ -277,51 +325,51 @@ function MoonSidePanel({
 							rows={4}
 							style={{
 								width: "100%",
-								padding: "10px 12px",
+								padding: "12px 14px",
 								background: "rgba(15,23,36,0.8)",
 								border: `1px solid ${dimColor}50`,
 								borderRadius: "8px",
 								color: "#E6EEF8",
-								fontSize: "13px",
+								fontSize: "14px",
 								fontFamily: "inherit",
 								resize: "vertical",
 								outline: "none",
 								lineHeight: "1.5",
 								boxSizing: "border-box",
-								marginBottom: "10px",
+								marginBottom: "12px",
 							}}
 						/>
 						<div
 							style={{
 								display: "flex",
 								flexWrap: "wrap",
-								gap: "5px",
-								marginBottom: "10px",
+								gap: "6px",
+								marginBottom: "12px",
 							}}>
 							{lenses.map((lens) => (
 								<button
 									key={lens.id}
 									onClick={() => toggleLens(lens.id)}
 									style={{
-										padding: "4px 8px",
+										padding: "5px 10px",
 										background: editLenses.includes(lens.id)
 											? lens.color
 											: "rgba(30,41,59,0.6)",
 										border: `1px solid ${editLenses.includes(lens.id) ? lens.color : "rgba(148,163,184,0.15)"}`,
-										borderRadius: "4px",
+										borderRadius: "5px",
 										color: editLenses.includes(lens.id) ? "#fff" : "#64748B",
 										cursor: "pointer",
-										fontSize: "10px",
+										fontSize: "12px",
 										display: "flex",
 										alignItems: "center",
-										gap: "3px",
+										gap: "4px",
 										transition: "all 0.15s",
 									}}>
 									{lens.emoji} {lens.label}
 								</button>
 							))}
 						</div>
-						<div style={{ display: "flex", gap: "7px" }}>
+						<div style={{ display: "flex", gap: "8px" }}>
 							<button
 								onClick={() => {
 									setIsEditing(false);
@@ -330,13 +378,13 @@ function MoonSidePanel({
 								}}
 								style={{
 									flex: 1,
-									padding: "7px",
+									padding: "9px",
 									background: "transparent",
 									border: "1px solid rgba(148,163,184,0.15)",
-									borderRadius: "6px",
+									borderRadius: "7px",
 									color: "#475569",
 									cursor: "pointer",
-									fontSize: "11px",
+									fontSize: "12px",
 								}}>
 								Cancel
 							</button>
@@ -345,13 +393,13 @@ function MoonSidePanel({
 								disabled={!editText.trim()}
 								style={{
 									flex: 2,
-									padding: "7px",
+									padding: "9px",
 									background: editText.trim() ? dimColor : "rgba(30,41,59,0.5)",
 									border: "none",
-									borderRadius: "6px",
+									borderRadius: "7px",
 									color: "#fff",
 									cursor: editText.trim() ? "pointer" : "not-allowed",
-									fontSize: "11px",
+									fontSize: "12px",
 									fontWeight: 600,
 									opacity: editText.trim() ? 1 : 0.4,
 								}}>
@@ -363,40 +411,55 @@ function MoonSidePanel({
 
 				{/* Active lenses display */}
 				{!isEditing && moon.lensesUsed && moon.lensesUsed.length > 0 && (
-					<div style={{ marginBottom: "16px" }}>
-						<p
+					<div style={{ marginBottom: "18px" }}>
+						<button
+							onClick={() => setLensesSectionOpen(!lensesSectionOpen)}
 							style={{
-								margin: "0 0 6px",
-								fontSize: "9px",
+								display: "flex",
+								alignItems: "center",
+								gap: "6px",
+								background: "transparent",
+								border: "none",
+								cursor: "pointer",
+								padding: "0 0 7px 0",
+								marginBottom: lensesSectionOpen ? "8px" : "0",
 								color: "#334155",
+								fontSize: "10px",
 								fontWeight: 700,
 								textTransform: "uppercase",
 								letterSpacing: "0.5px",
 							}}>
+							{lensesSectionOpen ? (
+								<ChevronDown size={12} />
+							) : (
+								<ChevronRight size={12} />
+							)}
 							Viewed through
-						</p>
-						<div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-							{moon.lensesUsed.map((lensId) => {
-								const l = lenses.find((x) => x.id === lensId);
-								return (
-									<span
-										key={lensId}
-										style={{
-											padding: "3px 7px",
-											background: `${dimColor}15`,
-											border: `1px solid ${dimColor}30`,
-											borderRadius: "4px",
-											fontSize: "10px",
-											color: dimColor,
-											display: "flex",
-											alignItems: "center",
-											gap: "3px",
-										}}>
-										{l?.emoji} {lensId}
-									</span>
-								);
-							})}
-						</div>
+						</button>
+						{lensesSectionOpen && (
+							<div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+								{moon.lensesUsed.map((lensId) => {
+									const l = lenses.find((x) => x.id === lensId);
+									return (
+										<span
+											key={lensId}
+											style={{
+												padding: "4px 9px",
+												background: `${dimColor}15`,
+												border: `1px solid ${dimColor}30`,
+												borderRadius: "5px",
+												fontSize: "11px",
+												color: dimColor,
+												display: "flex",
+												alignItems: "center",
+												gap: "4px",
+											}}>
+											{l?.emoji} {lensId}
+										</span>
+									);
+								})}
+							</div>
+						)}
 					</div>
 				)}
 
@@ -405,8 +468,8 @@ function MoonSidePanel({
 					<>
 						<p
 							style={{
-								margin: "0 0 8px",
-								fontSize: "9px",
+								margin: "0 0 9px",
+								fontSize: "10px",
 								color: "#334155",
 								fontWeight: 700,
 								textTransform: "uppercase",
@@ -440,80 +503,97 @@ function MoonSidePanel({
 				{/* Relationships section */}
 				{!isEditing && (
 					<>
-						<p
+						<button
+							onClick={() => setRelsSectionOpen(!relsSectionOpen)}
 							style={{
-								margin: "16px 0 8px",
-								fontSize: "9px",
+								display: "flex",
+								alignItems: "center",
+								gap: "6px",
+								background: "transparent",
+								border: "none",
+								cursor: "pointer",
+								padding: "0",
+								margin: "18px 0 9px 0",
 								color: "#334155",
+								fontSize: "10px",
 								fontWeight: 700,
 								textTransform: "uppercase",
 								letterSpacing: "0.5px",
 							}}>
+							{relsSectionOpen ? (
+								<ChevronDown size={12} />
+							) : (
+								<ChevronRight size={12} />
+							)}
 							Relationships
-						</p>
-						{row(
-							"☄️",
-							"Conflicts With",
-							"This reflection fights with another moon",
-							false,
-							"#F97316",
-							() => onStartRelationship("tension", moon),
-							"#F97316",
-						)}
-						{row(
-							"🌊",
-							"Resonates With",
-							"This reflection echoes another moon",
-							false,
-							"#10B981",
-							() => onStartRelationship("support", moon),
-							"#10B981",
-						)}
+						</button>
+						{relsSectionOpen && (
+							<>
+								{row(
+									"☄️",
+									"Conflicts With",
+									"This reflection fights with another moon",
+									false,
+									"#F97316",
+									() => onStartRelationship("tension", moon),
+									"#F97316",
+								)}
+								{row(
+									"🌊",
+									"Resonates With",
+									"This reflection echoes another moon",
+									false,
+									"#10B981",
+									() => onStartRelationship("support", moon),
+									"#10B981",
+								)}
 
-						{relatedLinks.length > 0 && (
-							<div style={{ marginTop: "8px" }}>
-								<p
-									style={{
-										margin: "0 0 6px",
-										fontSize: "9px",
-										color: "#1E293B",
-										fontWeight: 700,
-										textTransform: "uppercase",
-										letterSpacing: "0.5px",
-									}}>
-									Active links
-								</p>
-								{relatedLinks.map((rel) => (
-									<div
-										key={rel.targetMoonId}
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "7px",
-											padding: "6px 9px",
-											background:
-												rel.type === "tension" ? "#F9731610" : "#10B98110",
-											border: `1px solid ${rel.type === "tension" ? "#F9731625" : "#10B98125"}`,
-											borderRadius: "6px",
-											marginBottom: "4px",
-										}}>
-										<span style={{ fontSize: "12px" }}>
-											{rel.type === "tension" ? "☄️" : "🌊"}
-										</span>
-										<span
+								{relatedLinks.length > 0 && (
+									<div style={{ marginTop: "10px" }}>
+										<p
 											style={{
-												fontSize: "11px",
-												color: "#64748B",
-												overflow: "hidden",
-												textOverflow: "ellipsis",
-												whiteSpace: "nowrap",
+												margin: "0 0 7px",
+												fontSize: "10px",
+												color: "#1E293B",
+												fontWeight: 700,
+												textTransform: "uppercase",
+												letterSpacing: "0.5px",
 											}}>
-											{rel.targetMoon.text.substring(0, 38)}
-											{rel.targetMoon.text.length > 38 ? "…" : ""}
-										</span>
+											Active links
+										</p>
+										{relatedLinks.map((rel) => (
+											<div
+												key={rel.targetMoonId}
+												style={{
+													display: "flex",
+													alignItems: "center",
+													gap: "8px",
+													padding: "7px 10px",
+													background:
+														rel.type === "tension" ? "#F9731610" : "#10B98110",
+													border: `1px solid ${rel.type === "tension" ? "#F9731625" : "#10B98125"}`,
+													borderRadius: "6px",
+													marginBottom: "5px",
+												}}>
+												<span style={{ fontSize: "13px" }}>
+													{rel.type === "tension" ? "☄️" : "🌊"}
+												</span>
+												<span
+													style={{
+														fontSize: "12px",
+														color: "#64748B",
+														overflow: "hidden",
+														textOverflow: "ellipsis",
+														whiteSpace: "nowrap",
+													}}>
+													{rel.targetMoon.text.substring(0, 40)}
+													{rel.targetMoon.text.length > 40 ? "…" : ""}
+												</span>
+											</div>
+										))}
 									</div>
-								))}
-							</div>
+								)}
+							</>
 						)}
 					</>
 				)}
@@ -523,8 +603,8 @@ function MoonSidePanel({
 					<>
 						<p
 							style={{
-								margin: "16px 0 8px",
-								fontSize: "9px",
+								margin: "18px 0 9px",
+								fontSize: "10px",
 								color: "#334155",
 								fontWeight: 700,
 								textTransform: "uppercase",
@@ -546,10 +626,10 @@ function MoonSidePanel({
 			</div>
 
 			{/* Release — pinned to bottom */}
-			{!isEditing && (
+			{!isEditing && !isComparison && (
 				<div
 					style={{
-						padding: "10px 16px",
+						padding: "12px 18px",
 						borderTop: "1px solid rgba(255,255,255,0.04)",
 						flexShrink: 0,
 					}}>
@@ -557,13 +637,13 @@ function MoonSidePanel({
 						onClick={() => onAction("delete", moon)}
 						style={{
 							width: "100%",
-							padding: "8px",
+							padding: "9px",
 							background: "transparent",
 							border: "1px solid rgba(239,68,68,0.15)",
-							borderRadius: "6px",
+							borderRadius: "7px",
 							color: "#334155",
 							cursor: "pointer",
-							fontSize: "11px",
+							fontSize: "12px",
 							fontWeight: 600,
 							transition: "all 0.2s",
 							display: "flex",
@@ -598,7 +678,7 @@ export default function ReflectionSpace({
 	onSwitchToObservation,
 	onNodesUpdate,
 }) {
-	const [selectedMoon, setSelectedMoon] = useState(null);
+	const [selectedMoons, setSelectedMoons] = useState([]); // 0, 1, or 2 moons
 	const [creatingRelationship, setCreatingRelationship] = useState(null);
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
 	const [hoveredMoonId, setHoveredMoonId] = useState(null);
@@ -612,10 +692,16 @@ export default function ReflectionSpace({
 	// ── DERIVED ──
 	const viewportCenterX = window.innerWidth / 2;
 	const viewportCenterY = (window.innerHeight - 60) / 2 + 60;
-	const panelOpen = !!selectedMoon;
-	const centerX = panelOpen
-		? viewportCenterX - PANEL_WIDTH / 2
-		: viewportCenterX;
+	const isComparing = selectedMoons.length === 2;
+	const panelOpen = selectedMoons.length > 0;
+
+	// When comparing: shift center so both panels + planet visible
+	// When 1 panel: shift slightly left
+	const centerX = isComparing
+		? viewportCenterX
+		: panelOpen
+			? viewportCenterX - PANEL_WIDTH / 2
+			: viewportCenterX;
 
 	const centeredPlanet = {
 		...parentNode,
@@ -628,17 +714,23 @@ export default function ReflectionSpace({
 	const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
 	const liveMoons = nodes.filter((n) => n.parentId === parentNode.id);
 	const distributedMoons = distributeMoonsEvenly(childMoons, centeredPlanet);
-	const orbitalPaths = getOrbitalPaths(centeredPlanet);
+	const orbitalPaths = getScaledOrbitalPaths(centeredPlanet);
 	const ghostMoons = buildGhostMoons(
 		childMoons,
 		unlockedDimensions,
 		centeredPlanet,
 	);
 
-	// Keep selectedMoon synced to live data
-	const liveSelectedMoon = selectedMoon
-		? liveMoons.find((m) => m.id === selectedMoon.id) || null
-		: null;
+	// Assign numbers to moons
+	const moonNumbers = {};
+	distributedMoons.forEach((moon, idx) => {
+		moonNumbers[moon.id] = MOON_EMOJIS[idx] || `${idx + 1}`;
+	});
+
+	// Keep selectedMoons synced to live data
+	const liveSelectedMoons = selectedMoons
+		.map((id) => liveMoons.find((m) => m.id === id))
+		.filter(Boolean);
 
 	// ── EFFECTS ──
 	useEffect(() => {
@@ -657,13 +749,14 @@ export default function ReflectionSpace({
 
 	useEffect(() => {
 		const onKey = (e) => {
-			if (e.key !== "Escape") return;
-			if (creatingRelationship) {
-				setCreatingRelationship(null);
-				setRelationshipSourceMoon(null);
-				return;
+			if (e.key === "Escape") {
+				if (creatingRelationship) {
+					setCreatingRelationship(null);
+					setRelationshipSourceMoon(null);
+					return;
+				}
+				setSelectedMoons([]);
 			}
-			setSelectedMoon(null);
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
@@ -676,7 +769,7 @@ export default function ReflectionSpace({
 	};
 
 	// ── MOON CLICK ──
-	const handleMoonClick = (moonNode) => {
+	const handleMoonClick = (moonNode, e) => {
 		if (moonNode.isGhost) {
 			if (creatingRelationship) {
 				showToast("Pick an existing moon to link with", "#EF4444");
@@ -686,6 +779,21 @@ export default function ReflectionSpace({
 			setShowInputCard(true);
 			return;
 		}
+
+		// Shift+Click for multi-select
+		if (e?.shiftKey && !creatingRelationship) {
+			if (selectedMoons.includes(moonNode.id)) {
+				setSelectedMoons(selectedMoons.filter((id) => id !== moonNode.id));
+			} else if (selectedMoons.length < 2) {
+				setSelectedMoons([...selectedMoons, moonNode.id]);
+			} else {
+				// Already have 2 selected, replace the second one
+				setSelectedMoons([selectedMoons[0], moonNode.id]);
+			}
+			return;
+		}
+
+		// Relationship creation
 		if (creatingRelationship && relationshipSourceMoon) {
 			handleCreateRelationship(
 				relationshipSourceMoon,
@@ -696,7 +804,9 @@ export default function ReflectionSpace({
 			setRelationshipSourceMoon(null);
 			return;
 		}
-		setSelectedMoon(moonNode);
+
+		// Normal click - single select
+		setSelectedMoons([moonNode.id]);
 	};
 
 	// ── PANEL ACTIONS ──
@@ -742,7 +852,7 @@ export default function ReflectionSpace({
 				if (window.confirm("Release this reflection into the void?")) {
 					await db.nodes.delete(moon.id);
 					await onNodesUpdate();
-					setSelectedMoon(null);
+					setSelectedMoons([]);
 					showToast("Reflection released 🌌", "#64748B");
 				}
 				break;
@@ -752,7 +862,7 @@ export default function ReflectionSpace({
 	const handleStartRelationship = (type, moon) => {
 		setCreatingRelationship(type);
 		setRelationshipSourceMoon(moon);
-		setSelectedMoon(null);
+		setSelectedMoons([]);
 		showToast(
 			type === "tension"
 				? "☄️ Click the conflicting moon"
@@ -805,7 +915,7 @@ export default function ReflectionSpace({
 			type === "tension" ? "☄️ Conflict mapped" : "🌊 Resonance mapped",
 			type === "tension" ? "#F97316" : "#10B981",
 		);
-		setSelectedMoon(sourceMoon);
+		setSelectedMoons([sourceMoon.id]);
 	};
 
 	const handleSaveReflection = async (data) => {
@@ -834,7 +944,28 @@ export default function ReflectionSpace({
 		setAddingDimension(null);
 	};
 
-	// ── RELATIONSHIP LINES (deduplicated, use live positions) ──
+	// Quick comparison actions
+	const handleQuickCompare = async (action) => {
+		const [moon1, moon2] = liveSelectedMoons;
+		if (!moon1 || !moon2) return;
+
+		switch (action) {
+			case "conflict":
+				await handleCreateRelationship(moon1, moon2, "tension");
+				break;
+			case "resonance":
+				await handleCreateRelationship(moon1, moon2, "support");
+				break;
+			case "uncertain":
+				await db.nodes.update(moon1.id, { confidence: "wobbly" });
+				await db.nodes.update(moon2.id, { confidence: "wobbly" });
+				await onNodesUpdate();
+				showToast("Both moons marked uncertain 〰️", "#FBBF24");
+				break;
+		}
+	};
+
+	// ── RELATIONSHIP LINES ──
 	const moonPositionMap = {};
 	distributedMoons.forEach((m) => {
 		moonPositionMap[m.id] = getMoonPosition(m, centeredPlanet, orbitTime);
@@ -972,7 +1103,115 @@ export default function ReflectionSpace({
 				<div style={{ width: "120px" }} />
 			</div>
 
-			{/* CANVAS + PANEL ROW */}
+			{/* COMPARISON BAR */}
+			{isComparing && (
+				<div
+					style={{
+						padding: "10px 24px",
+						background: "rgba(10,15,28,0.95)",
+						borderBottom: "1px solid rgba(108,99,255,0.15)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						gap: "12px",
+						zIndex: 10,
+						flexShrink: 0,
+					}}>
+					<span style={{ fontSize: "12px", color: "#64748B" }}>
+						Comparing Moons {moonNumbers[liveSelectedMoons[0].id]} &{" "}
+						{moonNumbers[liveSelectedMoons[1].id]}
+					</span>
+					<button
+						onClick={() => handleQuickCompare("conflict")}
+						style={{
+							padding: "6px 12px",
+							background: "#F9731615",
+							border: "1px solid #F9731640",
+							borderRadius: "6px",
+							color: "#F97316",
+							cursor: "pointer",
+							fontSize: "11px",
+							fontWeight: 600,
+							transition: "all 0.2s",
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "#F9731625";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "#F9731615";
+						}}>
+						☄️ Mark Conflict
+					</button>
+					<button
+						onClick={() => handleQuickCompare("resonance")}
+						style={{
+							padding: "6px 12px",
+							background: "#10B98115",
+							border: "1px solid #10B98140",
+							borderRadius: "6px",
+							color: "#10B981",
+							cursor: "pointer",
+							fontSize: "11px",
+							fontWeight: 600,
+							transition: "all 0.2s",
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "#10B98125";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "#10B98115";
+						}}>
+						🌊 Mark Resonance
+					</button>
+					<button
+						onClick={() => handleQuickCompare("uncertain")}
+						style={{
+							padding: "6px 12px",
+							background: "#FBBF2415",
+							border: "1px solid #FBBF2440",
+							borderRadius: "6px",
+							color: "#FBBF24",
+							cursor: "pointer",
+							fontSize: "11px",
+							fontWeight: 600,
+							transition: "all 0.2s",
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "#FBBF2425";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "#FBBF2415";
+						}}>
+						〰️ Both Uncertain
+					</button>
+					<button
+						onClick={() => setSelectedMoons([])}
+						style={{
+							padding: "6px 12px",
+							background: "transparent",
+							border: "1px solid rgba(148,163,184,0.2)",
+							borderRadius: "6px",
+							color: "#64748B",
+							cursor: "pointer",
+							fontSize: "11px",
+							fontWeight: 600,
+							transition: "all 0.2s",
+							marginLeft: "8px",
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.borderColor = "#94A3B8";
+							e.currentTarget.style.color = "#94A3B8";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+							e.currentTarget.style.color = "#64748B";
+						}}>
+						Clear
+					</button>
+				</div>
+			)}
+
+			{/* CANVAS + PANELS ROW */}
 			<div
 				style={{
 					flex: 1,
@@ -980,6 +1219,28 @@ export default function ReflectionSpace({
 					overflow: "hidden",
 					position: "relative",
 				}}>
+				{/* LEFT PANEL (comparison mode only) */}
+				{isComparing && (
+					<div
+						style={{
+							width: `${PANEL_WIDTH}px`,
+							flexShrink: 0,
+						}}>
+						<MoonSidePanel
+							moon={liveSelectedMoons[0]}
+							moonNumber={moonNumbers[liveSelectedMoons[0].id]}
+							allMoons={liveMoons}
+							dimColor={
+								moonConfig.dimension[liveSelectedMoons[0].dimension].color
+							}
+							onClose={() => {}}
+							onAction={handlePanelAction}
+							onStartRelationship={handleStartRelationship}
+							isComparison={true}
+						/>
+					</div>
+				)}
+
 				{/* CANVAS */}
 				<div
 					style={{
@@ -988,29 +1249,31 @@ export default function ReflectionSpace({
 						transition: "all 0.25s ease",
 					}}>
 					{/* Instruction / banner */}
-					{!showInputCard && !creatingRelationship && !selectedMoon && (
-						<div
-							style={{
-								position: "absolute",
-								top: "20px",
-								left: "50%",
-								transform: "translateX(-50%)",
-								padding: "8px 16px",
-								background: "rgba(10,15,28,0.95)",
-								border: "1px solid rgba(108,99,255,0.2)",
-								borderRadius: "7px",
-								color: "#475569",
-								fontSize: "11px",
-								fontWeight: 500,
-								zIndex: 10,
-								whiteSpace: "nowrap",
-								pointerEvents: "none",
-							}}>
-							{childMoons.length === 0
-								? "Click a glowing orbit ring to add your first reflection"
-								: "Click a moon to explore it · Click a ghost on the ring to add a reflection"}
-						</div>
-					)}
+					{!showInputCard &&
+						!creatingRelationship &&
+						selectedMoons.length === 0 && (
+							<div
+								style={{
+									position: "absolute",
+									top: "20px",
+									left: "50%",
+									transform: "translateX(-50%)",
+									padding: "8px 16px",
+									background: "rgba(10,15,28,0.95)",
+									border: "1px solid rgba(108,99,255,0.2)",
+									borderRadius: "7px",
+									color: "#475569",
+									fontSize: "11px",
+									fontWeight: 500,
+									zIndex: 10,
+									whiteSpace: "nowrap",
+									pointerEvents: "none",
+								}}>
+								{childMoons.length === 0
+									? "Click a glowing orbit ring to add your first reflection"
+									: "Click a moon · Shift+Click to compare 2 moons"}
+							</div>
+						)}
 
 					{creatingRelationship && (
 						<div
@@ -1079,22 +1342,33 @@ export default function ReflectionSpace({
 							height: "100%",
 							pointerEvents: "none",
 						}}>
+						<defs>
+							<filter id="orbitGlow">
+								<feGaussianBlur stdDeviation="2" result="blur" />
+								<feMerge>
+									<feMergeNode in="blur" />
+									<feMergeNode in="SourceGraphic" />
+								</feMerge>
+							</filter>
+						</defs>
 						<g style={{ pointerEvents: "auto" }}>
 							{/* Orbital rings */}
 							{orbitalPaths
 								.filter((p) => unlockedDimensions.includes(p.dimension))
 								.map((path) => (
-									<circle
-										key={path.dimension}
-										cx={path.centerX}
-										cy={path.centerY}
-										r={path.radius}
-										fill="none"
-										stroke={path.color}
-										strokeWidth={1}
-										strokeOpacity={0.18}
-										strokeDasharray="3,10"
-									/>
+									<g key={path.dimension}>
+										<circle
+											cx={path.centerX}
+											cy={path.centerY}
+											r={path.radius}
+											fill="none"
+											stroke={path.color}
+											strokeWidth={2}
+											strokeOpacity={0.5}
+											strokeDasharray="3,10"
+											filter="url(#orbitGlow)"
+										/>
+									</g>
 								))}
 
 							{/* Relationship lines */}
@@ -1160,7 +1434,7 @@ export default function ReflectionSpace({
 										isGhost={true}
 										ghostLabel={`Add ${moonConfig.dimension[ghost.dimension].name}`}
 										isHovered={hoveredMoonId === ghost.id}
-										onClick={() => handleMoonClick(ghost)}
+										onClick={(n, e) => handleMoonClick(n, e)}
 										onMouseEnter={() => setHoveredMoonId(ghost.id)}
 										onMouseLeave={() => setHoveredMoonId(null)}
 									/>
@@ -1172,43 +1446,100 @@ export default function ReflectionSpace({
 									const pos = getMoonPosition(moon, centeredPlanet, orbitTime);
 									const liveMoon =
 										liveMoons.find((m) => m.id === moon.id) || moon;
-									const isSelected = liveSelectedMoon?.id === moon.id;
+									const isSelected = selectedMoons.includes(moon.id);
+									const moonNum = moonNumbers[moon.id];
 									return (
-										<Moon
-											key={moon.id}
-											node={liveMoon}
-											position={pos}
-											isHovered={hoveredMoonId === moon.id || isSelected}
-											isSelected={isSelected}
-											onClick={() => handleMoonClick(liveMoon)}
-											onMouseEnter={() => setHoveredMoonId(moon.id)}
-											onMouseLeave={() => setHoveredMoonId(null)}
-										/>
+										<g key={moon.id}>
+											<Moon
+												node={liveMoon}
+												position={pos}
+												isHovered={hoveredMoonId === moon.id || isSelected}
+												isSelected={isSelected}
+												moonNumber={moonNum}
+												onClick={(n, e) => handleMoonClick(n, e)}
+												onMouseEnter={() => setHoveredMoonId(moon.id)}
+												onMouseLeave={() => setHoveredMoonId(null)}
+											/>
+											{/* Hover label */}
+											{hoveredMoonId === moon.id && (
+												<g>
+													<rect
+														x={pos.x - 60}
+														y={
+															pos.y -
+															moonConfig.dimension[moon.dimension].radius -
+															28
+														}
+														width="120"
+														height="20"
+														rx="4"
+														fill="rgba(10,15,28,0.95)"
+														stroke={moonConfig.dimension[moon.dimension].color}
+														strokeWidth="1"
+													/>
+													<text
+														x={pos.x}
+														y={
+															pos.y -
+															moonConfig.dimension[moon.dimension].radius -
+															15
+														}
+														textAnchor="middle"
+														fontSize="11"
+														fill="#CBD5E1"
+														fontWeight="500"
+														style={{ pointerEvents: "none" }}>
+														{moon.text.substring(0, 18)}
+														{moon.text.length > 18 ? "…" : ""}
+													</text>
+												</g>
+											)}
+										</g>
 									);
 								})}
 						</g>
 					</svg>
 				</div>
 
-				{/* SIDE PANEL */}
+				{/* RIGHT PANEL (single or comparison) */}
 				<div
 					style={{
-						width: panelOpen ? `${PANEL_WIDTH}px` : "0px",
+						width: panelOpen && !isComparing ? `${PANEL_WIDTH}px` : "0px",
 						transition: "width 0.25s cubic-bezier(0.4,0,0.2,1)",
 						overflow: "hidden",
 						flexShrink: 0,
 					}}>
-					{liveSelectedMoon && (
+					{liveSelectedMoons[0] && !isComparing && (
 						<MoonSidePanel
-							moon={liveSelectedMoon}
+							moon={liveSelectedMoons[0]}
+							moonNumber={moonNumbers[liveSelectedMoons[0].id]}
 							allMoons={liveMoons}
-							dimColor={moonConfig.dimension[liveSelectedMoon.dimension].color}
-							onClose={() => setSelectedMoon(null)}
+							dimColor={
+								moonConfig.dimension[liveSelectedMoons[0].dimension].color
+							}
+							onClose={() => setSelectedMoons([])}
 							onAction={handlePanelAction}
 							onStartRelationship={handleStartRelationship}
 						/>
 					)}
 				</div>
+
+				{isComparing && (
+					<div style={{ width: `${PANEL_WIDTH}px`, flexShrink: 0 }}>
+						<MoonSidePanel
+							moon={liveSelectedMoons[1]}
+							moonNumber={moonNumbers[liveSelectedMoons[1].id]}
+							allMoons={liveMoons}
+							dimColor={
+								moonConfig.dimension[liveSelectedMoons[1].dimension].color
+							}
+							onClose={() => {}}
+							onAction={handlePanelAction}
+							onStartRelationship={handleStartRelationship}
+							isComparison={true}
+						/>
+					</div>
+				)}
 			</div>
 
 			{/* BOTTOM BAR */}

@@ -1,18 +1,30 @@
-// src/lib/orbitalPhysics.js - FIXED
+// src/lib/orbitalPhysics.js - V4.0 with scale parameter
 import { moonConfig, planetConfig } from "../seedData";
 
 /**
  * Calculate orbital position for a moon around its parent planet
+ * @param {Object} parent - Parent planet node
+ * @param {number} angle - Angle in radians
+ * @param {string} dimension - Dimension name
+ * @param {number} scale - Scale factor for orbit radius (default 1.0)
  */
-export function calculateMoonPosition(parent, angle, dimension = "subjective") {
+export function calculateMoonPosition(
+	parent,
+	angle,
+	dimension = "subjective",
+	scale = 1.0,
+) {
 	const dimensionConfig = moonConfig.dimension[dimension];
 	const planetRadius = planetConfig.baseRadius;
 	const centerX = parent.position.x + planetRadius;
 	const centerY = parent.position.y + planetRadius;
 
+	// Apply scale to orbit radius
+	const orbitRadius = dimensionConfig.orbitRadius * scale;
+
 	return {
-		x: centerX + Math.cos(angle) * dimensionConfig.orbitRadius,
-		y: centerY + Math.sin(angle) * dimensionConfig.orbitRadius,
+		x: centerX + Math.cos(angle) * orbitRadius,
+		y: centerY + Math.sin(angle) * orbitRadius,
 	};
 }
 
@@ -82,6 +94,12 @@ export function distributeMoonsEvenly(moons, parent) {
 
 /**
  * Calculate animated orbital position based on time and initial angle
+ * @param {Object} moon - Moon node
+ * @param {Object} parent - Parent planet node
+ * @param {number} time - Animation time counter
+ * @param {boolean} paused - Whether animation is paused
+ * @param {string} dimension - Dimension name
+ * @param {number} scale - Scale factor for orbit radius (default 1.0)
  */
 export function calculateAnimatedOrbit(
 	moon,
@@ -89,12 +107,13 @@ export function calculateAnimatedOrbit(
 	time,
 	paused = false,
 	dimension = "subjective",
+	scale = 1.0,
 ) {
 	const dimensionConfig = moonConfig.dimension[dimension];
 	const baseAngle = moon.orbitAngle || 0;
 
 	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
-	return calculateMoonPosition(parent, animatedAngle, dimension);
+	return calculateMoonPosition(parent, animatedAngle, dimension, scale);
 }
 
 /**
@@ -198,7 +217,6 @@ export function calculateTidalLock(moon, parent, target) {
 
 /**
  * Get orbital paths for each dimension
- * ✅ FIXED: Changed orbitalRadius → orbitRadius
  */
 export function getOrbitalPaths(planet) {
 	const centerX = planet.position.x + planetConfig.baseRadius;
@@ -209,28 +227,28 @@ export function getOrbitalPaths(planet) {
 			dimension: "subjective",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.subjective.orbitRadius, // ✅ FIXED
+			radius: moonConfig.dimension.subjective.orbitRadius,
 			color: moonConfig.dimension.subjective.color,
 		},
 		{
 			dimension: "behavioral",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.behavioral.orbitRadius, // ✅ FIXED
+			radius: moonConfig.dimension.behavioral.orbitRadius,
 			color: moonConfig.dimension.behavioral.color,
 		},
 		{
 			dimension: "intersubjective",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.intersubjective.orbitRadius, // ✅ FIXED
+			radius: moonConfig.dimension.intersubjective.orbitRadius,
 			color: moonConfig.dimension.intersubjective.color,
 		},
 		{
 			dimension: "symbolic",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.symbolic.orbitRadius, // ✅ FIXED
+			radius: moonConfig.dimension.symbolic.orbitRadius,
 			color: moonConfig.dimension.symbolic.color,
 		},
 	];
