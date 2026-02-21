@@ -1,6 +1,5 @@
-// src/components/TensionLine.jsx
+// src/components/TensionLine.jsx - V4.2 Red tension
 import React from "react";
-
 export default function TensionLine({
 	moonA,
 	moonB,
@@ -11,53 +10,42 @@ export default function TensionLine({
 	onClick,
 }) {
 	if (!posA || !posB) return null;
-
 	const dx = posB.x - posA.x;
 	const dy = posB.y - posA.y;
 	const distance = Math.sqrt(dx * dx + dy * dy);
-
 	if (distance === 0) return null;
-
 	// Generate zigzag points
 	const segments = 8;
 	const points = [];
-
 	for (let i = 0; i <= segments; i++) {
 		const t = i / segments;
 		const baseX = posA.x + dx * t;
 		const baseY = posA.y + dy * t;
-
 		const perpX = -dy / distance;
 		const perpY = dx / distance;
 		const offset = (i % 2 === 0 ? 1 : -1) * (6 + intensity * 2);
-
 		points.push({
 			x: baseX + perpX * offset,
 			y: baseY + perpY * offset,
 		});
 	}
-
 	const pathData =
 		`M ${points[0].x} ${points[0].y} ` +
 		points
 			.slice(1)
 			.map((p) => `L ${p.x} ${p.y}`)
 			.join(" ");
-
 	const intensityColors = {
-		1: "#FB923C", // Light orange
-		2: "#F97316", // Medium orange
-		3: "#EA580C", // Deep orange/red
+		1: "#FCA5A5", // Light red
+		2: "#EF4444", // Medium red
+		3: "#DC2626", // Deep red
 	};
-
 	const strokeColor = isHovered
-		? "#FCA5A5"
+		? "#FEE2E2" // Very light red on hover
 		: intensityColors[intensity] || intensityColors[2];
 	const strokeWidth = isHovered ? 4 : 2 + intensity;
-
 	const midX = (posA.x + posB.x) / 2;
 	const midY = (posA.y + posB.y) / 2;
-
 	return (
 		<g
 			onClick={(e) => {
@@ -73,7 +61,6 @@ export default function TensionLine({
 				fill="none"
 				style={{ pointerEvents: "stroke" }}
 			/>
-
 			{/* Main tension zigzag */}
 			<path
 				d={pathData}
@@ -83,7 +70,6 @@ export default function TensionLine({
 				opacity={isHovered ? 0.9 : 0.7}
 				style={{ transition: "all 0.2s ease", pointerEvents: "none" }}
 			/>
-
 			{/* Glow effect on hover */}
 			{isHovered && (
 				<path
@@ -95,7 +81,6 @@ export default function TensionLine({
 					style={{ filter: "blur(4px)", pointerEvents: "none" }}
 				/>
 			)}
-
 			{/* Label on hover */}
 			{isHovered && (
 				<g>

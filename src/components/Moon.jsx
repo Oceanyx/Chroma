@@ -1,4 +1,4 @@
-// src/components/Moon.jsx - V4.0 with number badges
+// src/components/Moon.jsx - V4.2 with showMoonNumber prop + vibrancy
 import React from "react";
 import { moonConfig } from "../seedData";
 
@@ -11,6 +11,7 @@ export default function Moon({
 	isHovered = false,
 	isSelected = false,
 	moonNumber,
+	showMoonNumber = false, // NEW: control when number badge shows
 	onClick,
 	onContextMenu,
 	onMouseEnter,
@@ -29,7 +30,7 @@ export default function Moon({
 	const y = position?.y || node.position?.y || 0;
 
 	const opacity = isGhost ? 0.3 : 1;
-	const glowOpacity = isHovered ? 0.8 : isGhost ? 0.2 : 0.4;
+	const glowOpacity = isHovered ? 1.0 : isGhost ? 0.3 : 0.7; // CHANGED: 0.4 → 0.7 for more vibrancy
 
 	// Unique IDs
 	const gradientId = `moon-gradient-${node.id}-${dimension}`;
@@ -413,8 +414,8 @@ export default function Moon({
 				</g>
 			)}
 
-			{/* Number Badge (for individual moons in ReflectionSpace) */}
-			{moonNumber && !isGhost && (
+			{/* Number Badge (only show when showMoonNumber is true) */}
+			{moonNumber && !isGhost && showMoonNumber && (
 				<g>
 					<circle
 						cx={x}

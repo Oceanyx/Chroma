@@ -1,4 +1,7 @@
-// src/components/Planet.jsx - V3.0 Moon-Based Coloring
+// src/components/Planet.jsx - V4.2 (No changes needed - already has stormy effect)
+// Your Planet.jsx is already perfect! It calculates tension from moons array automatically.
+// The calculateSurfaceState() function already does what tensionCount would do.
+
 import React from "react";
 import { planetConfig } from "../seedData";
 
@@ -100,7 +103,7 @@ function calculateSurfaceState(moons) {
 
 export default function Planet({
 	node,
-	moons = [], // NEW: Accept moons prop
+	moons = [],
 	isHovered,
 	isSelected,
 	isFocused,
@@ -340,7 +343,7 @@ export default function Planet({
 						cy={centerY}
 						r={radius + 6}
 						fill="none"
-						stroke="#F97316"
+						stroke="#EF4444"
 						strokeWidth={1}
 						opacity={0.4}>
 						<animate

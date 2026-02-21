@@ -3,10 +3,6 @@ import { moonConfig, planetConfig } from "../seedData";
 
 /**
  * Calculate orbital position for a moon around its parent planet
- * @param {Object} parent - Parent planet node
- * @param {number} angle - Angle in radians
- * @param {string} dimension - Dimension name
- * @param {number} scale - Scale factor for orbit radius (default 1.0)
  */
 export function calculateMoonPosition(
 	parent,
@@ -19,7 +15,6 @@ export function calculateMoonPosition(
 	const centerX = parent.position.x + planetRadius;
 	const centerY = parent.position.y + planetRadius;
 
-	// Apply scale to orbit radius
 	const orbitRadius = dimensionConfig.orbitRadius * scale;
 
 	return {
@@ -29,7 +24,7 @@ export function calculateMoonPosition(
 }
 
 /**
- * Group moons by dimension - returns dimension info without cached positions
+ * Group moons by dimension
  */
 export function groupMoonsByDimension(moons, parent) {
 	const grouped = {
@@ -45,12 +40,11 @@ export function groupMoonsByDimension(moons, parent) {
 		}
 	});
 
-	// Fixed angles for each dimension
 	const dimensionAngles = {
-		subjective: Math.PI * 1.5, // Top (270°)
-		intersubjective: Math.PI * 0.5, // Bottom (90°)
-		behavioral: 0, // Right (0°)
-		symbolic: Math.PI, // Left (180°)
+		subjective: Math.PI * 1.5,
+		intersubjective: Math.PI * 0.5,
+		behavioral: 0,
+		symbolic: Math.PI,
 	};
 
 	const result = {};
@@ -94,12 +88,6 @@ export function distributeMoonsEvenly(moons, parent) {
 
 /**
  * Calculate animated orbital position based on time and initial angle
- * @param {Object} moon - Moon node
- * @param {Object} parent - Parent planet node
- * @param {number} time - Animation time counter
- * @param {boolean} paused - Whether animation is paused
- * @param {string} dimension - Dimension name
- * @param {number} scale - Scale factor for orbit radius (default 1.0)
  */
 export function calculateAnimatedOrbit(
 	moon,
@@ -117,7 +105,7 @@ export function calculateAnimatedOrbit(
 }
 
 /**
- * Calculate animated position for aggregate moon (dimension-specific)
+ * Calculate animated position for aggregate moon
  */
 export function calculateAnimatedAggregatePosition(
 	baseAngle,
@@ -138,13 +126,11 @@ export function calculateAnimatedAggregatePosition(
 
 /**
  * Get ghost moon positions for reflection mode
- * Fixed positions in viewport center with 4 dimensions
  */
 export function getGhostMoonPositions(parent) {
 	const viewportCenterX = window.innerWidth / 2;
 	const viewportCenterY = window.innerHeight / 2;
 
-	// Cardinal positions for 4 dimensions
 	return {
 		subjective: {
 			x: viewportCenterX,
@@ -166,7 +152,7 @@ export function getGhostMoonPositions(parent) {
 }
 
 /**
- * Binary Lock: Two sibling moons lock distance and orbit together
+ * Binary Lock
  */
 export function calculateBinaryLock(moon1, moon2, parent) {
 	const midpointAngle = (moon1.orbitAngle + moon2.orbitAngle) / 2;
@@ -188,7 +174,7 @@ export function calculateBinaryLock(moon1, moon2, parent) {
 }
 
 /**
- * Tidal Lock: Moon faces a distant target and stops orbiting
+ * Tidal Lock
  */
 export function calculateTidalLock(moon, parent, target) {
 	const planetRadius = planetConfig.baseRadius;
@@ -256,16 +242,14 @@ export function getOrbitalPaths(planet) {
 
 /**
  * Calculate smooth bezier curve for support relationship
- * Support lines update dynamically (moons keep orbiting)
  */
 export function calculateSupportCurve(moonAPos, moonBPos) {
 	const midX = (moonAPos.x + moonBPos.x) / 2;
 	const midY = (moonAPos.y + moonBPos.y) / 2;
 
-	// Calculate perpendicular offset for curve control point
 	const dx = moonBPos.x - moonAPos.x;
 	const dy = moonBPos.y - moonAPos.y;
-	const perpX = -dy * 0.15; // Perpendicular to line
+	const perpX = -dy * 0.15;
 	const perpY = dx * 0.15;
 
 	const controlX = midX + perpX;
@@ -279,7 +263,6 @@ export function calculateSupportCurve(moonAPos, moonBPos) {
 
 /**
  * Calculate tension zigzag line
- * Tension locks both moons in place
  */
 export function calculateTensionLine(moonAPos, moonBPos, intensity = 2) {
 	const dx = moonBPos.x - moonAPos.x;
@@ -296,7 +279,6 @@ export function calculateTensionLine(moonAPos, moonBPos, intensity = 2) {
 		const baseX = moonAPos.x + dx * t;
 		const baseY = moonAPos.y + dy * t;
 
-		// Zigzag offset perpendicular to line
 		const perpX = -dy / distance;
 		const perpY = dx / distance;
 		const offset = (i % 2 === 0 ? 1 : -1) * (6 + intensity * 2);
