@@ -1,10 +1,10 @@
-// src/components/ReflectionSpace.jsx - V4.2 with MoonSidePanel import + Compare button
+// src/components/ReflectionSpace.jsx - V4.4 Fixed centering + Shift+click
 import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import MoonInputCard from "./MoonInputCard";
-import MoonSidePanel from "./MoonSidePanel"; // IMPORTED instead of inline
+import MoonSidePanel from "./MoonSidePanel";
 import DimensionUnlockNotification from "./DimensionUnlockNotification";
 import SupportLine from "./SupportLine";
 import TensionLine from "./TensionLine";
@@ -32,8 +32,9 @@ const DIMENSION_ANGLES = {
 	symbolic: Math.PI,
 };
 
-const PANEL_WIDTH = 380;
-const ORBIT_SCALE = 1.0; // Full size orbits in ReflectionSpace
+const PANEL_WIDTH = 500; // INCREASED from 380
+const ORBIT_SCALE = 1.0; // FIXED from 0.8 to full size
+const TOP_BAR_HEIGHT = 60;
 
 const MOON_EMOJIS = [
 	"1️⃣",
@@ -116,8 +117,8 @@ export default function ReflectionSpace({
 	const [selectedMoons, setSelectedMoons] = useState([]);
 	const [creatingRelationship, setCreatingRelationship] = useState(null);
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
-	const [comparingMode, setComparingMode] = useState(false); // NEW
-	const [comparisonSourceMoon, setComparisonSourceMoon] = useState(null); // NEW
+	const [comparingMode, setComparingMode] = useState(false);
+	const [comparisonSourceMoon, setComparisonSourceMoon] = useState(null);
 	const [hoveredMoonId, setHoveredMoonId] = useState(null);
 	const [showInputCard, setShowInputCard] = useState(false);
 	const [addingDimension, setAddingDimension] = useState(null);
@@ -126,22 +127,16 @@ export default function ReflectionSpace({
 	const [orbitTime, setOrbitTime] = useState(0);
 	const [toast, setToast] = useState(null);
 
-	// ── DERIVED ──
+	// ── DERIVED - FIXED CENTERING ──
 	const viewportCenterX = window.innerWidth / 2;
-	const viewportCenterY = (window.innerHeight - 60) / 2 + 60;
+	const viewportCenterY = window.innerHeight / 2; // FIXED: Removed + 60 offset, true center
 	const isComparing = selectedMoons.length === 2;
-	const panelOpen = selectedMoons.length > 0;
 
-	const centerX = isComparing
-		? viewportCenterX
-		: panelOpen
-			? viewportCenterX - PANEL_WIDTH / 2
-			: viewportCenterX;
-
+	// Planet ALWAYS stays at viewportCenterX, viewportCenterY
 	const centeredPlanet = {
 		...parentNode,
 		position: {
-			x: centerX - planetConfig.baseRadius,
+			x: viewportCenterX - planetConfig.baseRadius,
 			y: viewportCenterY - planetConfig.baseRadius,
 		},
 	};
@@ -205,7 +200,7 @@ export default function ReflectionSpace({
 		setTimeout(() => setToast(null), 2500);
 	};
 
-	// ── MOON CLICK ──
+	// ── MOON CLICK - WITH SHIFT+CLICK RESTORED ──
 	const handleMoonClick = (moonNode, e) => {
 		if (moonNode.isGhost) {
 			if (creatingRelationship || comparingMode) {
@@ -214,6 +209,19 @@ export default function ReflectionSpace({
 			}
 			setAddingDimension(moonNode.dimension);
 			setShowInputCard(true);
+			return;
+		}
+
+		// SHIFT+CLICK for comparison (RESTORED)
+		if (e?.shiftKey && !creatingRelationship && !comparingMode) {
+			if (selectedMoons.includes(moonNode.id)) {
+				setSelectedMoons(selectedMoons.filter((id) => id !== moonNode.id));
+			} else if (selectedMoons.length < 2) {
+				setSelectedMoons([...selectedMoons, moonNode.id]);
+			} else {
+				// Replace second moon
+				setSelectedMoons([selectedMoons[0], moonNode.id]);
+			}
 			return;
 		}
 
@@ -295,7 +303,6 @@ export default function ReflectionSpace({
 		}
 	};
 
-	// NEW: Start comparison mode
 	const handleStartComparison = (moon) => {
 		setComparingMode(true);
 		setComparisonSourceMoon(moon);
@@ -711,7 +718,7 @@ export default function ReflectionSpace({
 								}}>
 								{childMoons.length === 0
 									? "Click a glowing orbit ring to add your first reflection"
-									: "Click a moon to explore it"}
+									: "Click a moon • Shift+Click to compare 2 moons"}
 							</div>
 						)}
 
@@ -842,7 +849,6 @@ export default function ReflectionSpace({
 
 							{relLines}
 
-							{/* Source moon pulse rings */}
 							{creatingRelationship &&
 								relationshipSourceMoon &&
 								(() => {
@@ -1007,13 +1013,11 @@ export default function ReflectionSpace({
 					</svg>
 				</div>
 
-				{/* RIGHT PANEL */}
-				{panelOpen && !isComparing && liveSelectedMoons[0] && (
+				{/* RIGHT PANEL - Single selection */}
+				{selectedMoons.length === 1 && liveSelectedMoons[0] && (
 					<div
 						style={{
 							width: `${PANEL_WIDTH}px`,
-							transition: "width 0.25s cubic-bezier(0.4,0,0.2,1)",
-							overflow: "hidden",
 							flexShrink: 0,
 						}}>
 						<MoonSidePanel
@@ -1032,6 +1036,7 @@ export default function ReflectionSpace({
 					</div>
 				)}
 
+				{/* RIGHT PANEL - Comparison mode */}
 				{isComparing && liveSelectedMoons[1] && (
 					<div style={{ width: `${PANEL_WIDTH}px`, flexShrink: 0 }}>
 						<MoonSidePanel

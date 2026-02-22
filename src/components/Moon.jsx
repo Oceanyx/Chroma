@@ -1,4 +1,4 @@
-// src/components/Moon.jsx - V4.2 with showMoonNumber prop + vibrancy
+// src/components/Moon.jsx - V4.3 Fixed glow (smaller, more solid, less star-like)
 import React from "react";
 import { moonConfig } from "../seedData";
 
@@ -11,7 +11,7 @@ export default function Moon({
 	isHovered = false,
 	isSelected = false,
 	moonNumber,
-	showMoonNumber = false, // NEW: control when number badge shows
+	showMoonNumber = false,
 	onClick,
 	onContextMenu,
 	onMouseEnter,
@@ -30,7 +30,8 @@ export default function Moon({
 	const y = position?.y || node.position?.y || 0;
 
 	const opacity = isGhost ? 0.3 : 1;
-	const glowOpacity = isHovered ? 1.0 : isGhost ? 0.3 : 0.7; // CHANGED: 0.4 → 0.7 for more vibrancy
+	// FIXED: Reduced from 0.7/1.0 to 0.35/0.6 - less star-like
+	const glowOpacity = isHovered ? 0.6 : isGhost ? 0.2 : 0.35;
 
 	// Unique IDs
 	const gradientId = `moon-gradient-${node.id}-${dimension}`;
@@ -53,9 +54,6 @@ export default function Moon({
 			onMouseLeave={onMouseLeave}
 			style={{ cursor: "pointer" }}>
 			<defs>
-				{/* ========================================== */}
-				{/* INNER EXPERIENCE (Violet) - Frosted Glass */}
-				{/* ========================================== */}
 				{dimension === "subjective" && (
 					<>
 						<radialGradient id={gradientId}>
@@ -69,9 +67,6 @@ export default function Moon({
 					</>
 				)}
 
-				{/* ========================================== */}
-				{/* BEHAVIORAL (Orange) - Crystalline Facets */}
-				{/* ========================================== */}
 				{dimension === "behavioral" && (
 					<>
 						<radialGradient id={gradientId}>
@@ -106,9 +101,6 @@ export default function Moon({
 					</>
 				)}
 
-				{/* ========================================== */}
-				{/* EXTERNAL (Green) - Concentric Circles     */}
-				{/* ========================================== */}
 				{dimension === "intersubjective" && (
 					<>
 						<radialGradient id={gradientId}>
@@ -152,9 +144,6 @@ export default function Moon({
 					</>
 				)}
 
-				{/* ========================================== */}
-				{/* SYMBOLIC (Blue) - Mandala Gradient        */}
-				{/* ========================================== */}
 				{dimension === "symbolic" && (
 					<radialGradient id={gradientId}>
 						<stop offset="0%" stopColor="#93C5FD" stopOpacity="1" />
@@ -163,9 +152,9 @@ export default function Moon({
 					</radialGradient>
 				)}
 
-				{/* Glow Filter */}
+				{/* FIXED: Reduced blur from 5/3 to 3/2 */}
 				<filter id={glowId} x="-100%" y="-100%" width="300%" height="300%">
-					<feGaussianBlur stdDeviation={isHovered ? "5" : "3"} result="blur" />
+					<feGaussianBlur stdDeviation={isHovered ? "3" : "2"} result="blur" />
 					<feFlood floodColor={config.color} floodOpacity="1" />
 					<feComposite in2="blur" operator="in" />
 					<feMerge>
@@ -175,11 +164,11 @@ export default function Moon({
 				</filter>
 			</defs>
 
-			{/* Outer Glow */}
+			{/* FIXED: Glow radius reduced from 1.8 to 1.2 */}
 			<circle
 				cx={x}
 				cy={y}
-				r={radius * 1.8}
+				r={radius * 1.2}
 				fill={config.color}
 				opacity={glowOpacity}
 				filter={`url(#${glowId})`}
@@ -196,10 +185,6 @@ export default function Moon({
 				filter={dimension === "subjective" ? `url(#${blurId})` : undefined}
 				style={{ transition: "all 0.2s ease" }}
 			/>
-
-			{/* ========================================== */}
-			{/* DIMENSION-SPECIFIC TEXTURES               */}
-			{/* ========================================== */}
 
 			{/* INNER EXPERIENCE: Soft frosted overlay */}
 			{dimension === "subjective" && !isGhost && (
@@ -331,10 +316,6 @@ export default function Moon({
 				</>
 			)}
 
-			{/* ========================================== */}
-			{/* ANIMATIONS */}
-			{/* ========================================== */}
-
 			{/* Inner Experience: Breathing Pulse */}
 			{dimension === "subjective" && !isGhost && (
 				<circle
@@ -414,7 +395,7 @@ export default function Moon({
 				</g>
 			)}
 
-			{/* Number Badge (only show when showMoonNumber is true) */}
+			{/* Number Badge */}
 			{moonNumber && !isGhost && showMoonNumber && (
 				<g>
 					<circle
@@ -473,7 +454,7 @@ export default function Moon({
 				</circle>
 			)}
 
-			{/* Selected Ring (stronger than hover) */}
+			{/* Selected Ring */}
 			{isSelected && !isGhost && (
 				<circle
 					cx={x}

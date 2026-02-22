@@ -1,3 +1,4 @@
+// seedData.js - V4.3 with EXPONENTIAL orbital spacing
 // ============================================================================
 // DIMENSION COLORS
 // ============================================================================
@@ -36,7 +37,7 @@ export const planetConfig = {
 };
 
 // ============================================================================
-// MOON CONFIG - 4 DIMENSIONS (V2.2)
+// MOON CONFIG - V4.3 EXPONENTIAL ORBITAL SPACING
 // ============================================================================
 export const moonConfig = {
 	dimension: {
@@ -44,37 +45,37 @@ export const moonConfig = {
 			color: dimensionColors.subjective,
 			name: "Inner Experience",
 			radius: 16,
-			orbitRadius: 100,
+			orbitRadius: 110, // Was 100, slight increase
 			orbitSpeed: 0.001047,
 			description: "What did you feel, think, or sense internally?",
-			unlockThreshold: 0, // Available from start
+			unlockThreshold: 0,
 		},
 		behavioral: {
 			color: dimensionColors.behavioral,
 			name: "Behavioral",
 			radius: 24,
-			orbitRadius: 145,
+			orbitRadius: 190, // Was 145, +80 spacing (was +45)
 			orbitSpeed: 0.00075,
 			description: "What did you observably do or say?",
-			unlockThreshold: 5, // Unlocks after 5 reflections
+			unlockThreshold: 5,
 		},
 		intersubjective: {
 			color: dimensionColors.intersubjective,
 			name: "External",
 			radius: 32,
-			orbitRadius: 190,
+			orbitRadius: 300, // Was 190, +110 spacing (was +45)
 			orbitSpeed: 0.000698,
 			description: "What can be externally verified?",
-			unlockThreshold: 0, // Available from start
+			unlockThreshold: 0,
 		},
 		symbolic: {
 			color: dimensionColors.symbolic,
 			name: "Symbolic",
 			radius: 40,
-			orbitRadius: 240,
+			orbitRadius: 440, // Was 240, +140 spacing (was +50)
 			orbitSpeed: 0.000524,
 			description: "What patterns or meanings do you recognize?",
-			unlockThreshold: 15, // Unlocks after 15 reflections
+			unlockThreshold: 15,
 		},
 	},
 };
@@ -83,17 +84,16 @@ export const moonConfig = {
 // ARCHETYPE CALCULATION SYSTEM
 // ============================================================================
 export const archetypeThresholds = {
-	tensionForTurbulent: 2, // 2+ tension relationships → turbulent
-	wobbleRatioForTurbulent: 0.5, // 50%+ wobbly moons → turbulent
-	versionRatioForEnergized: 2.5, // versions > moons × 2.5 → energized
+	tensionForTurbulent: 2,
+	wobbleRatioForTurbulent: 0.5,
+	versionRatioForEnergized: 2.5,
 };
 
 export function calculateArchetype(node, moons) {
 	if (!moons || moons.length === 0) {
-		return "neutral"; // Default before any reflection
+		return "neutral";
 	}
 
-	// Count tension relationships
 	const tensionCount = moons.reduce(
 		(sum, moon) =>
 			sum +
@@ -101,28 +101,25 @@ export function calculateArchetype(node, moons) {
 		0,
 	);
 
-	// Count total versions across all moons
 	const totalVersions = moons.reduce(
 		(sum, moon) => sum + (moon.versions?.length || 1),
 		0,
 	);
 
-	// Count wobbles (low confidence)
 	const wobbleCount = moons.filter((m) => m.confidence === "wobbly").length;
 
-	// Determine archetype
 	if (
 		tensionCount >= archetypeThresholds.tensionForTurbulent ||
 		wobbleCount >= moons.length * archetypeThresholds.wobbleRatioForTurbulent
 	) {
-		return "turbulent"; // High internal conflict or uncertainty
+		return "turbulent";
 	} else if (
 		totalVersions >
 		moons.length * archetypeThresholds.versionRatioForEnergized
 	) {
-		return "energized"; // Active editing/refinement
+		return "energized";
 	} else {
-		return "calm"; // Stable, coherent
+		return "calm";
 	}
 }
 
