@@ -1,4 +1,4 @@
-// src/components/ConnectionLine.jsx - V2 with Connection Types
+// src/components/ConnectionLine.jsx - V2.1 with position guard
 import React from "react";
 import { planetConfig } from "../seedData";
 
@@ -7,25 +7,25 @@ const CONNECTION_TYPES = {
 		color: "rgba(148, 163, 184, 0.4)",
 		particleColor: "#94A3B8",
 		strokeWidth: 1,
-		dashArray: "4,4", // Dotted line
+		dashArray: "4,4",
 	},
 	causal: {
 		color: "rgba(230, 238, 248, 0.7)",
 		particleColor: "#E6EEF8",
 		strokeWidth: 2,
-		dashArray: "none", // Solid line
+		dashArray: "none",
 	},
 	"intention-action": {
 		color: "rgba(251, 191, 36, 0.7)",
 		particleColor: "#FBBF24",
 		strokeWidth: 2,
-		dashArray: "none", // Solid gold line
+		dashArray: "none",
 	},
 	"intention-pattern": {
 		color: "rgba(251, 191, 36, 0.6)",
 		particleColor: "#FBBF24",
 		strokeWidth: 3,
-		dashArray: "6,4", // Dashed gold line
+		dashArray: "6,4",
 	},
 };
 
@@ -36,44 +36,39 @@ export default function ConnectionLine({
 	isHovered,
 	onClick,
 }) {
+	// Guard: both nodes must exist and have a position property
 	if (!sourceNode || !targetNode) return null;
+	if (!sourceNode.position || !targetNode.position) return null;
 
 	const connectionType = edge.type || "temporal";
-	const style = CONNECTION_TYPES[connectionType];
+	const style = CONNECTION_TYPES[connectionType] || CONNECTION_TYPES.temporal;
 
-	const getNodeCenter = (node) => {
-		const radius = planetConfig.baseRadius;
-		return {
-			x: node.position.x + radius,
-			y: node.position.y + radius,
-		};
+	const radius = planetConfig.baseRadius;
+
+	const start = {
+		x: sourceNode.position.x + radius,
+		y: sourceNode.position.y + radius,
+	};
+	const end = {
+		x: targetNode.position.x + radius,
+		y: targetNode.position.y + radius,
 	};
 
-	const start = getNodeCenter(sourceNode);
-	const end = getNodeCenter(targetNode);
+	// Offset endpoint to stop at planet surface
+	const dx = end.x - start.x;
+	const dy = end.y - start.y;
+	const distance = Math.sqrt(dx * dx + dy * dy);
 
-	const getArrowEndpoint = (start, end) => {
-		const radius = planetConfig.baseRadius;
-		const dx = end.x - start.x;
-		const dy = end.y - start.y;
-		const distance = Math.sqrt(dx * dx + dy * dy);
-
-		if (distance === 0) return end;
-
+	let arrowEnd = end;
+	if (distance > 0) {
 		const ratio = (distance - radius - 5) / distance;
-
-		return {
+		arrowEnd = {
 			x: start.x + dx * ratio,
 			y: start.y + dy * ratio,
 		};
-	};
+	}
 
-	const arrowEnd = getArrowEndpoint(start, end);
-	const distance = Math.sqrt(
-		Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2),
-	);
 	const useCurve = distance > 200;
-
 	let pathData;
 	if (useCurve) {
 		const midX = (start.x + end.x) / 2;
@@ -87,8 +82,6 @@ export default function ConnectionLine({
 
 	const angle = Math.atan2(arrowEnd.y - start.y, arrowEnd.x - start.x);
 	const arrowSize = 8;
-
-	// No arrow for temporal connections (auto-generated edges)
 	const showArrow = connectionType !== "temporal";
 
 	const arrowPoints = showArrow
@@ -109,7 +102,7 @@ export default function ConnectionLine({
 				onClick?.(edge);
 			}}
 			style={{ cursor: "pointer" }}>
-			{/* Invisible wider path for hover */}
+			{/* Wide invisible hit area */}
 			<path
 				d={pathData}
 				stroke="transparent"
@@ -118,7 +111,7 @@ export default function ConnectionLine({
 				style={{ pointerEvents: "stroke" }}
 			/>
 
-			{/* Main connection line */}
+			{/* Main line */}
 			<path
 				d={pathData}
 				stroke={strokeColor}
@@ -139,7 +132,7 @@ export default function ConnectionLine({
 				/>
 			)}
 
-			{/* Flowing Particles */}
+			{/* Flowing particles */}
 			{[0, 0.33, 0.66].map((offset, i) => (
 				<circle
 					key={i}
@@ -165,7 +158,7 @@ export default function ConnectionLine({
 				</circle>
 			))}
 
-			{/* Glow effect on hover */}
+			{/* Hover glow */}
 			{isHovered && (
 				<path
 					d={pathData}
@@ -177,7 +170,7 @@ export default function ConnectionLine({
 				/>
 			)}
 
-			{/* Connection label on hover */}
+			{/* Label */}
 			{isHovered && (
 				<g>
 					<rect

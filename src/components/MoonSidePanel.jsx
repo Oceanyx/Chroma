@@ -1,68 +1,192 @@
-// src/components/MoonSidePanel.jsx - V4.4 Option A: Functional + Subtle Differences
+// src/components/MoonSidePanel.jsx - V5.0 Redesigned
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { moonConfig, lenses } from "../seedData";
+import { moonConfig, lenses as ALL_LENSES } from "../seedData";
 
-const PANEL_WIDTH = 500;
+export const PANEL_WIDTH = 460;
 
-// Dimension-specific styling - SUBTLE differences
-const DIMENSION_STYLES = {
+const DIM_STYLES = {
 	subjective: {
-		background:
-			"linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, rgba(8, 13, 25, 0.98) 100%)",
-		borderColor: "#A78BFA",
-		borderStyle: "2px solid",
-		headerGlow: "0 0 20px rgba(167, 139, 250, 0.15)",
-		accentColor: "#A78BFA",
+		bg: "linear-gradient(170deg, rgba(167,139,250,0.08) 0%, rgba(8,13,25,0.99) 30%)",
+		borderColor: "rgba(167,139,250,0.25)",
+		glow: "rgba(167,139,250,0.14)",
+		accent: "#A78BFA",
 	},
 	behavioral: {
-		background:
-			"linear-gradient(180deg, rgba(234, 88, 12, 0.08) 0%, rgba(8, 13, 25, 0.98) 100%)",
-		borderColor: "#FB923C",
-		borderStyle: "2px solid",
-		headerGlow: "0 0 20px rgba(251, 146, 60, 0.15)",
-		accentColor: "#FB923C",
+		bg: "linear-gradient(170deg, rgba(251,146,60,0.08) 0%, rgba(8,13,25,0.99) 30%)",
+		borderColor: "rgba(251,146,60,0.25)",
+		glow: "rgba(251,146,60,0.14)",
+		accent: "#FB923C",
 	},
 	intersubjective: {
-		background:
-			"linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(8, 13, 25, 0.98) 100%)",
-		borderColor: "#34D399",
-		borderStyle: "2px solid",
-		headerGlow: "0 0 20px rgba(52, 211, 153, 0.15)",
-		accentColor: "#34D399",
+		bg: "linear-gradient(170deg, rgba(52,211,153,0.08) 0%, rgba(8,13,25,0.99) 30%)",
+		borderColor: "rgba(52,211,153,0.25)",
+		glow: "rgba(52,211,153,0.14)",
+		accent: "#34D399",
 	},
 	symbolic: {
-		background:
-			"linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(8, 13, 25, 0.98) 100%)",
-		borderColor: "#60A5FA",
-		borderStyle: "2px solid",
-		headerGlow: "0 0 20px rgba(96, 165, 250, 0.15)",
-		accentColor: "#60A5FA",
+		bg: "linear-gradient(170deg, rgba(96,165,250,0.08) 0%, rgba(8,13,25,0.99) 30%)",
+		borderColor: "rgba(96,165,250,0.25)",
+		glow: "rgba(96,165,250,0.14)",
+		accent: "#60A5FA",
 	},
 };
 
+// ── Small state chip (uncertain / anchor) ────────────────────────────────────
+function StateChip({ active, activeColor, onClick, children }) {
+	const [hovered, setHovered] = useState(false);
+	return (
+		<button
+			onClick={onClick}
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+			style={{
+				padding: "4px 10px",
+				borderRadius: 20,
+				border: `1px solid ${
+					active ? `${activeColor}55` : "rgba(255,255,255,0.09)"
+				}`,
+				background: active
+					? `${activeColor}18`
+					: hovered
+						? "rgba(255,255,255,0.05)"
+						: "transparent",
+				color: active ? activeColor : hovered ? "#94A3B8" : "#475569",
+				fontSize: 10,
+				fontWeight: 700,
+				letterSpacing: "0.05em",
+				cursor: "pointer",
+				whiteSpace: "nowrap",
+				transition: "all 0.15s ease",
+				outline: "none",
+				userSelect: "none",
+			}}>
+			{children}
+		</button>
+	);
+}
+
+// ── Relationship action button (tension / resonance) ─────────────────────────
+function RelActionButton({ type, onClick }) {
+	const [hovered, setHovered] = useState(false);
+	const isTension = type === "tension";
+	const accent = isTension ? "#EF4444" : "#10B981";
+	const icon = isTension ? "⚡" : "〜";
+	const label = isTension ? "Conflicts With" : "Resonates With";
+
+	return (
+		<button
+			onClick={onClick}
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+			style={{
+				flex: 1,
+				padding: "12px 8px",
+				background: hovered ? `${accent}18` : "rgba(255,255,255,0.025)",
+				border: `1px solid ${hovered ? `${accent}55` : "rgba(255,255,255,0.07)"}`,
+				borderRadius: 10,
+				color: hovered ? accent : "#4A5568",
+				cursor: "pointer",
+				fontSize: 11,
+				fontWeight: 700,
+				letterSpacing: "0.04em",
+				display: "flex",
+				flexDirection: "column",
+				alignItems: "center",
+				gap: 5,
+				transition: "all 0.18s ease",
+				outline: "none",
+			}}>
+			<span style={{ fontSize: 17 }}>{icon}</span>
+			<span>{label}</span>
+		</button>
+	);
+}
+
+// ── Single relationship link row ──────────────────────────────────────────────
+function RelLink({ rel, onRemove }) {
+	const [hovered, setHovered] = useState(false);
+	const isTension = rel.type === "tension";
+	const accent = isTension ? "#EF4444" : "#10B981";
+
+	return (
+		<div
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+			style={{
+				display: "flex",
+				alignItems: "center",
+				gap: 10,
+				padding: "8px 12px",
+				background: hovered ? `${accent}10` : "rgba(255,255,255,0.025)",
+				border: `1px solid ${hovered ? `${accent}40` : "rgba(255,255,255,0.06)"}`,
+				borderRadius: 8,
+				transition: "all 0.15s ease",
+				cursor: "default",
+			}}>
+			<span style={{ fontSize: 12, flexShrink: 0 }}>
+				{isTension ? "⚡" : "〜"}
+			</span>
+			<span
+				style={{
+					fontSize: 12,
+					color: "#64748B",
+					flex: 1,
+					overflow: "hidden",
+					textOverflow: "ellipsis",
+					whiteSpace: "nowrap",
+					fontStyle: "italic",
+				}}>
+				{rel.targetMoon?.text?.substring(0, 44)}
+				{rel.targetMoon?.text?.length > 44 ? "…" : ""}
+			</span>
+			{hovered && (
+				<button
+					onClick={onRemove}
+					style={{
+						background: "none",
+						border: "none",
+						color: "#EF4444",
+						cursor: "pointer",
+						fontSize: 10,
+						fontWeight: 700,
+						letterSpacing: "0.05em",
+						padding: "2px 4px",
+						opacity: 0.8,
+						outline: "none",
+						flexShrink: 0,
+					}}>
+					REMOVE
+				</button>
+			)}
+		</div>
+	);
+}
+
+// ── Main panel ────────────────────────────────────────────────────────────────
 export default function MoonSidePanel({
 	moon,
-	moonNumber,
 	allMoons,
 	dimColor,
 	onClose,
 	onAction,
 	onStartRelationship,
-	onStartComparison,
-	isComparison = false,
-	showMoonNumber = false,
 }) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState(moon.text);
 	const [editLenses, setEditLenses] = useState(moon.lensesUsed || []);
-	const config = moonConfig.dimension[moon.dimension];
-	const dimStyle = DIMENSION_STYLES[moon.dimension];
+	const [relationshipMode, setRelationshipMode] = useState(null); // 'tension' | 'resonance' | null
+	const [releaseHovered, setReleaseHovered] = useState(false);
 
+	const config = moonConfig.dimension[moon.dimension];
+	const dimStyle = DIM_STYLES[moon.dimension] || DIM_STYLES.subjective;
+
+	// Reset edit state when moon changes
 	useEffect(() => {
 		setEditText(moon.text);
 		setEditLenses(moon.lensesUsed || []);
 		setIsEditing(false);
+		setRelationshipMode(null);
 	}, [moon.id]);
 
 	const toggleLens = (id) =>
@@ -80,6 +204,17 @@ export default function MoonSidePanel({
 		}
 	};
 
+	const handleCancelEdit = () => {
+		setIsEditing(false);
+		setEditText(moon.text);
+		setEditLenses(moon.lensesUsed || []);
+	};
+
+	const handleStartRel = (type) => {
+		setRelationshipMode(type);
+		onStartRelationship(type, moon);
+	};
+
 	const relatedLinks = (moon.relationships || [])
 		.map((rel) => {
 			const target = allMoons.find((m) => m.id === rel.targetMoonId);
@@ -87,199 +222,173 @@ export default function MoonSidePanel({
 		})
 		.filter(Boolean);
 
-	const actionButton = (
-		emoji,
-		label,
-		sublabel,
-		active,
-		activeColor,
-		onClick,
-	) => (
-		<button
-			onClick={onClick}
-			style={{
-				width: "100%",
-				padding: "14px 18px",
-				background: active ? `${activeColor}15` : "rgba(30,41,59,0.4)",
-				border: `1px solid ${active ? activeColor : "rgba(255,255,255,0.1)"}`,
-				borderRadius: "10px",
-				cursor: "pointer",
-				textAlign: "left",
-				transition: "all 0.2s",
-				display: "flex",
-				alignItems: "center",
-				gap: "14px",
-			}}
-			onMouseEnter={(e) => {
-				e.currentTarget.style.borderColor = activeColor;
-				e.currentTarget.style.background = `${activeColor}20`;
-			}}
-			onMouseLeave={(e) => {
-				e.currentTarget.style.borderColor = active
-					? activeColor
-					: "rgba(255,255,255,0.1)";
-				e.currentTarget.style.background = active
-					? `${activeColor}15`
-					: "rgba(30,41,59,0.4)";
-			}}>
-			<span style={{ fontSize: "22px", lineHeight: 1, flexShrink: 0 }}>
-				{emoji}
-			</span>
-			<div style={{ minWidth: 0 }}>
-				<div
-					style={{
-						fontSize: "15px",
-						fontWeight: 600,
-						color: active ? activeColor : "#E2E8F0",
-					}}>
-					{label}
-				</div>
-				{sublabel && (
-					<div
-						style={{
-							fontSize: "13px",
-							color: "#94A3B8",
-							marginTop: "3px",
-							lineHeight: "1.4",
-						}}>
-						{sublabel}
-					</div>
-				)}
-			</div>
-		</button>
-	);
-
 	return (
 		<div
 			style={{
 				width: `${PANEL_WIDTH}px`,
 				height: "100%",
-				background: dimStyle.background,
-				borderLeft: isComparison
-					? "none"
-					: dimStyle.borderStyle.replace("2px", "3px") +
-						" " +
-						dimStyle.borderColor,
-				borderRight: isComparison
-					? dimStyle.borderStyle.replace("2px", "3px") +
-						" " +
-						dimStyle.borderColor
-					: "none",
 				display: "flex",
 				flexDirection: "column",
+				background: dimStyle.bg,
+				borderLeft: `1px solid ${dimStyle.borderColor}`,
+				boxShadow: `inset 3px 0 0 0 ${dimColor}, -8px 0 32px rgba(0,0,0,0.35)`,
+				position: "relative",
 				overflow: "hidden",
+				flexShrink: 0,
 			}}>
-			{/* Header */}
+			{/* Ambient corner glow */}
 			<div
 				style={{
-					padding: "28px 32px 24px",
-					borderBottom: `1px solid ${dimStyle.borderColor}40`,
-					boxShadow: dimStyle.headerGlow,
-					flexShrink: 0,
-				}}>
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "flex-start",
-						marginBottom: "12px",
-					}}>
-					<div
-						style={{
-							display: "inline-flex",
-							alignItems: "center",
-							gap: "10px",
-							padding: "8px 16px",
-							background: `${dimColor}18`,
-							border: `2px solid ${dimStyle.borderColor}`,
-							borderRadius: "24px",
-						}}>
-						{showMoonNumber && (
-							<span style={{ fontSize: "16px", fontWeight: 600 }}>
-								{moonNumber}
-							</span>
-						)}
-						<div
-							style={{
-								width: "8px",
-								height: "8px",
-								borderRadius: "50%",
-								background: dimColor,
-								boxShadow: `0 0 8px ${dimColor}`,
-							}}
-						/>
-						<span
-							style={{
-								fontSize: "13px",
-								fontWeight: 700,
-								color: dimColor,
-								textTransform: "uppercase",
-								letterSpacing: "1px",
-							}}>
-							{config.name}
-						</span>
-					</div>
-					{!isComparison && (
-						<button
-							onClick={onClose}
-							style={{
-								background: "transparent",
-								border: "none",
-								color: "#64748B",
-								cursor: "pointer",
-								padding: "4px",
-								transition: "color 0.2s",
-							}}
-							onMouseEnter={(e) => (e.currentTarget.style.color = "#E2E8F0")}
-							onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}>
-							<X size={18} />
-						</button>
-					)}
-				</div>
-				<p
-					style={{
-						margin: 0,
-						fontSize: "14px",
-						color: "#94A3B8",
-						lineHeight: "1.6",
-					}}>
-					{config.description}
-				</p>
-			</div>
+					position: "absolute",
+					top: -80,
+					left: -80,
+					width: 240,
+					height: 240,
+					borderRadius: "50%",
+					background: `radial-gradient(circle, ${dimStyle.glow} 0%, transparent 70%)`,
+					pointerEvents: "none",
+					zIndex: 0,
+				}}
+			/>
 
-			{/* Body - NO SCROLLING */}
+			{/* ── HEADER ───────────────────────────────────────────────────────── */}
 			<div
 				style={{
-					flex: 1,
-					padding: "32px",
+					padding: "18px 20px 14px",
 					display: "flex",
-					flexDirection: "column",
-					gap: "24px",
+					alignItems: "center",
+					justifyContent: "space-between",
+					flexShrink: 0,
+					position: "relative",
+					zIndex: 1,
 				}}>
-				{/* Reflection text - CLICK TO EDIT */}
-				{!isEditing ? (
-					<div
-						onClick={() => setIsEditing(true)}
+				{/* Dimension label */}
+				<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+					<span
 						style={{
-							fontSize: "18px",
-							color: "#F1F5F9",
-							lineHeight: "1.7",
-							padding: "20px 24px",
-							background: "rgba(30,41,59,0.5)",
-							borderRadius: "12px",
-							border: `2px solid transparent`,
-							cursor: "text",
-							transition: "all 0.2s",
+							display: "inline-block",
+							width: 7,
+							height: 7,
+							borderRadius: "50%",
+							background: dimColor,
+							boxShadow: `0 0 6px ${dimColor}`,
+							flexShrink: 0,
+						}}
+					/>
+					<span
+						style={{
+							fontSize: 10,
+							fontWeight: 700,
+							letterSpacing: "0.12em",
+							textTransform: "uppercase",
+							color: dimColor,
+							opacity: 0.85,
+						}}>
+						{config.name}
+					</span>
+				</div>
+
+				{/* Right: state chips + close */}
+				<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+					<StateChip
+						active={moon.confidence === "wobbly"}
+						activeColor="#FBBF24"
+						onClick={() => onAction("uncertain", moon)}>
+						〰 Uncertain
+					</StateChip>
+					<StateChip
+						active={moon.isLocked}
+						activeColor="#60A5FA"
+						onClick={() => onAction("anchor", moon)}>
+						⚓ Anchor
+					</StateChip>
+					<button
+						onClick={onClose}
+						style={{
+							background: "none",
+							border: "1px solid rgba(255,255,255,0.08)",
+							borderRadius: 6,
+							color: "#334155",
+							cursor: "pointer",
+							width: 26,
+							height: 26,
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							marginLeft: 2,
+							transition: "all 0.15s",
+							outline: "none",
+							flexShrink: 0,
 						}}
 						onMouseEnter={(e) => {
-							e.currentTarget.style.borderColor = `${dimColor}40`;
-							e.currentTarget.style.background = "rgba(30,41,59,0.6)";
+							e.currentTarget.style.color = "#94A3B8";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
 						}}
 						onMouseLeave={(e) => {
-							e.currentTarget.style.borderColor = "transparent";
-							e.currentTarget.style.background = "rgba(30,41,59,0.5)";
+							e.currentTarget.style.color = "#334155";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+						}}>
+						<X size={13} />
+					</button>
+				</div>
+			</div>
+
+			{/* ── REFLECTION TEXT ───────────────────────────────────────────────── */}
+			<div
+				style={{
+					padding: "0 20px 16px",
+					flexShrink: 0,
+					position: "relative",
+					zIndex: 1,
+				}}>
+				{!isEditing ? (
+					<div
+						onClick={() => {
+							setEditText(moon.text);
+							setIsEditing(true);
+						}}
+						title="Click to edit"
+						style={{
+							fontSize: 16,
+							lineHeight: 1.75,
+							color: "#C8D6E8",
+							fontStyle: "italic",
+							fontFamily: "Georgia, 'Times New Roman', serif",
+							letterSpacing: "0.01em",
+							cursor: "text",
+							padding: "16px 18px",
+							background: "rgba(255,255,255,0.025)",
+							borderRadius: 10,
+							border: "1px solid rgba(255,255,255,0.05)",
+							borderLeft: `3px solid ${dimColor}55`,
+							transition: "background 0.2s, border-color 0.2s",
+							position: "relative",
+							minHeight: 60,
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "rgba(255,255,255,0.025)";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
 						}}>
 						{moon.text}
+						<span
+							style={{
+								position: "absolute",
+								bottom: 8,
+								right: 10,
+								fontSize: 9,
+								color: "#1E293B",
+								fontStyle: "normal",
+								fontFamily: "system-ui, sans-serif",
+								letterSpacing: "0.08em",
+								textTransform: "uppercase",
+								fontWeight: 700,
+							}}>
+							edit
+						</span>
 					</div>
 				) : (
 					<div>
@@ -290,68 +399,85 @@ export default function MoonSidePanel({
 							rows={4}
 							style={{
 								width: "100%",
-								padding: "20px 24px",
-								background: "rgba(15,23,36,0.9)",
-								border: `2px solid ${dimStyle.borderColor}`,
-								borderRadius: "12px",
-								color: "#F1F5F9",
-								fontSize: "18px",
-								fontFamily: "inherit",
-								resize: "vertical",
+								padding: "16px 18px",
+								background: "rgba(8,13,25,0.8)",
+								border: `2px solid ${dimColor}70`,
+								borderRadius: 10,
+								color: "#C8D6E8",
+								fontSize: 16,
+								fontFamily: "Georgia, 'Times New Roman', serif",
+								fontStyle: "italic",
+								lineHeight: 1.75,
+								resize: "none",
 								outline: "none",
-								lineHeight: "1.7",
 								boxSizing: "border-box",
-								marginBottom: "16px",
+								letterSpacing: "0.01em",
 							}}
 						/>
+
+						{/* Lens toggles while editing */}
 						<div
 							style={{
 								display: "flex",
 								flexWrap: "wrap",
-								gap: "8px",
-								marginBottom: "16px",
+								gap: 6,
+								margin: "10px 0 10px",
 							}}>
-							{lenses.map((lens) => (
+							{ALL_LENSES.map((lens) => (
 								<button
 									key={lens.id}
 									onClick={() => toggleLens(lens.id)}
 									style={{
-										padding: "8px 14px",
+										padding: "4px 10px",
+										borderRadius: 20,
+										border: `1px solid ${
+											editLenses.includes(lens.id)
+												? `${lens.color}60`
+												: "rgba(255,255,255,0.1)"
+										}`,
 										background: editLenses.includes(lens.id)
+											? `${lens.color}20`
+											: "transparent",
+										color: editLenses.includes(lens.id)
 											? lens.color
-											: "rgba(30,41,59,0.6)",
-										border: `2px solid ${editLenses.includes(lens.id) ? lens.color : "rgba(148,163,184,0.2)"}`,
-										borderRadius: "8px",
-										color: editLenses.includes(lens.id) ? "#fff" : "#94A3B8",
+											: "#475569",
+										fontSize: 10,
+										fontWeight: 700,
 										cursor: "pointer",
-										fontSize: "13px",
-										fontWeight: 600,
 										display: "flex",
 										alignItems: "center",
-										gap: "6px",
+										gap: 4,
+										outline: "none",
 										transition: "all 0.15s",
 									}}>
 									{lens.emoji} {lens.label}
 								</button>
 							))}
 						</div>
-						<div style={{ display: "flex", gap: "12px" }}>
+
+						<div style={{ display: "flex", gap: 8 }}>
 							<button
-								onClick={() => {
-									setIsEditing(false);
-									setEditText(moon.text);
-									setEditLenses(moon.lensesUsed || []);
-								}}
+								onClick={handleCancelEdit}
 								style={{
 									flex: 1,
-									padding: "12px",
+									padding: "10px",
+									borderRadius: 8,
+									border: "1px solid rgba(255,255,255,0.08)",
 									background: "transparent",
-									border: "2px solid rgba(148,163,184,0.2)",
-									borderRadius: "10px",
-									color: "#94A3B8",
+									color: "#475569",
+									fontSize: 12,
+									fontWeight: 700,
 									cursor: "pointer",
-									fontSize: "14px",
-									fontWeight: 600,
+									outline: "none",
+									transition: "all 0.15s",
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.color = "#94A3B8";
+									e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.color = "#475569";
+									e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
 								}}>
 								Cancel
 							</button>
@@ -360,221 +486,224 @@ export default function MoonSidePanel({
 								disabled={!editText.trim()}
 								style={{
 									flex: 2,
-									padding: "12px",
-									background: editText.trim() ? dimColor : "rgba(30,41,59,0.5)",
+									padding: "10px",
+									borderRadius: 8,
 									border: "none",
-									borderRadius: "10px",
+									background: editText.trim() ? dimColor : "rgba(30,41,59,0.5)",
 									color: "#fff",
+									fontSize: 12,
+									fontWeight: 700,
 									cursor: editText.trim() ? "pointer" : "not-allowed",
-									fontSize: "14px",
-									fontWeight: 600,
+									outline: "none",
 									opacity: editText.trim() ? 1 : 0.4,
+									transition: "all 0.15s",
 								}}>
-								Save ✨
+								Save ✦
 							</button>
 						</div>
 					</div>
 				)}
-
-				{/* Active lenses - ALWAYS VISIBLE */}
-				{!isEditing && moon.lensesUsed && moon.lensesUsed.length > 0 && (
-					<div>
-						<p
-							style={{
-								margin: "0 0 12px",
-								fontSize: "13px",
-								color: "#94A3B8",
-								fontWeight: 600,
-							}}>
-							Viewed through
-						</p>
-						<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-							{moon.lensesUsed.map((lensId) => {
-								const l = lenses.find((x) => x.id === lensId);
-								return (
-									<span
-										key={lensId}
-										style={{
-											padding: "8px 14px",
-											background: `${dimColor}18`,
-											border: `1px solid ${dimStyle.borderColor}50`,
-											borderRadius: "8px",
-											fontSize: "13px",
-											color: dimColor,
-											fontWeight: 600,
-											display: "flex",
-											alignItems: "center",
-											gap: "6px",
-										}}>
-										{l?.emoji} {lensId}
-									</span>
-								);
-							})}
-						</div>
-					</div>
-				)}
-
-				{/* State buttons */}
-				{!isEditing && (
-					<div
-						style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-						{actionButton(
-							"〰️",
-							moon.confidence === "wobbly"
-								? "Uncertain (on)"
-								: "Mark Uncertain",
-							null,
-							moon.confidence === "wobbly",
-							"#FBBF24",
-							() => onAction("uncertain", moon),
-						)}
-						{actionButton(
-							"⚓",
-							moon.isLocked ? "Anchored (on)" : "Anchor",
-							null,
-							moon.isLocked,
-							"#60A5FA",
-							() => onAction("anchor", moon),
-						)}
-					</div>
-				)}
-
-				{/* Compare button */}
-				{!isEditing && !isComparison && onStartComparison && (
-					<button
-						onClick={() => onStartComparison(moon)}
-						style={{
-							width: "100%",
-							padding: "14px 18px",
-							background: "rgba(108, 99, 255, 0.15)",
-							border: "2px solid rgba(108, 99, 255, 0.4)",
-							borderRadius: "10px",
-							cursor: "pointer",
-							textAlign: "left",
-							transition: "all 0.2s",
-							display: "flex",
-							alignItems: "center",
-							gap: "14px",
-						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.borderColor = "#6C63FF";
-							e.currentTarget.style.background = "rgba(108, 99, 255, 0.25)";
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.borderColor = "rgba(108, 99, 255, 0.4)";
-							e.currentTarget.style.background = "rgba(108, 99, 255, 0.15)";
-						}}>
-						<span style={{ fontSize: "22px", lineHeight: 1, flexShrink: 0 }}>
-							📊
-						</span>
-						<div>
-							<div
-								style={{
-									fontSize: "15px",
-									fontWeight: 600,
-									color: "#C4B5FD",
-								}}>
-								Compare with Another
-							</div>
-						</div>
-					</button>
-				)}
-
-				{/* Relationships - ALWAYS VISIBLE */}
-				{!isEditing && (
-					<div
-						style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-						{actionButton("🔴", "Conflicts With", null, false, "#EF4444", () =>
-							onStartRelationship("tension", moon),
-						)}
-						{actionButton("🌊", "Resonates With", null, false, "#10B981", () =>
-							onStartRelationship("support", moon),
-						)}
-
-						{relatedLinks.length > 0 && (
-							<div style={{ marginTop: "8px" }}>
-								<p
-									style={{
-										margin: "0 0 10px",
-										fontSize: "13px",
-										color: "#64748B",
-										fontWeight: 600,
-									}}>
-									Active links
-								</p>
-								{relatedLinks.map((rel) => (
-									<div
-										key={rel.targetMoonId}
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "10px",
-											padding: "10px 14px",
-											background:
-												rel.type === "tension" ? "#EF444415" : "#10B98115",
-											border: `1px solid ${rel.type === "tension" ? "#EF444440" : "#10B98140"}`,
-											borderRadius: "8px",
-											marginBottom: "8px",
-										}}>
-										<span style={{ fontSize: "16px" }}>
-											{rel.type === "tension" ? "🔴" : "🌊"}
-										</span>
-										<span
-											style={{
-												fontSize: "13px",
-												color: "#CBD5E1",
-												overflow: "hidden",
-												textOverflow: "ellipsis",
-												whiteSpace: "nowrap",
-											}}>
-											{rel.targetMoon.text.substring(0, 40)}
-											{rel.targetMoon.text.length > 40 ? "…" : ""}
-										</span>
-									</div>
-								))}
-							</div>
-						)}
-					</div>
-				)}
 			</div>
 
-			{/* Release button - pinned to bottom */}
-			{!isEditing && !isComparison && (
+			{/* ── LENSES (read-only, only when not editing) ─────────────────────── */}
+			{!isEditing && moon.lensesUsed && moon.lensesUsed.length > 0 && (
 				<div
 					style={{
-						padding: "24px 32px",
-						borderTop: "1px solid rgba(255,255,255,0.08)",
+						padding: "0 20px 14px",
+						display: "flex",
+						flexWrap: "wrap",
+						gap: 6,
 						flexShrink: 0,
+						position: "relative",
+						zIndex: 1,
+					}}>
+					{moon.lensesUsed.map((lensId) => {
+						const l = ALL_LENSES.find((x) => x.id === lensId);
+						if (!l) return null;
+						return (
+							<span
+								key={lensId}
+								style={{
+									padding: "3px 9px",
+									borderRadius: 20,
+									fontSize: 10,
+									fontWeight: 700,
+									color: l.color,
+									background: `${l.color}12`,
+									border: `1px solid ${l.color}28`,
+									display: "flex",
+									alignItems: "center",
+									gap: 4,
+									letterSpacing: "0.04em",
+								}}>
+								{l.emoji} {l.label}
+							</span>
+						);
+					})}
+				</div>
+			)}
+
+			{/* ── DIVIDER ───────────────────────────────────────────────────────── */}
+			{!isEditing && (
+				<div
+					style={{
+						margin: "0 20px",
+						height: 1,
+						background: "rgba(255,255,255,0.055)",
+						flexShrink: 0,
+						zIndex: 1,
+					}}
+				/>
+			)}
+
+			{/* ── RELATIONSHIPS ─────────────────────────────────────────────────── */}
+			{!isEditing && (
+				<div
+					style={{
+						padding: "16px 20px",
+						flexShrink: 0,
+						position: "relative",
+						zIndex: 1,
+					}}>
+					<span
+						style={{
+							display: "block",
+							fontSize: 9,
+							fontWeight: 700,
+							letterSpacing: "0.14em",
+							textTransform: "uppercase",
+							color: "#253044",
+							marginBottom: 12,
+						}}>
+						Relationships
+					</span>
+
+					{/* Mode banner when selecting a target */}
+					{relationshipMode && (
+						<div
+							style={{
+								padding: "10px 14px",
+								borderRadius: 8,
+								border: `1px solid ${
+									relationshipMode === "tension"
+										? "rgba(239,68,68,0.4)"
+										: "rgba(16,185,129,0.4)"
+								}`,
+								background:
+									relationshipMode === "tension"
+										? "rgba(239,68,68,0.08)"
+										: "rgba(16,185,129,0.08)",
+								fontSize: 11,
+								fontWeight: 600,
+								color: relationshipMode === "tension" ? "#FCA5A5" : "#6EE7B7",
+								marginBottom: 10,
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}>
+							<span>
+								{relationshipMode === "tension"
+									? "⚡ Click the conflicting moon"
+									: "〜 Click the resonating moon"}
+							</span>
+							<button
+								onClick={() => setRelationshipMode(null)}
+								style={{
+									background: "none",
+									border: "none",
+									color: "inherit",
+									cursor: "pointer",
+									fontSize: 10,
+									fontWeight: 700,
+									letterSpacing: "0.05em",
+									opacity: 0.7,
+									outline: "none",
+								}}>
+								CANCEL
+							</button>
+						</div>
+					)}
+
+					{/* Action buttons */}
+					{!relationshipMode && (
+						<div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+							<RelActionButton
+								type="tension"
+								onClick={() => handleStartRel("tension")}
+							/>
+							<RelActionButton
+								type="resonance"
+								onClick={() => handleStartRel("support")}
+							/>
+						</div>
+					)}
+
+					{/* Active relationship links */}
+					{relatedLinks.length > 0 && (
+						<div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+							{relatedLinks.map((rel) => (
+								<RelLink
+									key={rel.targetMoonId}
+									rel={rel}
+									onRemove={() => {
+										// Surface this to parent via onAction
+										onAction("remove-relationship", moon, {
+											targetMoonId: rel.targetMoonId,
+										});
+									}}
+								/>
+							))}
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* ── SPACER ────────────────────────────────────────────────────────── */}
+			<div style={{ flex: 1 }} />
+
+			{/* ── FOOTER: Release into Void ─────────────────────────────────────── */}
+			{!isEditing && (
+				<div
+					style={{
+						padding: "14px 20px",
+						borderTop: "1px solid rgba(255,255,255,0.05)",
+						flexShrink: 0,
+						zIndex: 1,
+						position: "relative",
 					}}>
 					<button
+						onMouseEnter={() => setReleaseHovered(true)}
+						onMouseLeave={() => setReleaseHovered(false)}
 						onClick={() => onAction("delete", moon)}
 						style={{
 							width: "100%",
-							padding: "12px",
-							background: "transparent",
-							border: "2px solid rgba(239,68,68,0.25)",
-							borderRadius: "10px",
-							color: "#64748B",
+							padding: "11px 16px",
+							borderRadius: 9,
+							border: `1px solid ${
+								releaseHovered
+									? "rgba(239,68,68,0.5)"
+									: "rgba(255,255,255,0.07)"
+							}`,
+							background: releaseHovered
+								? "rgba(239,68,68,0.08)"
+								: "rgba(255,255,255,0.02)",
+							color: releaseHovered ? "#EF4444" : "#2D3F55",
 							cursor: "pointer",
-							fontSize: "14px",
-							fontWeight: 600,
-							transition: "all 0.2s",
+							fontSize: 11,
+							fontWeight: 700,
+							letterSpacing: "0.06em",
+							textTransform: "uppercase",
+							transition: "all 0.18s ease",
+							outline: "none",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
-							gap: "8px",
-						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.borderColor = "#EF4444";
-							e.currentTarget.style.color = "#EF4444";
-							e.currentTarget.style.background = "#EF444415";
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.borderColor = "rgba(239,68,68,0.25)";
-							e.currentTarget.style.color = "#64748B";
-							e.currentTarget.style.background = "transparent";
+							gap: 7,
 						}}>
-						🌌 Release this reflection
+						<span style={{ fontSize: 13, opacity: releaseHovered ? 1 : 0.5 }}>
+							✦
+						</span>
+						Release into Void
 					</button>
 				</div>
 			)}

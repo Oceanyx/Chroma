@@ -1,4 +1,6 @@
-// src/components/SpaceCanvas.jsx - V3.0 Clean
+// src/components/SpaceCanvas.jsx - V3.2
+// Key fix: hasDraggedRef tracks whether mouse moved during mousedown,
+// so single click always selects even though draggingNodeId is set on mousedown.
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
 	db,
@@ -21,7 +23,10 @@ import ReflectionMode from "./ReflectionMode";
 import NodeTypePicker from "./NodeTypePicker";
 import NodeTextInput from "./NodeTextInput";
 import TopNav from "./TopNav";
+import PlanetSidePanel, { PLANET_PANEL_WIDTH } from "./PlanetSidePanel";
 import { CANVAS } from "../utils/constants";
+
+const DRAG_THRESHOLD = 4; // px — below this is a click, not a drag
 
 export default function SpaceCanvas({ purposeData }) {
 	const [nodes, setNodes] = useState([]);
@@ -31,60 +36,60 @@ export default function SpaceCanvas({ purposeData }) {
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
 	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
 
-	// Pan/Zoom state
+	// Pan/Zoom
 	const [zoom, setZoom] = useState(CANVAS.defaultZoom);
 	const [pan, setPan] = useState(CANVAS.defaultPan);
 	const [isPanning, setIsPanning] = useState(false);
 	const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 	const [tool, setTool] = useState("select");
 
-	// Dragging state
+	// Dragging
 	const [draggingNodeId, setDraggingNodeId] = useState(null);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+	// Tracks whether the mouse actually moved enough to count as a drag
+	const hasDraggedRef = useRef(false);
+	const mouseDownPosRef = useRef({ x: 0, y: 0 });
 
-	// Node creation state
+	// Node creation
 	const [showNodeTypePicker, setShowNodeTypePicker] = useState(false);
 	const [nodeTypePickerPos, setNodeTypePickerPos] = useState({ x: 0, y: 0 });
 	const [showNodeTextInput, setShowNodeTextInput] = useState(false);
 	const [nodeTextInputType, setNodeTextInputType] = useState(null);
 	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 });
 
-	// Connection creation state
+	// Connection creation
 	const [creatingConnection, setCreatingConnection] = useState(false);
 	const [connectionSource, setConnectionSource] = useState(null);
 	const [connectionPreview, setConnectionPreview] = useState(null);
 
-	// Reflection mode state
+	// Reflection mode
 	const [reflectionMode, setReflectionMode] = useState({
 		active: false,
 		parentNodeId: null,
 		previousView: { zoom: CANVAS.defaultZoom, pan: CANVAS.defaultPan },
 	});
 
-	// Animation state
+	// Animation — frame-rate independent
 	const [orbitTime, setOrbitTime] = useState(0);
 	const animationFrameRef = useRef();
+	const lastTimestampRef = useRef(null);
 	const pausedTimeRef = useRef(null);
 
 	const canvasRef = useRef(null);
 	const containerRef = useRef(null);
 
-	// ============================================================================
-	// LOAD DATA
-	// ============================================================================
+	// ── Load data ─────────────────────────────────────────────────────────────
 	useEffect(() => {
 		async function loadData() {
 			await initializeDB();
 			const loadedNodes = await getAllNodes();
 			const loadedEdges = await getAllEdges();
-
 			setNodes(loadedNodes);
 			setEdges(loadedEdges);
 		}
 		loadData();
 	}, []);
 
-	// Load unlocked dimensions
 	useEffect(() => {
 		async function loadUnlocked() {
 			const unlocked = await getUnlockedDimensions();
@@ -93,28 +98,30 @@ export default function SpaceCanvas({ purposeData }) {
 		loadUnlocked();
 	}, [nodes]);
 
-	// ============================================================================
-	// ORBIT ANIMATION
-	// ============================================================================
+	// ── Orbit animation ───────────────────────────────────────────────────────
 	useEffect(() => {
-		const animate = () => {
-			if (!reflectionMode.active && !hoveredNodeId) {
-				setOrbitTime((prev) => prev + 1);
+		const animate = (timestamp) => {
+			if (!reflectionMode.active) {
+				if (lastTimestampRef.current !== null) {
+					const delta = Math.min(timestamp - lastTimestampRef.current, 100);
+					if (!hoveredNodeId) {
+						setOrbitTime((prev) => prev + delta / 16.667);
+					}
+				}
+				lastTimestampRef.current = timestamp;
+			} else {
+				lastTimestampRef.current = null;
 			}
 			animationFrameRef.current = requestAnimationFrame(animate);
 		};
-
 		animationFrameRef.current = requestAnimationFrame(animate);
 		return () => {
-			if (animationFrameRef.current) {
+			if (animationFrameRef.current)
 				cancelAnimationFrame(animationFrameRef.current);
-			}
 		};
 	}, [reflectionMode.active, hoveredNodeId]);
 
-	// ============================================================================
-	// PAN/ZOOM CONTROLS
-	// ============================================================================
+	// ── Wheel zoom ────────────────────────────────────────────────────────────
 	useEffect(() => {
 		const handleWheel = (e) => {
 			if (e.ctrlKey || e.metaKey) {
@@ -125,7 +132,6 @@ export default function SpaceCanvas({ purposeData }) {
 				);
 			}
 		};
-
 		const canvas = canvasRef.current;
 		if (canvas) {
 			canvas.addEventListener("wheel", handleWheel, { passive: false });
@@ -133,31 +139,27 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 	}, []);
 
+	// ── Canvas mouse handlers ─────────────────────────────────────────────────
 	const handleCanvasMouseDown = (e) => {
-		// Shift+drag for connection creation - don't interfere
-		if (e.shiftKey && tool === "select") {
-			return;
-		}
+		if (e.shiftKey && tool === "select") return;
 
-		// Click empty canvas to create node
 		if (
 			tool === "select" &&
 			(e.target === containerRef.current || e.target === canvasRef.current)
 		) {
+			// Clicking empty space clears selection and opens node picker
+			setSelectedNodeId(null);
 			setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
-
 			const canvasRect = canvasRef.current.getBoundingClientRect();
 			const worldX =
 				(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
 			const worldY =
 				(e.clientY - canvasRect.top - pan.y) / zoom - planetConfig.baseRadius;
 			setNodeCreationPos({ x: worldX, y: worldY });
-
 			setShowNodeTypePicker(true);
 			return;
 		}
 
-		// Pan with hand tool or empty canvas
 		if (
 			tool === "hand" ||
 			e.target === containerRef.current ||
@@ -183,10 +185,16 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 
 		if (draggingNodeId && canvasRef.current) {
+			// Check if we've moved past drag threshold
+			const dx = e.clientX - mouseDownPosRef.current.x;
+			const dy = e.clientY - mouseDownPosRef.current.y;
+			if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+				hasDraggedRef.current = true;
+			}
+
 			const canvasRect = canvasRef.current.getBoundingClientRect();
 			const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
 			const newY = (e.clientY - canvasRect.top - dragOffset.y - pan.y) / zoom;
-
 			setNodes((prevNodes) =>
 				prevNodes.map((n) =>
 					n.id === draggingNodeId
@@ -201,11 +209,15 @@ export default function SpaceCanvas({ purposeData }) {
 		setIsPanning(false);
 
 		if (draggingNodeId) {
-			const node = nodes.find((n) => n.id === draggingNodeId);
-			if (node) {
-				await db.nodes.update(node.id, { position: node.position });
+			if (hasDraggedRef.current) {
+				// Save new position only if actually dragged
+				const node = nodes.find((n) => n.id === draggingNodeId);
+				if (node) {
+					await db.nodes.update(node.id, { position: node.position });
+				}
 			}
 			setDraggingNodeId(null);
+			hasDraggedRef.current = false;
 		}
 
 		if (creatingConnection && !connectionPreview) {
@@ -215,7 +227,7 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 	};
 
-	// Node creation handlers
+	// ── Node creation ─────────────────────────────────────────────────────────
 	const handleNodeTypeSelect = (type) => {
 		setNodeTextInputType(type);
 		setShowNodeTypePicker(false);
@@ -225,16 +237,14 @@ export default function SpaceCanvas({ purposeData }) {
 	const handleNodeTextSave = async (text) => {
 		const newNode = {
 			type: nodeTextInputType,
-			text: text,
+			text,
 			timestamp: Date.now(),
-			state: nodeTextInputType === "O" ? "present" : "present",
+			state: "present",
 			position: nodeCreationPos,
 		};
-
 		await db.nodes.add(newNode);
 		const updated = await getAllNodes();
 		setNodes(updated);
-
 		setShowNodeTextInput(false);
 		setNodeTextInputType(null);
 	};
@@ -245,7 +255,7 @@ export default function SpaceCanvas({ purposeData }) {
 		setNodeTextInputType(null);
 	};
 
-	// Keyboard shortcuts
+	// ── Keyboard shortcuts ────────────────────────────────────────────────────
 	useEffect(() => {
 		const handleKeyDown = (e) => {
 			const isTyping =
@@ -257,9 +267,7 @@ export default function SpaceCanvas({ purposeData }) {
 				e.preventDefault();
 				setTool("hand");
 			}
-			if (e.key === "Escape" && reflectionMode.active) {
-				exitReflectionMode();
-			}
+			if (e.key === "Escape" && reflectionMode.active) exitReflectionMode();
 			if (e.key === "Escape" && creatingConnection) {
 				setCreatingConnection(false);
 				setConnectionSource(null);
@@ -268,6 +276,9 @@ export default function SpaceCanvas({ purposeData }) {
 			if (e.key === "Escape" && (showNodeTypePicker || showNodeTextInput)) {
 				handleNodeInputCancel();
 			}
+			if (e.key === "Escape" && selectedNodeId) {
+				setSelectedNodeId(null);
+			}
 		};
 
 		const handleKeyUp = (e) => {
@@ -275,10 +286,7 @@ export default function SpaceCanvas({ purposeData }) {
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
 				document.activeElement?.isContentEditable;
-
-			if (e.key === " " && tool === "hand" && !isTyping) {
-				setTool("select");
-			}
+			if (e.key === " " && tool === "hand" && !isTyping) setTool("select");
 		};
 
 		window.addEventListener("keydown", handleKeyDown);
@@ -293,11 +301,10 @@ export default function SpaceCanvas({ purposeData }) {
 		creatingConnection,
 		showNodeTypePicker,
 		showNodeTextInput,
+		selectedNodeId,
 	]);
 
-	// ============================================================================
-	// PLANET INTERACTIONS
-	// ============================================================================
+	// ── Planet interactions ───────────────────────────────────────────────────
 	const handlePlanetMouseDown = useCallback(
 		(node, e) => {
 			if (e.shiftKey && tool === "select") {
@@ -310,6 +317,9 @@ export default function SpaceCanvas({ purposeData }) {
 
 			if (tool === "select") {
 				e.stopPropagation();
+				// Record where mousedown started and reset drag flag
+				mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+				hasDraggedRef.current = false;
 				setDraggingNodeId(node.id);
 				const canvasRect = canvasRef.current.getBoundingClientRect();
 				setDragOffset({
@@ -337,18 +347,23 @@ export default function SpaceCanvas({ purposeData }) {
 				return;
 			}
 
-			if (tool === "select" && !draggingNodeId) {
-				setSelectedNodeId(node.id);
+			// Only select if this was a clean click (not end of a drag)
+			if (tool === "select" && !hasDraggedRef.current) {
+				setSelectedNodeId((prev) => (prev === node.id ? null : node.id));
 			}
 		},
-		[tool, creatingConnection, connectionSource, draggingNodeId],
+		[tool, creatingConnection, connectionSource],
 	);
 
-	const handlePlanetDoubleClick = useCallback((node, e) => {
-		if (node.type === "O" || node.type === "A" || node.type === "I") {
-			enterReflectionMode(node);
-		}
-	}, []);
+	const handlePlanetDoubleClick = useCallback(
+		(node) => {
+			if (node.type === "O" || node.type === "A" || node.type === "I") {
+				enterReflectionMode(node);
+			}
+		},
+		// enterReflectionMode is stable via useCallback below
+		[],
+	);
 
 	const handlePlanetHover = useCallback(
 		(node) => {
@@ -365,50 +380,36 @@ export default function SpaceCanvas({ purposeData }) {
 		pausedTimeRef.current = null;
 	}, []);
 
-	// ============================================================================
-	// CONNECTION CREATION
-	// ============================================================================
+	// ── Connection creation ───────────────────────────────────────────────────
 	const createConnection = async (source, target) => {
-		if (target.timestamp <= source.timestamp) {
-			alert("Target timestamp must be after source timestamp");
-			return;
-		}
-
 		const newEdge = {
 			sourceId: source.id,
 			targetId: target.id,
 			type: "temporal",
 			createdAt: Date.now(),
 		};
-
 		await db.edges.add(newEdge);
 		const updatedEdges = await getAllEdges();
 		setEdges(updatedEdges);
 	};
 
-	// ============================================================================
-	// REFLECTION MODE
-	// ============================================================================
+	// ── Reflection mode ───────────────────────────────────────────────────────
 	const enterReflectionMode = useCallback(
 		(parentNode) => {
-			const planetRadius = planetConfig.baseRadius;
 			const targetZoom = 2.5;
-
 			const viewportCenterX = window.innerWidth / 2;
 			const viewportCenterY = (window.innerHeight - 60) / 2 + 60;
-
-			const nodeCenterX = parentNode.position.x + planetRadius;
-			const nodeCenterY = parentNode.position.y + planetRadius;
-
+			const nodeCenterX = parentNode.position.x + planetConfig.baseRadius;
+			const nodeCenterY = parentNode.position.y + planetConfig.baseRadius;
 			const targetPanX = viewportCenterX - nodeCenterX * targetZoom;
 			const targetPanY = viewportCenterY - nodeCenterY * targetZoom;
 
+			setSelectedNodeId(null);
 			setReflectionMode({
 				active: true,
 				parentNodeId: parentNode.id,
 				previousView: { zoom, pan },
 			});
-
 			setZoom(targetZoom);
 			setPan({ x: targetPanX, y: targetPanY });
 		},
@@ -418,7 +419,6 @@ export default function SpaceCanvas({ purposeData }) {
 	const exitReflectionMode = useCallback(() => {
 		setZoom(reflectionMode.previousView.zoom);
 		setPan(reflectionMode.previousView.pan);
-
 		setReflectionMode({
 			active: false,
 			parentNodeId: null,
@@ -426,9 +426,30 @@ export default function SpaceCanvas({ purposeData }) {
 		});
 	}, [reflectionMode]);
 
-	// ============================================================================
-	// RENDER MOONS WITH ORBIT ANIMATION
-	// ============================================================================
+	// ── Export ────────────────────────────────────────────────────────────────
+	const handleExport = useCallback(() => {
+		const exportData = {
+			version: 3,
+			exportedAt: new Date().toISOString(),
+			purposeData,
+			nodes,
+			edges,
+		};
+		const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+			type: "application/json",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		const title = purposeData?.title
+			? purposeData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()
+			: "chroma_map";
+		a.download = `${title}_${Date.now()}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}, [nodes, edges, purposeData]);
+
+	// ── Render moons ──────────────────────────────────────────────────────────
 	const renderMoons = useCallback(() => {
 		const parentNodes = nodes.filter(
 			(n) => n.type === "O" || n.type === "A" || n.type === "I",
@@ -446,10 +467,8 @@ export default function SpaceCanvas({ purposeData }) {
 					? pausedTimeRef.current
 					: orbitTime;
 
-			// Render orbital paths when hovering
 			if (isHovered && childMoons.length > 0) {
-				const orbitalPaths = getOrbitalPaths(parent);
-				orbitalPaths.forEach((path) => {
+				getOrbitalPaths(parent).forEach((path) => {
 					moonElements.push(
 						<circle
 							key={`${parent.id}-path-${path.dimension}`}
@@ -459,34 +478,32 @@ export default function SpaceCanvas({ purposeData }) {
 							fill="none"
 							stroke={path.color}
 							strokeWidth={2}
-							strokeOpacity={0.3}
+							strokeOpacity={0.25}
 							strokeDasharray="5,5"
 						/>,
 					);
 				});
 			}
 
-			// Render moons for each dimension
 			Object.entries(grouped).forEach(([dimension, data]) => {
-				if (data.count > 0) {
-					if (data.count <= 3) {
-						const dimensionMoons = distributedMoons.filter(
-							(m) => m.dimension === dimension,
-						);
-						dimensionMoons.forEach((moon) => {
-							const animatedPosition = calculateAnimatedOrbit(
+				if (data.count <= 0) return;
+
+				if (data.count <= 3) {
+					distributedMoons
+						.filter((m) => m.dimension === dimension)
+						.forEach((moon) => {
+							const pos = calculateAnimatedOrbit(
 								moon,
 								parent,
 								effectiveTime,
 								false,
 								dimension,
 							);
-
 							moonElements.push(
 								<Moon
 									key={moon.id}
 									node={moon}
-									position={animatedPosition}
+									position={pos}
 									count={1}
 									isHovered={hoveredNodeId === moon.id}
 									isSelected={selectedNodeId === moon.id}
@@ -496,45 +513,43 @@ export default function SpaceCanvas({ purposeData }) {
 								/>,
 							);
 						});
-					} else {
-						const firstMoon = data.moons[0];
-						const distributedMoon = distributedMoons.find(
-							(m) => m.id === firstMoon.id,
-						);
+				} else {
+					const firstMoon = data.moons[0];
+					const distributed = distributedMoons.find(
+						(m) => m.id === firstMoon.id,
+					);
+					const pos = distributed
+						? calculateAnimatedOrbit(
+								distributed,
+								parent,
+								effectiveTime,
+								false,
+								dimension,
+							)
+						: data.position;
 
-						const animatedPosition = distributedMoon
-							? calculateAnimatedOrbit(
-									distributedMoon,
-									parent,
-									effectiveTime,
-									false,
-									dimension,
-								)
-							: data.position;
+					const aggregateNode = {
+						id: `${parent.id}-${dimension}`,
+						type: "R",
+						dimension,
+						text: `${data.count} ${dimension} reflections`,
+						position: pos,
+						parentId: parent.id,
+					};
 
-						const aggregateNode = {
-							id: `${parent.id}-${dimension}`,
-							type: "R",
-							dimension,
-							text: `${data.count} ${dimension} reflection${data.count > 1 ? "s" : ""}`,
-							position: animatedPosition,
-							parentId: parent.id,
-						};
-
-						moonElements.push(
-							<Moon
-								key={aggregateNode.id}
-								node={aggregateNode}
-								position={animatedPosition}
-								count={data.count}
-								isHovered={hoveredNodeId === aggregateNode.id}
-								isSelected={selectedNodeId === aggregateNode.id}
-								onClick={handlePlanetClick}
-								onMouseEnter={handlePlanetHover}
-								onMouseLeave={handlePlanetLeave}
-							/>,
-						);
-					}
+					moonElements.push(
+						<Moon
+							key={aggregateNode.id}
+							node={aggregateNode}
+							position={pos}
+							count={data.count}
+							isHovered={hoveredNodeId === aggregateNode.id}
+							isSelected={selectedNodeId === aggregateNode.id}
+							onClick={handlePlanetClick}
+							onMouseEnter={handlePlanetHover}
+							onMouseLeave={handlePlanetLeave}
+						/>,
+					);
 				}
 			});
 		});
@@ -550,15 +565,20 @@ export default function SpaceCanvas({ purposeData }) {
 		handlePlanetLeave,
 	]);
 
-	// ============================================================================
-	// RENDER
-	// ============================================================================
+	// ── Render ────────────────────────────────────────────────────────────────
 	const parentNodes = nodes.filter(
 		(n) => n.type === "O" || n.type === "A" || n.type === "I",
 	);
 	const focusedParent = reflectionMode.active
 		? nodes.find((n) => n.id === reflectionMode.parentNodeId)
 		: null;
+
+	const selectedNode = selectedNodeId
+		? nodes.find((n) => n.id === selectedNodeId)
+		: null;
+	const selectedNodeMoons = selectedNode
+		? nodes.filter((n) => n.parentId === selectedNode.id)
+		: [];
 
 	return (
 		<div
@@ -570,128 +590,154 @@ export default function SpaceCanvas({ purposeData }) {
 				flexDirection: "column",
 				overflow: "hidden",
 			}}>
-			<TopNav purposeData={purposeData} tool={tool} onToolChange={setTool} />
+			<TopNav
+				purposeData={purposeData}
+				tool={tool}
+				onToolChange={setTool}
+				onExport={handleExport}
+			/>
 
-			<div
-				ref={containerRef}
-				onMouseDown={handleCanvasMouseDown}
-				onMouseMove={handleCanvasMouseMove}
-				onMouseUp={handleCanvasMouseUp}
-				onMouseLeave={handleCanvasMouseUp}
-				style={{
-					flex: 1,
-					position: "relative",
-					cursor:
-						tool === "hand"
-							? isPanning
-								? "grabbing"
-								: "grab"
-							: creatingConnection
-								? "crosshair"
-								: "default",
-					overflow: "hidden",
-					userSelect: "none",
-				}}>
+			{/* Canvas row + optional planet panel */}
+			<div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 				<div
-					ref={canvasRef}
+					ref={containerRef}
+					onMouseDown={handleCanvasMouseDown}
+					onMouseMove={handleCanvasMouseMove}
+					onMouseUp={handleCanvasMouseUp}
+					onMouseLeave={handleCanvasMouseUp}
 					style={{
-						width: "100%",
-						height: "100%",
+						flex: 1,
 						position: "relative",
-						backgroundImage: `radial-gradient(circle, rgba(30, 41, 59, ${CANVAS.gridOpacity}) 1px, transparent 1px)`,
-						backgroundSize: `${CANVAS.gridSize * zoom}px ${CANVAS.gridSize * zoom}px`,
-						backgroundPosition: `${pan.x}px ${pan.y}px`,
+						cursor:
+							tool === "hand"
+								? isPanning
+									? "grabbing"
+									: "grab"
+								: creatingConnection
+									? "crosshair"
+									: "default",
+						overflow: "hidden",
+						userSelect: "none",
 					}}>
-					<svg
+					<div
+						ref={canvasRef}
 						style={{
-							position: "absolute",
-							top: 0,
-							left: 0,
 							width: "100%",
 							height: "100%",
-							pointerEvents: "none",
+							position: "relative",
+							backgroundImage: `radial-gradient(circle, rgba(30, 41, 59, ${CANVAS.gridOpacity}) 1px, transparent 1px)`,
+							backgroundSize: `${CANVAS.gridSize * zoom}px ${CANVAS.gridSize * zoom}px`,
+							backgroundPosition: `${pan.x}px ${pan.y}px`,
 						}}>
-						<g
-							transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
-							style={{ pointerEvents: "auto" }}>
-							{edges.map((edge) => {
-								const sourceNode = nodes.find((n) => n.id === edge.sourceId);
-								const targetNode = nodes.find((n) => n.id === edge.targetId);
-								return (
-									<ConnectionLine
-										key={edge.id}
-										edge={edge}
-										sourceNode={sourceNode}
-										targetNode={targetNode}
-										isHovered={hoveredEdgeId === edge.id}
+						<svg
+							style={{
+								position: "absolute",
+								top: 0,
+								left: 0,
+								width: "100%",
+								height: "100%",
+								pointerEvents: "none",
+							}}>
+							<g
+								transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
+								style={{ pointerEvents: "auto" }}>
+								{edges.map((edge) => {
+									const sourceNode = nodes.find((n) => n.id === edge.sourceId);
+									const targetNode = nodes.find((n) => n.id === edge.targetId);
+									if (!sourceNode?.position || !targetNode?.position)
+										return null;
+									return (
+										<ConnectionLine
+											key={edge.id}
+											edge={edge}
+											sourceNode={sourceNode}
+											targetNode={targetNode}
+											isHovered={hoveredEdgeId === edge.id}
+										/>
+									);
+								})}
+
+								{creatingConnection &&
+									connectionSource &&
+									connectionPreview && (
+										<line
+											x1={connectionSource.position.x + planetConfig.baseRadius}
+											y1={connectionSource.position.y + planetConfig.baseRadius}
+											x2={connectionPreview.x}
+											y2={connectionPreview.y}
+											stroke="#6C63FF"
+											strokeWidth={2}
+											strokeDasharray="5,5"
+											opacity={0.6}
+										/>
+									)}
+
+								{parentNodes.map((node) => (
+									<Planet
+										key={node.id}
+										node={node}
+										moons={nodes.filter((n) => n.parentId === node.id)}
+										isHovered={hoveredNodeId === node.id}
+										isSelected={selectedNodeId === node.id}
+										isFocused={
+											reflectionMode.active
+												? node.id === reflectionMode.parentNodeId
+												: undefined
+										}
+										onClick={handlePlanetClick}
+										onDoubleClick={handlePlanetDoubleClick}
+										onMouseEnter={handlePlanetHover}
+										onMouseLeave={handlePlanetLeave}
+										onMouseDown={handlePlanetMouseDown}
 									/>
-								);
-							})}
+								))}
 
-							{creatingConnection && connectionSource && connectionPreview && (
-								<line
-									x1={connectionSource.position.x + planetConfig.baseRadius}
-									y1={connectionSource.position.y + planetConfig.baseRadius}
-									x2={connectionPreview.x}
-									y2={connectionPreview.y}
-									stroke="#6C63FF"
-									strokeWidth={2}
-									strokeDasharray="5,5"
-									opacity={0.6}
-								/>
-							)}
+								{!reflectionMode.active && renderMoons()}
+							</g>
+						</svg>
+					</div>
 
-							{parentNodes.map((node) => (
-								<Planet
-									key={node.id}
-									node={node}
-									moons={nodes.filter((n) => n.parentId === node.id)}
-									isHovered={hoveredNodeId === node.id}
-									isSelected={selectedNodeId === node.id}
-									isFocused={
-										reflectionMode.active
-											? node.id === reflectionMode.parentNodeId
-											: undefined
-									}
-									onClick={handlePlanetClick}
-									onDoubleClick={handlePlanetDoubleClick}
-									onMouseEnter={handlePlanetHover}
-									onMouseLeave={handlePlanetLeave}
-									onMouseDown={handlePlanetMouseDown}
-								/>
-							))}
+					{reflectionMode.active && focusedParent && (
+						<ReflectionMode
+							parentNode={focusedParent}
+							nodes={nodes}
+							onExit={exitReflectionMode}
+							onNodesUpdate={async () => {
+								const updated = await getAllNodes();
+								setNodes(updated);
+							}}
+						/>
+					)}
 
-							{!reflectionMode.active && renderMoons()}
-						</g>
-					</svg>
+					{showNodeTypePicker && (
+						<NodeTypePicker
+							position={nodeTypePickerPos}
+							onSelect={handleNodeTypeSelect}
+							onCancel={handleNodeInputCancel}
+						/>
+					)}
+
+					{showNodeTextInput && (
+						<NodeTextInput
+							position={nodeTypePickerPos}
+							nodeType={nodeTextInputType}
+							onSave={handleNodeTextSave}
+							onCancel={handleNodeInputCancel}
+						/>
+					)}
 				</div>
 
-				{reflectionMode.active && focusedParent && (
-					<ReflectionMode
-						parentNode={focusedParent}
-						nodes={nodes}
-						onExit={exitReflectionMode}
+				{/* Planet side panel — single click on planet shows this */}
+				{selectedNode && !reflectionMode.active && (
+					<PlanetSidePanel
+						node={selectedNode}
+						moons={selectedNodeMoons}
+						onClose={() => setSelectedNodeId(null)}
+						onOpenReflections={() => enterReflectionMode(selectedNode)}
 						onNodesUpdate={async () => {
 							const updated = await getAllNodes();
 							setNodes(updated);
 						}}
-					/>
-				)}
-
-				{showNodeTypePicker && (
-					<NodeTypePicker
-						position={nodeTypePickerPos}
-						onSelect={handleNodeTypeSelect}
-						onCancel={handleNodeInputCancel}
-					/>
-				)}
-
-				{showNodeTextInput && (
-					<NodeTextInput
-						position={nodeTypePickerPos}
-						nodeType={nodeTextInputType}
-						onSave={handleNodeTextSave}
-						onCancel={handleNodeInputCancel}
 					/>
 				)}
 			</div>
