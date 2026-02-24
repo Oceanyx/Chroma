@@ -26,7 +26,7 @@ import {
 // ── Constants ────────────────────────────────────────────────────────────────
 const TOP_BAR_HEIGHT = 60; // px — the "Edit Observation" bar
 const BOTTOM_BAR_HEIGHT = 44; // px — the observation text strip at the bottom
-const ORBIT_SCALE = 0.8;
+const ORBIT_SCALE = 0.62;
 
 const DIMENSION_START_ANGLES = {
 	subjective: Math.PI * 1.5, // top
@@ -196,6 +196,17 @@ export default function ReflectionSpace({
 	// ── Panel actions ─────────────────────────────────────────────────────────
 	const handlePanelAction = async (action, moon, extra) => {
 		switch (action) {
+			case "ownership":
+				await db.nodes.update(moon.id, { ownership: extra.ownership });
+				await onNodesUpdate();
+				showToast(
+					extra.ownership === "entertained"
+						? "Marked as entertained ✦"
+						: "Back to asserted",
+					"#FBBF24",
+				);
+				break;
+
 			case "save-edit":
 				await db.nodes.update(moon.id, {
 					text: extra.text,
@@ -474,7 +485,7 @@ export default function ReflectionSpace({
 						e.currentTarget.style.background = "rgba(108,99,255,0.12)";
 						e.currentTarget.style.color = "#A78BFA";
 					}}>
-					<ArrowLeft size={13} /> Edit Observation
+					<ArrowLeft size={13} /> Exit
 				</button>
 
 				<div
@@ -853,8 +864,8 @@ export default function ReflectionSpace({
 				}}>
 				<span
 					style={{
-						fontSize: "9px",
-						color: "#1E2D3D",
+						fontSize: "10px",
+						color: "#3D5070",
 						fontWeight: 700,
 						textTransform: "uppercase",
 						letterSpacing: "0.7px",
@@ -863,7 +874,7 @@ export default function ReflectionSpace({
 					Observation
 				</span>
 				<span
-					style={{ fontSize: "12px", color: "#2D4060", fontStyle: "italic" }}>
+					style={{ fontSize: "13px", color: "#4A6080", fontStyle: "italic" }}>
 					{parentNode.text?.substring(0, 120) || "No description"}
 					{parentNode.text?.length > 120 ? "…" : ""}
 				</span>

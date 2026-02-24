@@ -1,7 +1,5 @@
-// src/components/PlanetSidePanel.jsx - V1.0
-// Shows when a planet (O/A/I node) is selected on the main canvas.
-// Lets users read/edit the node, see reflection counts, navigate into
-// reflection mode, and delete the node.
+// src/components/PlanetSidePanel.jsx - V1.1
+// Better font sizes and contrast throughout
 import React, { useState } from "react";
 import { X, Eye, Zap, Target } from "lucide-react";
 import { moonConfig } from "../seedData";
@@ -9,7 +7,6 @@ import { db, cascadeDeleteNode } from "../lib/db";
 
 export const PLANET_PANEL_WIDTH = 380;
 
-// ── Type config ───────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
 	O: {
 		label: "Observation",
@@ -46,7 +43,6 @@ const STATE_CONFIG = {
 	future: { label: "Future", color: "#3B82F6" },
 };
 
-// ── Dimension dot row ─────────────────────────────────────────────────────────
 function DimCount({ dimension, count }) {
 	const cfg = moonConfig.dimension[dimension];
 	if (!cfg || count === 0) return null;
@@ -56,15 +52,15 @@ function DimCount({ dimension, count }) {
 				display: "flex",
 				alignItems: "center",
 				gap: 7,
-				padding: "6px 10px",
+				padding: "7px 11px",
 				borderRadius: 7,
 				background: `${cfg.color}0D`,
 				border: `1px solid ${cfg.color}25`,
 			}}>
 			<span
 				style={{
-					width: 7,
-					height: 7,
+					width: 8,
+					height: 8,
 					borderRadius: "50%",
 					background: cfg.color,
 					boxShadow: `0 0 5px ${cfg.color}`,
@@ -72,17 +68,16 @@ function DimCount({ dimension, count }) {
 					display: "inline-block",
 				}}
 			/>
-			<span style={{ fontSize: 11, color: cfg.color, fontWeight: 700 }}>
+			<span style={{ fontSize: 13, color: cfg.color, fontWeight: 700 }}>
 				{count}
 			</span>
-			<span style={{ fontSize: 11, color: "#334155", fontWeight: 600 }}>
+			<span style={{ fontSize: 13, color: "#5A7090", fontWeight: 600 }}>
 				{cfg.name}
 			</span>
 		</div>
 	);
 }
 
-// ── Main panel ────────────────────────────────────────────────────────────────
 export default function PlanetSidePanel({
 	node,
 	moons,
@@ -99,7 +94,6 @@ export default function PlanetSidePanel({
 	const tc = TYPE_CONFIG[node.type] || TYPE_CONFIG.O;
 	const { Icon } = tc;
 
-	// Moon breakdown by dimension
 	const dimCounts = {
 		subjective: 0,
 		behavioral: 0,
@@ -155,9 +149,9 @@ export default function PlanetSidePanel({
 				position: "relative",
 				overflow: "hidden",
 				flexShrink: 0,
-				color: "#E2E8F0",
+				color: "#C8D6E8",
 			}}>
-			{/* Ambient corner glow */}
+			{/* Ambient glow */}
 			<div
 				style={{
 					position: "absolute",
@@ -184,46 +178,43 @@ export default function PlanetSidePanel({
 					zIndex: 1,
 				}}>
 				<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-					<Icon size={13} color={tc.color} />
+					<Icon size={14} color={tc.color} />
 					<span
 						style={{
-							fontSize: 10,
+							fontSize: 12,
 							fontWeight: 700,
-							letterSpacing: "0.12em",
+							letterSpacing: "0.1em",
 							textTransform: "uppercase",
 							color: tc.color,
-							opacity: 0.9,
 						}}>
 						{tc.label}
 					</span>
-					{/* State badge */}
 					{node.state && STATE_CONFIG[node.state] && (
 						<span
 							style={{
-								padding: "2px 8px",
+								padding: "3px 9px",
 								borderRadius: 20,
-								fontSize: 9,
+								fontSize: 11,
 								fontWeight: 700,
-								letterSpacing: "0.06em",
+								letterSpacing: "0.05em",
 								color: STATE_CONFIG[node.state].color,
 								background: `${STATE_CONFIG[node.state].color}18`,
 								border: `1px solid ${STATE_CONFIG[node.state].color}35`,
 							}}>
-							{STATE_CONFIG[node.state].label.toUpperCase()}
+							{STATE_CONFIG[node.state].label}
 						</span>
 					)}
 				</div>
-
 				<button
 					onClick={onClose}
 					style={{
 						background: "none",
 						border: "1px solid rgba(255,255,255,0.08)",
 						borderRadius: 6,
-						color: "#334155",
+						color: "#3D5070",
 						cursor: "pointer",
-						width: 26,
-						height: 26,
+						width: 28,
+						height: 28,
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
@@ -235,7 +226,7 @@ export default function PlanetSidePanel({
 						e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
 					}}
 					onMouseLeave={(e) => {
-						e.currentTarget.style.color = "#334155";
+						e.currentTarget.style.color = "#3D5070";
 						e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
 					}}>
 					<X size={13} />
@@ -259,29 +250,29 @@ export default function PlanetSidePanel({
 						}}
 						title="Click to edit"
 						style={{
-							fontSize: 15,
-							lineHeight: 1.7,
+							fontSize: 16,
+							lineHeight: 1.75,
 							color: "#C8D6E8",
 							fontFamily: "Georgia, 'Times New Roman', serif",
 							fontStyle: "italic",
 							cursor: "text",
-							padding: "14px 16px",
+							padding: "15px 16px",
 							background: "rgba(255,255,255,0.025)",
 							borderRadius: 10,
 							border: "1px solid rgba(255,255,255,0.05)",
 							borderLeft: `3px solid ${tc.color}55`,
 							transition: "background 0.2s",
 							position: "relative",
-							minHeight: 52,
+							minHeight: 56,
 						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.background = "rgba(255,255,255,0.025)";
-						}}>
+						onMouseEnter={(e) =>
+							(e.currentTarget.style.background = "rgba(255,255,255,0.04)")
+						}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.background = "rgba(255,255,255,0.025)")
+						}>
 						{node.text || (
-							<span style={{ color: "#334155", fontStyle: "italic" }}>
+							<span style={{ color: "#2D3F55", fontStyle: "italic" }}>
 								{tc.description}
 							</span>
 						)}
@@ -290,7 +281,7 @@ export default function PlanetSidePanel({
 								position: "absolute",
 								bottom: 7,
 								right: 9,
-								fontSize: 9,
+								fontSize: 10,
 								color: "#1E293B",
 								fontStyle: "normal",
 								fontFamily: "system-ui, sans-serif",
@@ -310,22 +301,21 @@ export default function PlanetSidePanel({
 							rows={4}
 							style={{
 								width: "100%",
-								padding: "14px 16px",
+								padding: "15px 16px",
 								background: "rgba(8,13,25,0.85)",
 								border: `2px solid ${tc.color}70`,
 								borderRadius: 10,
 								color: "#C8D6E8",
-								fontSize: 15,
+								fontSize: 16,
 								fontFamily: "Georgia, 'Times New Roman', serif",
 								fontStyle: "italic",
-								lineHeight: 1.7,
+								lineHeight: 1.75,
 								resize: "none",
 								outline: "none",
 								boxSizing: "border-box",
 								marginBottom: 10,
 							}}
 						/>
-
 						{/* State picker */}
 						<div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
 							{stateOptions.map((s) => (
@@ -334,20 +324,16 @@ export default function PlanetSidePanel({
 									onClick={() => setEditState(s)}
 									style={{
 										flex: 1,
-										padding: "7px 0",
+										padding: "8px 0",
 										borderRadius: 7,
-										border: `1px solid ${
-											editState === s
-												? STATE_CONFIG[s].color
-												: "rgba(255,255,255,0.08)"
-										}`,
+										border: `1px solid ${editState === s ? STATE_CONFIG[s].color : "rgba(255,255,255,0.08)"}`,
 										background:
 											editState === s
 												? `${STATE_CONFIG[s].color}20`
 												: "transparent",
-										color: editState === s ? STATE_CONFIG[s].color : "#334155",
+										color: editState === s ? STATE_CONFIG[s].color : "#4A5E75",
 										cursor: "pointer",
-										fontSize: 11,
+										fontSize: 12,
 										fontWeight: 700,
 										outline: "none",
 										transition: "all 0.15s",
@@ -356,29 +342,24 @@ export default function PlanetSidePanel({
 								</button>
 							))}
 						</div>
-
 						<div style={{ display: "flex", gap: 8 }}>
 							<button
 								onClick={handleCancelEdit}
 								style={{
 									flex: 1,
-									padding: "9px",
+									padding: "10px",
 									borderRadius: 8,
 									border: "1px solid rgba(255,255,255,0.08)",
 									background: "transparent",
-									color: "#475569",
-									fontSize: 11,
+									color: "#4A5E75",
+									fontSize: 13,
 									fontWeight: 700,
 									cursor: "pointer",
 									outline: "none",
 									transition: "all 0.15s",
 								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.color = "#94A3B8";
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.color = "#475569";
-								}}>
+								onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
+								onMouseLeave={(e) => (e.currentTarget.style.color = "#4A5E75")}>
 								Cancel
 							</button>
 							<button
@@ -386,12 +367,12 @@ export default function PlanetSidePanel({
 								disabled={!editText.trim()}
 								style={{
 									flex: 2,
-									padding: "9px",
+									padding: "10px",
 									borderRadius: 8,
 									border: "none",
 									background: editText.trim() ? tc.color : "rgba(30,41,59,0.5)",
 									color: "#fff",
-									fontSize: 11,
+									fontSize: 13,
 									fontWeight: 700,
 									cursor: editText.trim() ? "pointer" : "not-allowed",
 									outline: "none",
@@ -405,21 +386,21 @@ export default function PlanetSidePanel({
 				)}
 			</div>
 
-			{/* ── TIMESTAMP ──────────────────────────────────────────────────── */}
+			{/* Timestamp */}
 			{!isEditing && node.timestamp && (
 				<div
 					style={{
 						padding: "0 20px 14px",
 						flexShrink: 0,
-						position: "relative",
 						zIndex: 1,
+						position: "relative",
 					}}>
 					<span
 						style={{
-							fontSize: 10,
-							color: "#1E2D3D",
+							fontSize: 12,
+							color: "#3D5070",
 							fontWeight: 600,
-							letterSpacing: "0.06em",
+							letterSpacing: "0.05em",
 						}}>
 						{new Date(node.timestamp).toLocaleString(undefined, {
 							month: "short",
@@ -431,7 +412,7 @@ export default function PlanetSidePanel({
 				</div>
 			)}
 
-			{/* ── DIVIDER ────────────────────────────────────────────────────── */}
+			{/* Divider */}
 			{!isEditing && (
 				<div
 					style={{
@@ -455,22 +436,21 @@ export default function PlanetSidePanel({
 					<span
 						style={{
 							display: "block",
-							fontSize: 9,
+							fontSize: 10,
 							fontWeight: 700,
 							letterSpacing: "0.14em",
 							textTransform: "uppercase",
-							color: "#253044",
+							color: "#3D5070",
 							marginBottom: 10,
 						}}>
 						Reflections{totalMoons > 0 ? ` · ${totalMoons}` : ""}
 					</span>
-
 					{totalMoons === 0 ? (
 						<p
 							style={{
 								margin: 0,
-								fontSize: 12,
-								color: "#1E2D3D",
+								fontSize: 13,
+								color: "#2D3F55",
 								fontStyle: "italic",
 							}}>
 							No reflections yet. Open this planet to begin.
@@ -485,7 +465,6 @@ export default function PlanetSidePanel({
 				</div>
 			)}
 
-			{/* ── SPACER ─────────────────────────────────────────────────────── */}
 			<div style={{ flex: 1 }} />
 
 			{/* ── ACTIONS ────────────────────────────────────────────────────── */}
@@ -501,35 +480,33 @@ export default function PlanetSidePanel({
 						zIndex: 1,
 						position: "relative",
 					}}>
-					{/* Open Reflections */}
 					<button
 						onMouseEnter={() => setOpenHovered(true)}
 						onMouseLeave={() => setOpenHovered(false)}
 						onClick={onOpenReflections}
 						style={{
 							width: "100%",
-							padding: "12px 16px",
+							padding: "13px 16px",
 							borderRadius: 9,
 							border: `1px solid ${openHovered ? `${tc.color}70` : `${tc.color}30`}`,
 							background: openHovered ? `${tc.color}18` : `${tc.color}0A`,
-							color: openHovered ? tc.color : `${tc.color}99`,
+							color: openHovered ? tc.color : `${tc.color}90`,
 							cursor: "pointer",
-							fontSize: 11,
+							fontSize: 13,
 							fontWeight: 700,
 							letterSpacing: "0.06em",
 							textTransform: "uppercase",
-							transition: "all 0.18s ease",
+							transition: "all 0.18s",
 							outline: "none",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
 							gap: 7,
 						}}>
-						<span style={{ fontSize: 14 }}>✦</span>
+						<span style={{ fontSize: 15 }}>✦</span>
 						Open Reflections
 					</button>
 
-					{/* Delete */}
 					<button
 						onMouseEnter={() => setDeleteHovered(true)}
 						onMouseLeave={() => setDeleteHovered(false)}
@@ -538,19 +515,17 @@ export default function PlanetSidePanel({
 							width: "100%",
 							padding: "10px 16px",
 							borderRadius: 9,
-							border: `1px solid ${
-								deleteHovered ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.06)"
-							}`,
+							border: `1px solid ${deleteHovered ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.06)"}`,
 							background: deleteHovered
 								? "rgba(239,68,68,0.08)"
 								: "rgba(255,255,255,0.015)",
-							color: deleteHovered ? "#EF4444" : "#253044",
+							color: deleteHovered ? "#EF4444" : "#2D3F55",
 							cursor: "pointer",
-							fontSize: 11,
+							fontSize: 12,
 							fontWeight: 700,
 							letterSpacing: "0.06em",
 							textTransform: "uppercase",
-							transition: "all 0.18s ease",
+							transition: "all 0.18s",
 							outline: "none",
 						}}>
 						Delete Node

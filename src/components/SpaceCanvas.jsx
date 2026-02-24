@@ -27,6 +27,7 @@ import PlanetSidePanel, { PLANET_PANEL_WIDTH } from "./PlanetSidePanel";
 import { CANVAS } from "../utils/constants";
 
 const DRAG_THRESHOLD = 4; // px — below this is a click, not a drag
+const ORBIT_SCALE = 0.62; // Reduce orbit radii from seedData defaults
 
 export default function SpaceCanvas({ purposeData }) {
 	const [nodes, setNodes] = useState([]);
@@ -147,16 +148,8 @@ export default function SpaceCanvas({ purposeData }) {
 			tool === "select" &&
 			(e.target === containerRef.current || e.target === canvasRef.current)
 		) {
-			// Clicking empty space clears selection and opens node picker
+			// Single click: just deselect. Double-click opens the node picker.
 			setSelectedNodeId(null);
-			setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
-			const canvasRect = canvasRef.current.getBoundingClientRect();
-			const worldX =
-				(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
-			const worldY =
-				(e.clientY - canvasRect.top - pan.y) / zoom - planetConfig.baseRadius;
-			setNodeCreationPos({ x: worldX, y: worldY });
-			setShowNodeTypePicker(true);
 			return;
 		}
 
@@ -203,6 +196,21 @@ export default function SpaceCanvas({ purposeData }) {
 				),
 			);
 		}
+	};
+
+	const handleCanvasDoubleClick = (e) => {
+		if (tool !== "select") return;
+		if (e.target !== containerRef.current && e.target !== canvasRef.current)
+			return;
+		if (!canvasRef.current) return;
+		const canvasRect = canvasRef.current.getBoundingClientRect();
+		const worldX =
+			(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
+		const worldY =
+			(e.clientY - canvasRect.top - pan.y) / zoom - planetConfig.baseRadius;
+		setNodeCreationPos({ x: worldX, y: worldY });
+		setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
+		setShowNodeTypePicker(true);
 	};
 
 	const handleCanvasMouseUp = async () => {
@@ -498,6 +506,7 @@ export default function SpaceCanvas({ purposeData }) {
 								effectiveTime,
 								false,
 								dimension,
+								ORBIT_SCALE,
 							);
 							moonElements.push(
 								<Moon
@@ -525,6 +534,7 @@ export default function SpaceCanvas({ purposeData }) {
 								effectiveTime,
 								false,
 								dimension,
+								ORBIT_SCALE,
 							)
 						: data.position;
 
@@ -605,6 +615,7 @@ export default function SpaceCanvas({ purposeData }) {
 					onMouseMove={handleCanvasMouseMove}
 					onMouseUp={handleCanvasMouseUp}
 					onMouseLeave={handleCanvasMouseUp}
+					onDoubleClick={handleCanvasDoubleClick}
 					style={{
 						flex: 1,
 						position: "relative",
