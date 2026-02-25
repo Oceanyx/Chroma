@@ -188,12 +188,34 @@ export default function ReflectionSpace({
 				break;
 
 			case "save-edit":
+				// Quiet update — typos, small clarifications. No version created.
 				await db.nodes.update(moon.id, {
 					text: extra.text,
 					lensesUsed: extra.lensesUsed,
+					editedAt: Date.now(),
 				});
 				await onNodesUpdate();
-				showToast("Reflection refined 🔭", "#8B5CF6");
+				showToast("Updated ✎", "#8B5CF6");
+				break;
+
+			case "save-evolved":
+				// Intentional evolution — marks a genuine perceptual shift.
+				// Keeps last 4 versions + adds current = max 5 total.
+				await db.nodes.update(moon.id, {
+					text: extra.text,
+					lensesUsed: extra.lensesUsed,
+					editedAt: Date.now(),
+					versions: [
+						...(moon.versions || []).slice(-4),
+						{
+							text: moon.text,
+							lensesUsed: moon.lensesUsed || [],
+							savedAt: moon.editedAt || moon.timestamp || Date.now(),
+						},
+					],
+				});
+				await onNodesUpdate();
+				showToast("Evolution marked ✦", "#A78BFA");
 				break;
 
 			case "uncertain":

@@ -1,11 +1,10 @@
-// src/components/SpaceCanvas.jsx - V3.3
-// Fixes:
-//   - Hover orbit ring radius now multiplied by ORBIT_SCALE (rings match moon paths)
-//   - Orbit rings more visible (strokeOpacity 0.25 → 0.5)
-//   - Clicking a moon on canvas opens its parent planet in reflection mode
-//     (was incorrectly setting selectedNodeId to a type-R node and
-//      rendering it as an "Observation" in PlanetSidePanel)
-//   - e.target → e.currentTarget on compound button hover handlers
+// src/components/SpaceCanvas.jsx - V3.4
+// Fixes in this version:
+//   1. Edge deletion — hover highlights the line, click confirms + deletes from DB
+//   2. handlePlanetDoubleClick dep array now includes enterReflectionMode (was [])
+//   3. Moon clicks on canvas open parent in reflection mode
+//   4. Hover orbit rings scaled by ORBIT_SCALE
+//   5. onImport prop wired through for post-import state reload
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
 	db,
@@ -13,6 +12,7 @@ import {
 	getAllNodes,
 	getAllEdges,
 	getUnlockedDimensions,
+	deleteEdge,
 } from "../lib/db";
 import {
 	groupMoonsByDimension,
@@ -28,13 +28,13 @@ import ReflectionMode from "./ReflectionMode";
 import NodeTypePicker from "./NodeTypePicker";
 import NodeTextInput from "./NodeTextInput";
 import TopNav from "./TopNav";
-import PlanetSidePanel, { PLANET_PANEL_WIDTH } from "./PlanetSidePanel";
+import PlanetSidePanel from "./PlanetSidePanel";
 import { CANVAS } from "../utils/constants";
 
 const DRAG_THRESHOLD = 4;
 const ORBIT_SCALE = 0.62;
 
-export default function SpaceCanvas({ purposeData }) {
+export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 	const [nodes, setNodes] = useState([]);
 	const [edges, setEdges] = useState([]);
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
@@ -42,39 +42,33 @@ export default function SpaceCanvas({ purposeData }) {
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
 	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
 
-	// Pan/Zoom
 	const [zoom, setZoom] = useState(CANVAS.defaultZoom);
 	const [pan, setPan] = useState(CANVAS.defaultPan);
 	const [isPanning, setIsPanning] = useState(false);
 	const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 	const [tool, setTool] = useState("select");
 
-	// Dragging
 	const [draggingNodeId, setDraggingNodeId] = useState(null);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 	const hasDraggedRef = useRef(false);
 	const mouseDownPosRef = useRef({ x: 0, y: 0 });
 
-	// Node creation
 	const [showNodeTypePicker, setShowNodeTypePicker] = useState(false);
 	const [nodeTypePickerPos, setNodeTypePickerPos] = useState({ x: 0, y: 0 });
 	const [showNodeTextInput, setShowNodeTextInput] = useState(false);
 	const [nodeTextInputType, setNodeTextInputType] = useState(null);
 	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 });
 
-	// Connection creation
 	const [creatingConnection, setCreatingConnection] = useState(false);
 	const [connectionSource, setConnectionSource] = useState(null);
 	const [connectionPreview, setConnectionPreview] = useState(null);
 
-	// Reflection mode
 	const [reflectionMode, setReflectionMode] = useState({
 		active: false,
 		parentNodeId: null,
 		previousView: { zoom: CANVAS.defaultZoom, pan: CANVAS.defaultPan },
 	});
 
-	// Animation
 	const [orbitTime, setOrbitTime] = useState(0);
 	const animationFrameRef = useRef();
 	const lastTimestampRef = useRef(null);
@@ -83,38 +77,28 @@ export default function SpaceCanvas({ purposeData }) {
 	const canvasRef = useRef(null);
 	const containerRef = useRef(null);
 
-	// ── Load data ──────────────────────────────────────────────────────────────
+	// ── Load ───────────────────────────────────────────────────────────────────
 	useEffect(() => {
 		async function loadData() {
 			await initializeDB();
-			const loadedNodes = await getAllNodes();
-			const loadedEdges = await getAllEdges();
-			setNodes(loadedNodes);
-			setEdges(loadedEdges);
+			setNodes(await getAllNodes());
+			setEdges(await getAllEdges());
 		}
 		loadData();
 	}, []);
 
-	// Only refresh unlocked dimensions when reflection count might have changed,
-	// not on every node state update (avoids unnecessary DB hits on drag)
+	const moonCount = nodes.filter((n) => n.type === "R").length;
 	useEffect(() => {
-		const parentCount = nodes.filter(
-			(n) => n.type === "O" || n.type === "A" || n.type === "I",
-		).length;
-		const moonCount = nodes.filter((n) => n.type === "R").length;
 		getUnlockedDimensions().then(setUnlockedDimensions);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [nodes.filter((n) => n.type === "R").length]);
+	}, [moonCount]);
 
-	// ── Orbit animation ────────────────────────────────────────────────────────
+	// ── Animation ──────────────────────────────────────────────────────────────
 	useEffect(() => {
 		const animate = (timestamp) => {
 			if (!reflectionMode.active) {
 				if (lastTimestampRef.current !== null) {
 					const delta = Math.min(timestamp - lastTimestampRef.current, 100);
-					if (!hoveredNodeId) {
-						setOrbitTime((prev) => prev + delta / 16.667);
-					}
+					if (!hoveredNodeId) setOrbitTime((prev) => prev + delta / 16.667);
 				}
 				lastTimestampRef.current = timestamp;
 			} else {
@@ -147,10 +131,9 @@ export default function SpaceCanvas({ purposeData }) {
 		}
 	}, []);
 
-	// ── Canvas mouse handlers ──────────────────────────────────────────────────
+	// ── Canvas mouse ───────────────────────────────────────────────────────────
 	const handleCanvasMouseDown = (e) => {
 		if (e.shiftKey && tool === "select") return;
-
 		if (
 			tool === "select" &&
 			(e.target === containerRef.current || e.target === canvasRef.current)
@@ -158,7 +141,6 @@ export default function SpaceCanvas({ purposeData }) {
 			setSelectedNodeId(null);
 			return;
 		}
-
 		if (
 			tool === "hand" ||
 			e.target === containerRef.current ||
@@ -171,30 +153,25 @@ export default function SpaceCanvas({ purposeData }) {
 	};
 
 	const handleCanvasMouseMove = (e) => {
-		if (isPanning) {
+		if (isPanning)
 			setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
-		}
-
-		if (creatingConnection && connectionSource) {
-			const canvasRect = canvasRef.current.getBoundingClientRect();
+		if (creatingConnection && connectionSource && canvasRef.current) {
+			const r = canvasRef.current.getBoundingClientRect();
 			setConnectionPreview({
-				x: (e.clientX - canvasRect.left - pan.x) / zoom,
-				y: (e.clientY - canvasRect.top - pan.y) / zoom,
+				x: (e.clientX - r.left - pan.x) / zoom,
+				y: (e.clientY - r.top - pan.y) / zoom,
 			});
 		}
-
 		if (draggingNodeId && canvasRef.current) {
 			const dx = e.clientX - mouseDownPosRef.current.x;
 			const dy = e.clientY - mouseDownPosRef.current.y;
-			if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+			if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD)
 				hasDraggedRef.current = true;
-			}
-
-			const canvasRect = canvasRef.current.getBoundingClientRect();
-			const newX = (e.clientX - canvasRect.left - dragOffset.x - pan.x) / zoom;
-			const newY = (e.clientY - canvasRect.top - dragOffset.y - pan.y) / zoom;
-			setNodes((prevNodes) =>
-				prevNodes.map((n) =>
+			const r = canvasRef.current.getBoundingClientRect();
+			const newX = (e.clientX - r.left - dragOffset.x - pan.x) / zoom;
+			const newY = (e.clientY - r.top - dragOffset.y - pan.y) / zoom;
+			setNodes((prev) =>
+				prev.map((n) =>
 					n.id === draggingNodeId
 						? { ...n, position: { x: newX, y: newY } }
 						: n,
@@ -207,31 +184,25 @@ export default function SpaceCanvas({ purposeData }) {
 		if (tool !== "select") return;
 		if (e.target !== containerRef.current && e.target !== canvasRef.current)
 			return;
-		if (!canvasRef.current) return;
-		const canvasRect = canvasRef.current.getBoundingClientRect();
-		const worldX =
-			(e.clientX - canvasRect.left - pan.x) / zoom - planetConfig.baseRadius;
-		const worldY =
-			(e.clientY - canvasRect.top - pan.y) / zoom - planetConfig.baseRadius;
-		setNodeCreationPos({ x: worldX, y: worldY });
+		const r = canvasRef.current.getBoundingClientRect();
+		setNodeCreationPos({
+			x: (e.clientX - r.left - pan.x) / zoom - planetConfig.baseRadius,
+			y: (e.clientY - r.top - pan.y) / zoom - planetConfig.baseRadius,
+		});
 		setNodeTypePickerPos({ x: e.clientX, y: e.clientY });
 		setShowNodeTypePicker(true);
 	};
 
 	const handleCanvasMouseUp = async () => {
 		setIsPanning(false);
-
 		if (draggingNodeId) {
 			if (hasDraggedRef.current) {
 				const node = nodes.find((n) => n.id === draggingNodeId);
-				if (node) {
-					await db.nodes.update(node.id, { position: node.position });
-				}
+				if (node) await db.nodes.update(node.id, { position: node.position });
 			}
 			setDraggingNodeId(null);
 			hasDraggedRef.current = false;
 		}
-
 		if (creatingConnection && !connectionPreview) {
 			setCreatingConnection(false);
 			setConnectionSource(null);
@@ -245,37 +216,44 @@ export default function SpaceCanvas({ purposeData }) {
 		setShowNodeTypePicker(false);
 		setShowNodeTextInput(true);
 	};
-
 	const handleNodeTextSave = async (text) => {
-		const newNode = {
+		await db.nodes.add({
 			type: nodeTextInputType,
 			text,
 			timestamp: Date.now(),
 			state: "present",
 			position: nodeCreationPos,
-		};
-		await db.nodes.add(newNode);
-		const updated = await getAllNodes();
-		setNodes(updated);
+		});
+		setNodes(await getAllNodes());
 		setShowNodeTextInput(false);
 		setNodeTextInputType(null);
 	};
-
 	const handleNodeInputCancel = () => {
 		setShowNodeTypePicker(false);
 		setShowNodeTextInput(false);
 		setNodeTextInputType(null);
 	};
 
-	// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+	// ── Edge deletion ──────────────────────────────────────────────────────────
+	const handleEdgeClick = useCallback(async (edge) => {
+		if (
+			!window.confirm(
+				"Remove this connection? Both planets stay — only the link is removed.",
+			)
+		)
+			return;
+		await deleteEdge(edge.id);
+		setEdges((prev) => prev.filter((e) => e.id !== edge.id));
+	}, []);
+
+	// ── Keyboard ───────────────────────────────────────────────────────────────
 	useEffect(() => {
-		const handleKeyDown = (e) => {
-			const isTyping =
+		const down = (e) => {
+			const typing =
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
 				document.activeElement?.isContentEditable;
-
-			if (e.key === " " && !e.repeat && tool === "select" && !isTyping) {
+			if (e.key === " " && !e.repeat && tool === "select" && !typing) {
 				e.preventDefault();
 				setTool("hand");
 			}
@@ -285,27 +263,22 @@ export default function SpaceCanvas({ purposeData }) {
 				setConnectionSource(null);
 				setConnectionPreview(null);
 			}
-			if (e.key === "Escape" && (showNodeTypePicker || showNodeTextInput)) {
+			if (e.key === "Escape" && (showNodeTypePicker || showNodeTextInput))
 				handleNodeInputCancel();
-			}
-			if (e.key === "Escape" && selectedNodeId) {
-				setSelectedNodeId(null);
-			}
+			if (e.key === "Escape" && selectedNodeId) setSelectedNodeId(null);
 		};
-
-		const handleKeyUp = (e) => {
-			const isTyping =
+		const up = (e) => {
+			const typing =
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
 				document.activeElement?.isContentEditable;
-			if (e.key === " " && tool === "hand" && !isTyping) setTool("select");
+			if (e.key === " " && tool === "hand" && !typing) setTool("select");
 		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		window.addEventListener("keyup", handleKeyUp);
+		window.addEventListener("keydown", down);
+		window.addEventListener("keyup", up);
 		return () => {
-			window.removeEventListener("keydown", handleKeyDown);
-			window.removeEventListener("keyup", handleKeyUp);
+			window.removeEventListener("keydown", down);
+			window.removeEventListener("keyup", up);
 		};
 	}, [
 		tool,
@@ -316,126 +289,14 @@ export default function SpaceCanvas({ purposeData }) {
 		selectedNodeId,
 	]);
 
-	// ── Planet interactions ────────────────────────────────────────────────────
-	const handlePlanetMouseDown = useCallback(
-		(node, e) => {
-			if (e.shiftKey && tool === "select") {
-				e.stopPropagation();
-				setCreatingConnection(true);
-				setConnectionSource(node);
-				setConnectionPreview(null);
-				return;
-			}
-
-			if (tool === "select") {
-				e.stopPropagation();
-				mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
-				hasDraggedRef.current = false;
-				setDraggingNodeId(node.id);
-				const canvasRect = canvasRef.current.getBoundingClientRect();
-				setDragOffset({
-					x: e.clientX - canvasRect.left - node.position.x * zoom - pan.x,
-					y: e.clientY - canvasRect.top - node.position.y * zoom - pan.y,
-				});
-			}
-		},
-		[tool, zoom, pan],
-	);
-
-	const handlePlanetClick = useCallback(
-		(node, e) => {
-			e.stopPropagation();
-
-			if (
-				creatingConnection &&
-				connectionSource &&
-				node.id !== connectionSource.id
-			) {
-				createConnection(connectionSource, node);
-				setCreatingConnection(false);
-				setConnectionSource(null);
-				setConnectionPreview(null);
-				return;
-			}
-
-			// Only select planet-type nodes (O/A/I).
-			// Clicking a moon (type R) on the canvas opens its parent in reflection mode.
-			if (tool === "select" && !hasDraggedRef.current) {
-				if (node.type === "R") {
-					// Moon click → open parent
-					if (node.parentId) {
-						const parent = nodes.find((n) => n.id === node.parentId);
-						if (parent) enterReflectionMode(parent);
-					}
-					return;
-				}
-				setSelectedNodeId((prev) => (prev === node.id ? null : node.id));
-			}
-		},
-		[tool, creatingConnection, connectionSource, nodes],
-	);
-
-	const handlePlanetDoubleClick = useCallback(
-		(node) => {
-			if (node.type === "O" || node.type === "A" || node.type === "I") {
-				enterReflectionMode(node);
-			}
-		},
-		[zoom, pan], // enterReflectionMode closes over zoom/pan so include them
-	);
-
-	const handlePlanetHover = useCallback(
-		(node) => {
-			setHoveredNodeId(node.id);
-			if (pausedTimeRef.current === null) {
-				pausedTimeRef.current = orbitTime;
-			}
-		},
-		[orbitTime],
-	);
-
-	const handlePlanetLeave = useCallback(() => {
-		setHoveredNodeId(null);
-		pausedTimeRef.current = null;
-	}, []);
-
-	// ── Moon click on canvas ───────────────────────────────────────────────────
-	// Clicking a moon in the overview canvas opens its parent in reflection mode.
-	const handleMoonClickOnCanvas = useCallback(
-		(moon, e) => {
-			e.stopPropagation();
-			if (!hasDraggedRef.current && moon.parentId) {
-				const parent = nodes.find((n) => n.id === moon.parentId);
-				if (parent) enterReflectionMode(parent);
-			}
-		},
-		[nodes],
-	);
-
-	// ── Connection creation ────────────────────────────────────────────────────
-	const createConnection = async (source, target) => {
-		const newEdge = {
-			sourceId: source.id,
-			targetId: target.id,
-			type: "temporal",
-			createdAt: Date.now(),
-		};
-		await db.edges.add(newEdge);
-		const updatedEdges = await getAllEdges();
-		setEdges(updatedEdges);
-	};
-
 	// ── Reflection mode ────────────────────────────────────────────────────────
 	const enterReflectionMode = useCallback(
 		(parentNode) => {
 			const targetZoom = 2.5;
-			const viewportCenterX = window.innerWidth / 2;
-			const viewportCenterY = (window.innerHeight - 60) / 2 + 60;
-			const nodeCenterX = parentNode.position.x + planetConfig.baseRadius;
-			const nodeCenterY = parentNode.position.y + planetConfig.baseRadius;
-			const targetPanX = viewportCenterX - nodeCenterX * targetZoom;
-			const targetPanY = viewportCenterY - nodeCenterY * targetZoom;
-
+			const cx = window.innerWidth / 2;
+			const cy = (window.innerHeight - 60) / 2 + 60;
+			const nx = parentNode.position.x + planetConfig.baseRadius;
+			const ny = parentNode.position.y + planetConfig.baseRadius;
 			setSelectedNodeId(null);
 			setReflectionMode({
 				active: true,
@@ -443,7 +304,7 @@ export default function SpaceCanvas({ purposeData }) {
 				previousView: { zoom, pan },
 			});
 			setZoom(targetZoom);
-			setPan({ x: targetPanX, y: targetPanY });
+			setPan({ x: cx - nx * targetZoom, y: cy - ny * targetZoom });
 		},
 		[zoom, pan],
 	);
@@ -458,32 +319,143 @@ export default function SpaceCanvas({ purposeData }) {
 		});
 	}, [reflectionMode]);
 
-	// ── Export ─────────────────────────────────────────────────────────────────
-	const handleExport = useCallback(() => {
-		const exportData = {
-			version: 3,
-			exportedAt: new Date().toISOString(),
-			purposeData,
-			nodes,
-			edges,
-		};
-		const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-			type: "application/json",
+	// ── Planet handlers ────────────────────────────────────────────────────────
+	const handlePlanetMouseDown = useCallback(
+		(node, e) => {
+			if (e.shiftKey && tool === "select") {
+				e.stopPropagation();
+				setCreatingConnection(true);
+				setConnectionSource(node);
+				setConnectionPreview(null);
+				return;
+			}
+			if (tool === "select") {
+				e.stopPropagation();
+				mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+				hasDraggedRef.current = false;
+				setDraggingNodeId(node.id);
+				const r = canvasRef.current.getBoundingClientRect();
+				setDragOffset({
+					x: e.clientX - r.left - node.position.x * zoom - pan.x,
+					y: e.clientY - r.top - node.position.y * zoom - pan.y,
+				});
+			}
+		},
+		[tool, zoom, pan],
+	);
+
+	const handlePlanetClick = useCallback(
+		(node, e) => {
+			e.stopPropagation();
+			if (
+				creatingConnection &&
+				connectionSource &&
+				node.id !== connectionSource.id
+			) {
+				createConnection(connectionSource, node);
+				setCreatingConnection(false);
+				setConnectionSource(null);
+				setConnectionPreview(null);
+				return;
+			}
+			if (tool === "select" && !hasDraggedRef.current) {
+				if (node.type === "R") {
+					const parent = nodes.find((n) => n.id === node.parentId);
+					if (parent) enterReflectionMode(parent);
+					return;
+				}
+				setSelectedNodeId((prev) => (prev === node.id ? null : node.id));
+			}
+		},
+		[tool, creatingConnection, connectionSource, nodes, enterReflectionMode],
+	);
+
+	// FIX: dependency array includes enterReflectionMode to avoid stale closure
+	const handlePlanetDoubleClick = useCallback(
+		(node) => {
+			if (node.type === "O" || node.type === "A" || node.type === "I")
+				enterReflectionMode(node);
+		},
+		[enterReflectionMode],
+	);
+
+	const handlePlanetHover = useCallback(
+		(node) => {
+			setHoveredNodeId(node.id);
+			if (pausedTimeRef.current === null) pausedTimeRef.current = orbitTime;
+		},
+		[orbitTime],
+	);
+
+	const handlePlanetLeave = useCallback(() => {
+		setHoveredNodeId(null);
+		pausedTimeRef.current = null;
+	}, []);
+
+	const handleMoonClickOnCanvas = useCallback(
+		(moon, e) => {
+			e.stopPropagation();
+			if (!hasDraggedRef.current && moon.parentId) {
+				const parent = nodes.find((n) => n.id === moon.parentId);
+				if (parent) enterReflectionMode(parent);
+			}
+		},
+		[nodes, enterReflectionMode],
+	);
+
+	// ── Connection ─────────────────────────────────────────────────────────────
+	const createConnection = async (source, target) => {
+		await db.edges.add({
+			sourceId: source.id,
+			targetId: target.id,
+			type: "temporal",
+			createdAt: Date.now(),
 		});
+		setEdges(await getAllEdges());
+	};
+
+	// ── Import / Export ────────────────────────────────────────────────────────
+	const handleImport = useCallback(
+		async (importedPurposeData) => {
+			setNodes(await getAllNodes());
+			setEdges(await getAllEdges());
+			setSelectedNodeId(null);
+			setReflectionMode({
+				active: false,
+				parentNodeId: null,
+				previousView: { zoom: CANVAS.defaultZoom, pan: CANVAS.defaultPan },
+			});
+			if (importedPurposeData) onPurposeUpdate?.(importedPurposeData);
+		},
+		[onPurposeUpdate],
+	);
+
+	const handleExport = useCallback(() => {
+		const blob = new Blob(
+			[
+				JSON.stringify(
+					{
+						version: 3,
+						exportedAt: new Date().toISOString(),
+						purposeData,
+						nodes,
+						edges,
+					},
+					null,
+					2,
+				),
+			],
+			{ type: "application/json" },
+		);
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		a.href = url;
-		const title = purposeData?.title
-			? purposeData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()
-			: "chroma_map";
-		a.download = `${title}_${Date.now()}.json`;
+		a.download = `${purposeData?.title ? purposeData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase() : "chroma_map"}_${Date.now()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 	}, [nodes, edges, purposeData]);
 
 	// ── Render moons ───────────────────────────────────────────────────────────
-	// Orbit rings on hover: radius must be multiplied by ORBIT_SCALE to match
-	// actual moon paths (previously rings were drawn at full unscaled radius).
 	const renderMoons = useCallback(() => {
 		const parentNodes = nodes.filter(
 			(n) => n.type === "O" || n.type === "A" || n.type === "I",
@@ -495,13 +467,12 @@ export default function SpaceCanvas({ purposeData }) {
 			const distributedMoons = distributeMoonsEvenly(childMoons, parent);
 			const grouped = groupMoonsByDimension(childMoons, parent);
 			const isHovered = hoveredNodeId === parent.id;
-
 			const effectiveTime =
 				isHovered && pausedTimeRef.current !== null
 					? pausedTimeRef.current
 					: orbitTime;
 
-			// Hover orbit rings — scaled to match actual moon positions
+			// Hover orbit rings scaled to actual moon positions
 			if (isHovered && childMoons.length > 0) {
 				getOrbitalPaths(parent).forEach((path) => {
 					moonElements.push(
@@ -509,11 +480,11 @@ export default function SpaceCanvas({ purposeData }) {
 							key={`${parent.id}-path-${path.dimension}`}
 							cx={path.centerX}
 							cy={path.centerY}
-							r={path.radius * ORBIT_SCALE} // ← was path.radius (unscaled)
+							r={path.radius * ORBIT_SCALE}
 							fill="none"
 							stroke={path.color}
 							strokeWidth={2}
-							strokeOpacity={0.5} // ← was 0.25 (too muted)
+							strokeOpacity={0.5}
 							strokeDasharray="5,5"
 						/>,
 					);
@@ -522,7 +493,6 @@ export default function SpaceCanvas({ purposeData }) {
 
 			Object.entries(grouped).forEach(([dimension, data]) => {
 				if (data.count <= 0) return;
-
 				if (data.count <= 3) {
 					distributedMoons
 						.filter((m) => m.dimension === dimension)
@@ -543,7 +513,7 @@ export default function SpaceCanvas({ purposeData }) {
 									count={1}
 									isHovered={hoveredNodeId === moon.id}
 									isSelected={selectedNodeId === moon.id}
-									onClick={handleMoonClickOnCanvas} // ← opens parent in reflection mode
+									onClick={handleMoonClickOnCanvas}
 									onMouseEnter={() => setHoveredNodeId(moon.id)}
 									onMouseLeave={handlePlanetLeave}
 								/>,
@@ -564,8 +534,7 @@ export default function SpaceCanvas({ purposeData }) {
 								ORBIT_SCALE,
 							)
 						: data.position;
-
-					const aggregateNode = {
+					const agg = {
 						id: `${parent.id}-${dimension}`,
 						type: "R",
 						dimension,
@@ -573,17 +542,16 @@ export default function SpaceCanvas({ purposeData }) {
 						position: pos,
 						parentId: parent.id,
 					};
-
 					moonElements.push(
 						<Moon
-							key={aggregateNode.id}
-							node={aggregateNode}
+							key={agg.id}
+							node={agg}
 							position={pos}
 							count={data.count}
-							isHovered={hoveredNodeId === aggregateNode.id}
-							isSelected={selectedNodeId === aggregateNode.id}
-							onClick={handleMoonClickOnCanvas} // ← opens parent in reflection mode
-							onMouseEnter={() => setHoveredNodeId(aggregateNode.id)}
+							isHovered={hoveredNodeId === agg.id}
+							isSelected={selectedNodeId === agg.id}
+							onClick={handleMoonClickOnCanvas}
+							onMouseEnter={() => setHoveredNodeId(agg.id)}
 							onMouseLeave={handlePlanetLeave}
 						/>,
 					);
@@ -608,11 +576,9 @@ export default function SpaceCanvas({ purposeData }) {
 	const focusedParent = reflectionMode.active
 		? nodes.find((n) => n.id === reflectionMode.parentNodeId)
 		: null;
-
 	const selectedNode = selectedNodeId
 		? nodes.find((n) => n.id === selectedNodeId)
 		: null;
-	// Only show PlanetSidePanel for planet-type nodes, never for moons (type R)
 	const isPlanetNode =
 		selectedNode &&
 		(selectedNode.type === "O" ||
@@ -637,6 +603,7 @@ export default function SpaceCanvas({ purposeData }) {
 				tool={tool}
 				onToolChange={setTool}
 				onExport={handleExport}
+				onImport={handleImport}
 			/>
 
 			<div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -683,18 +650,21 @@ export default function SpaceCanvas({ purposeData }) {
 							<g
 								transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
 								style={{ pointerEvents: "auto" }}>
+								{/* Edges — hoverable + deletable */}
 								{edges.map((edge) => {
-									const sourceNode = nodes.find((n) => n.id === edge.sourceId);
-									const targetNode = nodes.find((n) => n.id === edge.targetId);
-									if (!sourceNode?.position || !targetNode?.position)
-										return null;
+									const src = nodes.find((n) => n.id === edge.sourceId);
+									const tgt = nodes.find((n) => n.id === edge.targetId);
+									if (!src?.position || !tgt?.position) return null;
 									return (
 										<ConnectionLine
 											key={edge.id}
 											edge={edge}
-											sourceNode={sourceNode}
-											targetNode={targetNode}
+											sourceNode={src}
+											targetNode={tgt}
 											isHovered={hoveredEdgeId === edge.id}
+											onClick={handleEdgeClick}
+											onMouseEnter={() => setHoveredEdgeId(edge.id)}
+											onMouseLeave={() => setHoveredEdgeId(null)}
 										/>
 									);
 								})}
@@ -744,10 +714,7 @@ export default function SpaceCanvas({ purposeData }) {
 							parentNode={focusedParent}
 							nodes={nodes}
 							onExit={exitReflectionMode}
-							onNodesUpdate={async () => {
-								const updated = await getAllNodes();
-								setNodes(updated);
-							}}
+							onNodesUpdate={async () => setNodes(await getAllNodes())}
 						/>
 					)}
 
@@ -758,7 +725,6 @@ export default function SpaceCanvas({ purposeData }) {
 							onCancel={handleNodeInputCancel}
 						/>
 					)}
-
 					{showNodeTextInput && (
 						<NodeTextInput
 							position={nodeTypePickerPos}
@@ -769,17 +735,13 @@ export default function SpaceCanvas({ purposeData }) {
 					)}
 				</div>
 
-				{/* PlanetSidePanel — only for planet nodes (O/A/I), never for moons */}
 				{isPlanetNode && !reflectionMode.active && (
 					<PlanetSidePanel
 						node={selectedNode}
 						moons={selectedNodeMoons}
 						onClose={() => setSelectedNodeId(null)}
 						onOpenReflections={() => enterReflectionMode(selectedNode)}
-						onNodesUpdate={async () => {
-							const updated = await getAllNodes();
-							setNodes(updated);
-						}}
+						onNodesUpdate={async () => setNodes(await getAllNodes())}
 					/>
 				)}
 			</div>

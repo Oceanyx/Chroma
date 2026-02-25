@@ -1,10 +1,68 @@
-// src/components/TopNav.jsx - V2.1
+// src/components/TopNav.jsx
 import React, { useState } from "react";
-import { MousePointer, Hand, Download, Target } from "lucide-react";
+import { MousePointer, Hand, Download, Upload, Target } from "lucide-react";
 import PurposeModal from "./PurposeModal";
+import { db } from "../lib/db";
 
-export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
+export default function TopNav({
+	purposeData,
+	tool,
+	onToolChange,
+	onExport,
+	onImport,
+}) {
 	const [showPurpose, setShowPurpose] = useState(false);
+	const [importing, setImporting] = useState(false);
+
+	const handleImport = () => {
+		const input = document.createElement("input");
+		input.type = "file";
+		input.accept = ".json";
+		input.onchange = async (e) => {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			if (
+				!window.confirm(
+					"This will replace ALL current nodes, edges, and reflections with the imported map. This cannot be undone. Continue?",
+				)
+			)
+				return;
+
+			setImporting(true);
+			try {
+				const text = await file.text();
+				const data = JSON.parse(text);
+
+				if (!data.nodes && !data.purposeData) {
+					alert("Invalid Chroma map file — missing nodes data.");
+					return;
+				}
+
+				// Wipe existing data
+				await db.nodes.clear();
+				await db.edges.clear();
+
+				// Re-insert without auto-increment IDs so Dexie assigns fresh ones
+				if (data.nodes?.length) {
+					// Strip the old numeric id so Dexie's ++ assigns new ones
+					await db.nodes.bulkAdd(data.nodes.map(({ id, ...rest }) => rest));
+				}
+				if (data.edges?.length) {
+					await db.edges.bulkAdd(data.edges.map(({ id, ...rest }) => rest));
+				}
+
+				// Notify SpaceCanvas to reload state
+				onImport?.(data.purposeData || null);
+			} catch (err) {
+				console.error("Import error:", err);
+				alert("Failed to import — the file may be corrupted or wrong format.");
+			} finally {
+				setImporting(false);
+			}
+		};
+		input.click();
+	};
 
 	return (
 		<>
@@ -21,7 +79,7 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 					boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
 					flexShrink: 0,
 				}}>
-				{/* ── Left: Logo ──────────────────────────────────────────────── */}
+				{/* Left: Logo */}
 				<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
 					<img
 						src="/logo.PNG"
@@ -48,7 +106,7 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 					</h1>
 				</div>
 
-				{/* ── Center: Map title + tool selector ───────────────────────── */}
+				{/* Center: Map title + tools */}
 				<div
 					style={{
 						display: "flex",
@@ -62,7 +120,6 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 								fontSize: 13,
 								fontWeight: 600,
 								color: "#94A3B8",
-								letterSpacing: "0.01em",
 								maxWidth: 360,
 								overflow: "hidden",
 								textOverflow: "ellipsis",
@@ -72,8 +129,6 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 							{purposeData.title}
 						</span>
 					)}
-
-					{/* Tool selector */}
 					<div
 						style={{
 							display: "flex",
@@ -111,10 +166,7 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 								{label}
 							</button>
 						))}
-
-						{/* Space shortcut hint — sits inside the tool group */}
 						<div
-							title="Hold Space to temporarily pan without switching tools"
 							style={{
 								padding: "4px 8px",
 								marginLeft: 2,
@@ -131,7 +183,7 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 					</div>
 				</div>
 
-				{/* ── Right: Actions ───────────────────────────────────────────── */}
+				{/* Right: Actions */}
 				<div
 					style={{
 						display: "flex",
@@ -146,6 +198,12 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 							label="Purpose"
 						/>
 					)}
+					<NavButton
+						onClick={handleImport}
+						icon={<Upload size={13} />}
+						label={importing ? "Importing…" : "Import"}
+						disabled={importing}
+					/>
 					<NavButton
 						onClick={onExport}
 						icon={<Download size={13} />}
@@ -166,12 +224,13 @@ export default function TopNav({ purposeData, tool, onToolChange, onExport }) {
 	);
 }
 
-function NavButton({ onClick, icon, label, accent = false }) {
+function NavButton({ onClick, icon, label, accent = false, disabled = false }) {
 	const [hovered, setHovered] = useState(false);
 	return (
 		<button
 			onClick={onClick}
-			onMouseEnter={() => setHovered(true)}
+			disabled={disabled}
+			onMouseEnter={() => !disabled && setHovered(true)}
 			onMouseLeave={() => setHovered(false)}
 			style={{
 				padding: "6px 12px",
@@ -186,14 +245,16 @@ function NavButton({ onClick, icon, label, accent = false }) {
 					? `1px solid ${hovered ? "rgba(108,99,255,0.6)" : "rgba(108,99,255,0.3)"}`
 					: `1px solid ${hovered ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.07)"}`,
 				borderRadius: 7,
-				color: accent
-					? hovered
-						? "#A78BFA"
-						: "#6C63FF"
-					: hovered
-						? "#94A3B8"
-						: "#475569",
-				cursor: "pointer",
+				color: disabled
+					? "#334155"
+					: accent
+						? hovered
+							? "#A78BFA"
+							: "#6C63FF"
+						: hovered
+							? "#94A3B8"
+							: "#475569",
+				cursor: disabled ? "not-allowed" : "pointer",
 				fontSize: 12,
 				fontWeight: 600,
 				display: "flex",
@@ -201,6 +262,7 @@ function NavButton({ onClick, icon, label, accent = false }) {
 				gap: 6,
 				transition: "all 0.15s",
 				outline: "none",
+				opacity: disabled ? 0.5 : 1,
 			}}>
 			{icon}
 			{label}

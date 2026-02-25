@@ -277,6 +277,195 @@ function saveCustomLenses(l) {
 	localStorage.setItem(CUSTOM_KEY, JSON.stringify(l));
 }
 
+// ── Version dot timeline ──────────────────────────────────────────────────────
+const MAX_VERSIONS = 5;
+
+function VersionDots({ versions, accent }) {
+	const [hoveredIdx, setHoveredIdx] = useState(null);
+	const [selectedIdx, setSelectedIdx] = useState(null);
+	const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+	const slots = Array.from({ length: MAX_VERSIONS });
+	// versions are stored oldest-first; display newest-first
+	const reversed = [...versions].reverse();
+
+	const handleDotMouseEnter = (e, i) => {
+		const r = e.currentTarget.getBoundingClientRect();
+		setTooltipPos({ x: r.left + r.width / 2, y: r.top - 10 });
+		setHoveredIdx(i);
+	};
+
+	const handleDotClick = (i) => {
+		setSelectedIdx((prev) => (prev === i ? null : i));
+	};
+
+	return (
+		<div
+			style={{
+				padding: "8px 20px 14px",
+				flexShrink: 0,
+				position: "relative",
+				zIndex: 1,
+			}}>
+			{/* Label + dots row */}
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					gap: 10,
+					marginBottom: selectedIdx !== null ? 12 : 0,
+				}}>
+				<span
+					style={{
+						fontSize: 10,
+						fontWeight: 700,
+						letterSpacing: "0.12em",
+						textTransform: "uppercase",
+						color: "#6B7F95",
+						flexShrink: 0,
+					}}>
+					Evolution
+				</span>
+				<div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+					{slots.map((_, i) => {
+						const version = reversed[i];
+						const filled = !!version;
+						const isHovered = hoveredIdx === i;
+						const isSelected = selectedIdx === i;
+						return (
+							<div
+								key={i}
+								onMouseEnter={(e) => filled && handleDotMouseEnter(e, i)}
+								onMouseLeave={() => setHoveredIdx(null)}
+								onClick={() => filled && handleDotClick(i)}
+								style={{
+									width: filled ? 10 : 8,
+									height: filled ? 10 : 8,
+									borderRadius: "50%",
+									background: filled
+										? isSelected || isHovered
+											? accent
+											: `${accent}80`
+										: "rgba(255,255,255,0.08)",
+									border: filled
+										? `1px solid ${isSelected || isHovered ? accent : `${accent}50`}`
+										: "1px solid rgba(255,255,255,0.12)",
+									cursor: filled ? "pointer" : "default",
+									transition: "all 0.15s",
+									transform:
+										isHovered || isSelected ? "scale(1.3)" : "scale(1)",
+									boxShadow: isSelected ? `0 0 8px ${accent}60` : "none",
+									flexShrink: 0,
+								}}
+							/>
+						);
+					})}
+				</div>
+				{versions.length >= MAX_VERSIONS && (
+					<span
+						style={{
+							fontSize: 10,
+							color: "#475569",
+							fontWeight: 600,
+							letterSpacing: "0.06em",
+						}}>
+						FULL
+					</span>
+				)}
+			</div>
+
+			{/* Expanded version card */}
+			{selectedIdx !== null && reversed[selectedIdx] && (
+				<div
+					style={{
+						padding: "12px 14px",
+						background: "rgba(255,255,255,0.02)",
+						border: "1px solid rgba(255,255,255,0.07)",
+						borderLeft: `3px solid ${accent}30`,
+						borderRadius: 8,
+					}}>
+					<div
+						style={{
+							fontSize: 11,
+							color: "#6B7F95",
+							fontWeight: 600,
+							letterSpacing: "0.05em",
+							marginBottom: 7,
+						}}>
+						{reversed[selectedIdx].savedAt
+							? new Date(reversed[selectedIdx].savedAt).toLocaleString(
+									undefined,
+									{
+										month: "short",
+										day: "numeric",
+										hour: "2-digit",
+										minute: "2-digit",
+									},
+								)
+							: "Earlier version"}
+					</div>
+					<div
+						style={{
+							fontSize: 14,
+							lineHeight: 1.7,
+							color: "#5A7090",
+							fontFamily: "Georgia, 'Times New Roman', serif",
+							fontStyle: "italic",
+						}}>
+						{reversed[selectedIdx].text}
+					</div>
+				</div>
+			)}
+
+			{/* Hover tooltip — rendered via fixed position to escape overflow */}
+			{hoveredIdx !== null && reversed[hoveredIdx] && selectedIdx === null && (
+				<div
+					style={{
+						position: "fixed",
+						left: tooltipPos.x,
+						top: tooltipPos.y,
+						transform: "translate(-50%, -100%)",
+						background: "rgba(8,12,24,0.97)",
+						border: "1px solid rgba(148,163,184,0.15)",
+						borderRadius: 7,
+						padding: "8px 12px",
+						fontSize: 11,
+						color: "#94A3B8",
+						zIndex: 9999,
+						pointerEvents: "none",
+						maxWidth: 200,
+						boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+					}}>
+					<div
+						style={{
+							fontWeight: 700,
+							color: "#6B7F95",
+							marginBottom: 4,
+							letterSpacing: "0.05em",
+						}}>
+						{reversed[hoveredIdx].savedAt
+							? new Date(reversed[hoveredIdx].savedAt).toLocaleString(
+									undefined,
+									{
+										month: "short",
+										day: "numeric",
+										hour: "2-digit",
+										minute: "2-digit",
+									},
+								)
+							: "Earlier"}
+					</div>
+					<div style={{ fontStyle: "italic", lineHeight: 1.5 }}>
+						{reversed[hoveredIdx].text.length > 70
+							? reversed[hoveredIdx].text.substring(0, 70) + "…"
+							: reversed[hoveredIdx].text}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 export default function MoonSidePanel({
 	moon,
@@ -291,6 +480,7 @@ export default function MoonSidePanel({
 	const [editLenses, setEditLenses] = useState(moon.lensesUsed || []);
 	const [relationshipMode, setRelationshipMode] = useState(null);
 	const [releaseHovered, setReleaseHovered] = useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 
 	const [customLenses, setCustomLenses] = useState(loadCustomLenses);
 	const [showNewLens, setShowNewLens] = useState(false);
@@ -307,6 +497,7 @@ export default function MoonSidePanel({
 		setIsEditing(false);
 		setRelationshipMode(null);
 		setShowNewLens(false);
+		setShowHistory(false);
 	}, [moon.id]);
 
 	const toggleLens = (id) =>
@@ -323,11 +514,22 @@ export default function MoonSidePanel({
 		setIsEditing(false);
 	};
 
+	const handleSaveEvolved = () => {
+		if (!editText.trim()) return;
+		if ((moon.versions || []).length >= 5) return;
+		onAction("save-evolved", moon, {
+			text: editText.trim(),
+			lensesUsed: editLenses,
+		});
+		setIsEditing(false);
+	};
+
 	const handleCancelEdit = () => {
 		setEditText(moon.text);
 		setEditLenses(moon.lensesUsed || []);
 		setIsEditing(false);
 		setShowNewLens(false);
+		setShowHistory(false);
 	};
 
 	const handleStartRel = (type) => {
@@ -351,6 +553,7 @@ export default function MoonSidePanel({
 		setNewLensLabel("");
 		setNewLensEmoji("🔍");
 		setShowNewLens(false);
+		setShowHistory(false);
 	};
 
 	const handleDeleteCustomLens = (id) => {
@@ -726,6 +929,7 @@ export default function MoonSidePanel({
 											if (e.key === "Enter") handleAddCustomLens();
 											if (e.key === "Escape") {
 												setShowNewLens(false);
+												setShowHistory(false);
 												setNewLensLabel("");
 											}
 										}}
@@ -779,12 +983,13 @@ export default function MoonSidePanel({
 							)}
 						</div>
 
-						<div style={{ display: "flex", gap: 8 }}>
+						{/* Cancel + Update row */}
+						<div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
 							<button
 								onClick={handleCancelEdit}
 								style={{
 									flex: 1,
-									padding: "11px",
+									padding: "10px",
 									borderRadius: 8,
 									border: "1px solid rgba(255,255,255,0.1)",
 									background: "transparent",
@@ -802,13 +1007,14 @@ export default function MoonSidePanel({
 							<button
 								onClick={handleSave}
 								disabled={!editText.trim()}
+								title="Fix a typo or rephrase without creating a new version"
 								style={{
 									flex: 2,
-									padding: "11px",
+									padding: "10px",
 									borderRadius: 8,
-									border: "none",
-									background: editText.trim() ? dimColor : "rgba(30,41,59,0.5)",
-									color: "#fff",
+									border: `1px solid ${editText.trim() ? dimColor + "60" : "rgba(30,41,59,0.5)"}`,
+									background: "transparent",
+									color: editText.trim() ? dimColor : "#334155",
 									fontSize: 13,
 									fontWeight: 700,
 									cursor: editText.trim() ? "pointer" : "not-allowed",
@@ -816,9 +1022,67 @@ export default function MoonSidePanel({
 									opacity: editText.trim() ? 1 : 0.4,
 									transition: "all 0.15s",
 								}}>
-								Save ✦
+								Update
 							</button>
 						</div>
+
+						{/* Mark as Evolved — intentional version */}
+						{(() => {
+							const versionsFull = (moon.versions || []).length >= 5;
+							const canEvolve = editText.trim() && !versionsFull;
+							return (
+								<button
+									onClick={handleSaveEvolved}
+									disabled={!canEvolve}
+									title={
+										versionsFull
+											? "Evolution log full — 5 versions maximum"
+											: "Mark this as a genuine shift in perception — archives the current version"
+									}
+									style={{
+										width: "100%",
+										padding: "10px",
+										borderRadius: 8,
+										border: `1px solid ${canEvolve ? "rgba(167,139,250,0.35)" : "rgba(255,255,255,0.06)"}`,
+										background: canEvolve
+											? "rgba(167,139,250,0.08)"
+											: "transparent",
+										color: canEvolve ? "#A78BFA" : "#334155",
+										fontSize: 12,
+										fontWeight: 700,
+										letterSpacing: "0.05em",
+										cursor: canEvolve ? "pointer" : "not-allowed",
+										outline: "none",
+										opacity: canEvolve ? 1 : 0.4,
+										transition: "all 0.15s",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										gap: 6,
+									}}
+									onMouseEnter={(e) => {
+										if (canEvolve) {
+											e.currentTarget.style.background =
+												"rgba(167,139,250,0.14)";
+											e.currentTarget.style.borderColor =
+												"rgba(167,139,250,0.55)";
+										}
+									}}
+									onMouseLeave={(e) => {
+										if (canEvolve) {
+											e.currentTarget.style.background =
+												"rgba(167,139,250,0.08)";
+											e.currentTarget.style.borderColor =
+												"rgba(167,139,250,0.35)";
+										}
+									}}>
+									<span style={{ fontSize: 13 }}>✦</span>
+									{versionsFull
+										? "Evolution Log Full (5/5)"
+										: "Mark as Evolved"}
+								</button>
+							);
+						})()}
 					</div>
 				)}
 			</div>
@@ -897,6 +1161,11 @@ export default function MoonSidePanel({
 						})}
 					</span>
 				</div>
+			)}
+
+			{/* ── EVOLUTION DOT TIMELINE ────────────────────────────────────── */}
+			{!isEditing && moon.versions && moon.versions.length > 0 && (
+				<VersionDots versions={moon.versions} accent={ds.accent} />
 			)}
 
 			{/* Divider */}
