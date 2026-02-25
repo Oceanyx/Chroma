@@ -1,4 +1,4 @@
-// seedData.js - V4.3 with EXPONENTIAL orbital spacing
+// seedData.js - V4.4 corrected orbit radii (scaled values now safe at 0.62)
 // ============================================================================
 // DIMENSION COLORS
 // ============================================================================
@@ -37,7 +37,13 @@ export const planetConfig = {
 };
 
 // ============================================================================
-// MOON CONFIG - V4.3 EXPONENTIAL ORBITAL SPACING
+// MOON CONFIG
+// Orbit radii are the raw values. Both SpaceCanvas and ReflectionSpace apply
+// ORBIT_SCALE = 0.62 when rendering, so the effective visual radii are:
+//   subjective:     155 * 0.62 =  96px  (planet r=60, moon r=16 → 20px gap)
+//   behavioral:     245 * 0.62 = 152px  (13px gap after subjective ring edge)
+//   intersubjective:355 * 0.62 = 220px  (20px gap after behavioral ring edge)
+//   symbolic:       500 * 0.62 = 310px  (outermost — fits reflection viewport)
 // ============================================================================
 export const moonConfig = {
 	dimension: {
@@ -45,7 +51,7 @@ export const moonConfig = {
 			color: dimensionColors.subjective,
 			name: "Inner Experience",
 			radius: 16,
-			orbitRadius: 110, // Was 100, slight increase
+			orbitRadius: 155,
 			orbitSpeed: 0.001047,
 			description: "What did you feel, think, or sense internally?",
 			unlockThreshold: 0,
@@ -54,7 +60,7 @@ export const moonConfig = {
 			color: dimensionColors.behavioral,
 			name: "Behavioral",
 			radius: 24,
-			orbitRadius: 190, // Was 145, +80 spacing (was +45)
+			orbitRadius: 245,
 			orbitSpeed: 0.00075,
 			description: "What did you observably do or say?",
 			unlockThreshold: 5,
@@ -63,7 +69,7 @@ export const moonConfig = {
 			color: dimensionColors.intersubjective,
 			name: "External",
 			radius: 32,
-			orbitRadius: 300, // Was 190, +110 spacing (was +45)
+			orbitRadius: 355,
 			orbitSpeed: 0.000698,
 			description: "What can be externally verified?",
 			unlockThreshold: 0,
@@ -72,7 +78,7 @@ export const moonConfig = {
 			color: dimensionColors.symbolic,
 			name: "Symbolic",
 			radius: 40,
-			orbitRadius: 440, // Was 240, +140 spacing (was +50)
+			orbitRadius: 500,
 			orbitSpeed: 0.000524,
 			description: "What patterns or meanings do you recognize?",
 			unlockThreshold: 15,
@@ -212,6 +218,9 @@ export const seedNodes = [
 		parentId: "o-1",
 		dimension: "subjective",
 		text: "I felt anxious about being confrontational",
+		timestamp: Date.now() - 86400000,
+		ownership: "asserted",
+		isLocked: false,
 		lensesUsed: ["somatic", "empathy"],
 		orbitAngle: 0,
 		confidence: "stable",
@@ -226,6 +235,9 @@ export const seedNodes = [
 		parentId: "o-1",
 		dimension: "intersubjective",
 		text: "The team dynamic was strained - roles unclear",
+		timestamp: Date.now() - 86400000,
+		ownership: "asserted",
+		isLocked: false,
 		lensesUsed: ["systems"],
 		orbitAngle: 0,
 		confidence: "stable",

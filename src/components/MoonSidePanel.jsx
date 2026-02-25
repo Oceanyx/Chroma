@@ -1,6 +1,13 @@
-// src/components/MoonSidePanel.jsx - V6.0
-// Changes: ownership toggle (Asserted/Entertained), tooltips on state chips,
-//          larger fonts + better contrast, custom lens creation
+// src/components/MoonSidePanel.jsx - V7.0
+// Changes from V6:
+//   - Header redesigned: dimension name on its own row, chips in a separate row below
+//   - All faded labels boosted: #253044 → #7A8FA6, #2D3F55 → #6B7F95, etc.
+//   - StateChip inactive text brighter: #4A5E75 → #7A8FA6
+//   - "edit" overlay text visible: #1E2D3D → #4A6080
+//   - Section labels ("Relationships", "Viewed through") now #7A8FA6
+//   - Timestamp brighter: #2D3F55 → #6B7F95
+//   - Close button default state brighter: #334155 → #6B7F95
+//   - Custom lens creation and editing logic unchanged
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { moonConfig, lenses as DEFAULT_LENSES } from "../seedData";
@@ -56,7 +63,7 @@ function Tooltip({ text, children }) {
 						top: pos.y,
 						transform: "translateX(-50%)",
 						background: "rgba(8,12,24,0.97)",
-						border: "1px solid rgba(148,163,184,0.18)",
+						border: "1px solid rgba(148,163,184,0.2)",
 						borderRadius: 7,
 						padding: "7px 12px",
 						fontSize: 12,
@@ -86,15 +93,15 @@ function StateChip({ active, activeColor, tooltip, onClick, children }) {
 				onMouseEnter={() => setHov(true)}
 				onMouseLeave={() => setHov(false)}
 				style={{
-					padding: "5px 12px",
+					padding: "5px 13px",
 					borderRadius: 20,
-					border: `1px solid ${active ? `${activeColor}55` : "rgba(255,255,255,0.1)"}`,
+					border: `1px solid ${active ? `${activeColor}60` : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
 					background: active
-						? `${activeColor}18`
+						? `${activeColor}22`
 						: hov
-							? "rgba(255,255,255,0.05)"
+							? "rgba(255,255,255,0.07)"
 							: "transparent",
-					color: active ? activeColor : hov ? "#94A3B8" : "#4A5E75",
+					color: active ? activeColor : hov ? "#C8D6E8" : "#7A8FA6",
 					fontSize: 12,
 					fontWeight: 700,
 					letterSpacing: "0.04em",
@@ -118,7 +125,7 @@ function OwnershipChip({ value, onToggle }) {
 		<Tooltip
 			text={
 				isEntertained
-					? "You're trying on this idea without fully endorsing it — a perspective borrowed or entertained from outside yourself"
+					? "You're trying on this idea without fully endorsing it"
 					: "This is your own direct experience, stated as it felt to you"
 			}>
 			<button
@@ -126,15 +133,15 @@ function OwnershipChip({ value, onToggle }) {
 				onMouseEnter={() => setHov(true)}
 				onMouseLeave={() => setHov(false)}
 				style={{
-					padding: "5px 12px",
+					padding: "5px 13px",
 					borderRadius: 20,
-					border: `1px solid ${isEntertained ? "rgba(251,191,36,0.5)" : hov ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.1)"}`,
+					border: `1px solid ${isEntertained ? "rgba(251,191,36,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
 					background: isEntertained
-						? "rgba(251,191,36,0.12)"
+						? "rgba(251,191,36,0.15)"
 						: hov
-							? "rgba(255,255,255,0.04)"
+							? "rgba(255,255,255,0.07)"
 							: "transparent",
-					color: isEntertained ? "#FBBF24" : hov ? "#94A3B8" : "#4A5E75",
+					color: isEntertained ? "#FBBF24" : hov ? "#C8D6E8" : "#7A8FA6",
 					fontSize: 12,
 					fontWeight: 700,
 					letterSpacing: "0.04em",
@@ -161,10 +168,10 @@ function RelActionButton({ type, onClick }) {
 			style={{
 				flex: 1,
 				padding: "13px 8px",
-				background: hov ? `${accent}18` : "rgba(255,255,255,0.025)",
-				border: `1px solid ${hov ? `${accent}55` : "rgba(255,255,255,0.07)"}`,
+				background: hov ? `${accent}20` : "rgba(255,255,255,0.03)",
+				border: `1px solid ${hov ? `${accent}60` : "rgba(255,255,255,0.09)"}`,
 				borderRadius: 10,
-				color: hov ? accent : "#4A5568",
+				color: hov ? accent : "#6B7F95",
 				cursor: "pointer",
 				fontSize: 12,
 				fontWeight: 700,
@@ -196,8 +203,8 @@ function RelLink({ rel, onRemove }) {
 				alignItems: "center",
 				gap: 10,
 				padding: "10px 13px",
-				background: hov ? `${accent}10` : "rgba(255,255,255,0.025)",
-				border: `1px solid ${hov ? `${accent}40` : "rgba(255,255,255,0.06)"}`,
+				background: hov ? `${accent}12` : "rgba(255,255,255,0.03)",
+				border: `1px solid ${hov ? `${accent}45` : "rgba(255,255,255,0.07)"}`,
 				borderRadius: 8,
 				transition: "all 0.15s",
 				cursor: "default",
@@ -208,7 +215,7 @@ function RelLink({ rel, onRemove }) {
 			<span
 				style={{
 					fontSize: 13,
-					color: "#6B7F95",
+					color: "#8B9BAD",
 					flex: 1,
 					overflow: "hidden",
 					textOverflow: "ellipsis",
@@ -395,45 +402,81 @@ export default function MoonSidePanel({
 			{/* ── HEADER ─────────────────────────────────────────────────────── */}
 			<div
 				style={{
-					padding: "18px 20px 12px",
-					display: "flex",
-					alignItems: "flex-start",
-					justifyContent: "space-between",
+					padding: "18px 20px 0",
 					flexShrink: 0,
 					position: "relative",
 					zIndex: 1,
-					gap: 8,
 				}}>
+				{/* Row 1: Dimension name + close button */}
 				<div
 					style={{
 						display: "flex",
 						alignItems: "center",
-						flexWrap: "wrap",
-						gap: 6,
-						flex: 1,
+						justifyContent: "space-between",
+						marginBottom: 12,
 					}}>
-					<span
+					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+						<span
+							style={{
+								width: 9,
+								height: 9,
+								borderRadius: "50%",
+								background: ds.accent,
+								boxShadow: `0 0 8px ${ds.accent}`,
+								flexShrink: 0,
+								display: "inline-block",
+							}}
+						/>
+						<span
+							style={{
+								fontSize: 14,
+								fontWeight: 700,
+								letterSpacing: "0.1em",
+								textTransform: "uppercase",
+								color: ds.accent,
+							}}>
+							{config.name}
+						</span>
+					</div>
+					<button
+						onClick={onClose}
 						style={{
-							width: 8,
-							height: 8,
-							borderRadius: "50%",
-							background: ds.accent,
-							boxShadow: `0 0 6px ${ds.accent}`,
+							background: "none",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: 6,
+							color: "#6B7F95",
+							cursor: "pointer",
+							width: 28,
+							height: 28,
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							outline: "none",
+							transition: "all 0.15s",
 							flexShrink: 0,
-							display: "inline-block",
 						}}
-					/>
-					<span
-						style={{
-							fontSize: 11,
-							fontWeight: 700,
-							letterSpacing: "0.12em",
-							textTransform: "uppercase",
-							color: ds.accent,
-							opacity: 0.9,
+						onMouseEnter={(e) => {
+							e.currentTarget.style.color = "#C8D6E8";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.color = "#6B7F95";
+							e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
 						}}>
-						{config.name}
-					</span>
+						<X size={13} />
+					</button>
+				</div>
+
+				{/* Row 2: Status chips — own row with breathing room */}
+				<div
+					style={{
+						display: "flex",
+						gap: 6,
+						flexWrap: "wrap",
+						paddingBottom: 14,
+						borderBottom: "1px solid rgba(255,255,255,0.07)",
+						marginBottom: 0,
+					}}>
 					<OwnershipChip
 						value={moon.ownership || "asserted"}
 						onToggle={() =>
@@ -452,44 +495,17 @@ export default function MoonSidePanel({
 					<StateChip
 						active={moon.isLocked}
 						activeColor="#60A5FA"
-						tooltip="Pin this moon in orbit — marks a reflection you keep returning to. Useful for ideas that won't leave you alone"
+						tooltip="Pin this moon in orbit — marks a reflection you keep returning to"
 						onClick={() => onAction("anchor", moon)}>
 						⚓ Recurring
 					</StateChip>
 				</div>
-				<button
-					onClick={onClose}
-					style={{
-						background: "none",
-						border: "1px solid rgba(255,255,255,0.08)",
-						borderRadius: 6,
-						color: "#334155",
-						cursor: "pointer",
-						width: 28,
-						height: 28,
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						outline: "none",
-						transition: "all 0.15s",
-						flexShrink: 0,
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.color = "#94A3B8";
-						e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.color = "#334155";
-						e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-					}}>
-					<X size={13} />
-				</button>
 			</div>
 
 			{/* ── REFLECTION TEXT ────────────────────────────────────────────── */}
 			<div
 				style={{
-					padding: "0 20px 16px",
+					padding: "16px 20px",
 					flexShrink: 0,
 					position: "relative",
 					zIndex: 1,
@@ -504,26 +520,26 @@ export default function MoonSidePanel({
 						style={{
 							fontSize: 17,
 							lineHeight: 1.8,
-							color: isEntertained ? "#B89A40" : "#C8D6E8",
+							color: isEntertained ? "#C9A84C" : "#D4E1F0",
 							fontFamily: "Georgia, 'Times New Roman', serif",
-							fontStyle: isEntertained ? "normal" : "italic",
+							fontStyle: "italic",
 							cursor: "text",
 							padding: "16px 18px",
-							background: "rgba(255,255,255,0.025)",
+							background: "rgba(255,255,255,0.03)",
 							borderRadius: 10,
 							border: isEntertained
-								? `1px dashed ${ds.accent}45`
-								: "1px solid rgba(255,255,255,0.05)",
-							borderLeft: `3px ${isEntertained ? "dashed" : "solid"} ${ds.accent}60`,
+								? `1px dashed ${ds.accent}50`
+								: "1px solid rgba(255,255,255,0.07)",
+							borderLeft: `3px ${isEntertained ? "dashed" : "solid"} ${ds.accent}70`,
 							transition: "background 0.2s",
 							position: "relative",
 							minHeight: 64,
 						}}
 						onMouseEnter={(e) =>
-							(e.currentTarget.style.background = "rgba(255,255,255,0.04)")
+							(e.currentTarget.style.background = "rgba(255,255,255,0.055)")
 						}
 						onMouseLeave={(e) =>
-							(e.currentTarget.style.background = "rgba(255,255,255,0.025)")
+							(e.currentTarget.style.background = "rgba(255,255,255,0.03)")
 						}>
 						{isEntertained && (
 							<span
@@ -532,7 +548,7 @@ export default function MoonSidePanel({
 									fontSize: 10,
 									fontWeight: 700,
 									letterSpacing: "0.1em",
-									color: "#FBBF2470",
+									color: "#FBBF2490",
 									marginBottom: 6,
 									fontStyle: "normal",
 									fontFamily: "system-ui, sans-serif",
@@ -547,7 +563,7 @@ export default function MoonSidePanel({
 								bottom: 8,
 								right: 10,
 								fontSize: 10,
-								color: "#1E2D3D",
+								color: "#4A6080",
 								fontStyle: "normal",
 								fontFamily: "system-ui, sans-serif",
 								letterSpacing: "0.08em",
@@ -570,7 +586,7 @@ export default function MoonSidePanel({
 								background: "rgba(8,13,25,0.85)",
 								border: `2px solid ${ds.accent}70`,
 								borderRadius: 10,
-								color: "#C8D6E8",
+								color: "#D4E1F0",
 								fontSize: 17,
 								fontFamily: "Georgia, 'Times New Roman', serif",
 								fontStyle: "italic",
@@ -599,13 +615,13 @@ export default function MoonSidePanel({
 										style={{
 											padding: "5px 11px",
 											borderRadius: 20,
-											border: `1px solid ${editLenses.includes(lens.id) ? `${lens.color || dimColor}60` : "rgba(255,255,255,0.1)"}`,
+											border: `1px solid ${editLenses.includes(lens.id) ? `${lens.color || dimColor}60` : "rgba(255,255,255,0.12)"}`,
 											background: editLenses.includes(lens.id)
-												? `${lens.color || dimColor}20`
+												? `${lens.color || dimColor}22`
 												: "transparent",
 											color: editLenses.includes(lens.id)
 												? lens.color || dimColor
-												: "#4A5E75",
+												: "#7A8FA6",
 											fontSize: 13,
 											fontWeight: 700,
 											cursor: "pointer",
@@ -652,9 +668,9 @@ export default function MoonSidePanel({
 									style={{
 										padding: "5px 11px",
 										borderRadius: 20,
-										border: "1px dashed rgba(255,255,255,0.15)",
+										border: "1px dashed rgba(255,255,255,0.18)",
 										background: "transparent",
-										color: "#334155",
+										color: "#6B7F95",
 										fontSize: 12,
 										fontWeight: 700,
 										cursor: "pointer",
@@ -668,7 +684,7 @@ export default function MoonSidePanel({
 										(e.currentTarget.style.color = "#94A3B8")
 									}
 									onMouseLeave={(e) =>
-										(e.currentTarget.style.color = "#334155")
+										(e.currentTarget.style.color = "#6B7F95")
 									}>
 									+ New lens
 								</button>
@@ -751,7 +767,7 @@ export default function MoonSidePanel({
 										style={{
 											background: "none",
 											border: "none",
-											color: "#475569",
+											color: "#6B7F95",
 											fontSize: 12,
 											cursor: "pointer",
 											outline: "none",
@@ -770,9 +786,9 @@ export default function MoonSidePanel({
 									flex: 1,
 									padding: "11px",
 									borderRadius: 8,
-									border: "1px solid rgba(255,255,255,0.08)",
+									border: "1px solid rgba(255,255,255,0.1)",
 									background: "transparent",
-									color: "#4A5E75",
+									color: "#6B7F95",
 									fontSize: 13,
 									fontWeight: 700,
 									cursor: "pointer",
@@ -780,7 +796,7 @@ export default function MoonSidePanel({
 									transition: "all 0.15s",
 								}}
 								onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
-								onMouseLeave={(e) => (e.currentTarget.style.color = "#4A5E75")}>
+								onMouseLeave={(e) => (e.currentTarget.style.color = "#6B7F95")}>
 								Cancel
 							</button>
 							<button
@@ -811,7 +827,7 @@ export default function MoonSidePanel({
 			{!isEditing && moon.lensesUsed && moon.lensesUsed.length > 0 && (
 				<div
 					style={{
-						padding: "0 20px 14px",
+						padding: "0 20px 16px",
 						display: "flex",
 						flexWrap: "wrap",
 						gap: 6,
@@ -825,7 +841,7 @@ export default function MoonSidePanel({
 							fontWeight: 700,
 							letterSpacing: "0.12em",
 							textTransform: "uppercase",
-							color: "#253044",
+							color: "#7A8FA6",
 							width: "100%",
 							marginBottom: 4,
 						}}>
@@ -838,13 +854,13 @@ export default function MoonSidePanel({
 							<span
 								key={lensId}
 								style={{
-									padding: "4px 11px",
+									padding: "5px 12px",
 									borderRadius: 20,
 									fontSize: 13,
 									fontWeight: 700,
 									color: l.color || dimColor,
-									background: `${l.color || dimColor}12`,
-									border: `1px solid ${l.color || dimColor}28`,
+									background: `${l.color || dimColor}14`,
+									border: `1px solid ${l.color || dimColor}30`,
 									display: "flex",
 									alignItems: "center",
 									gap: 4,
@@ -869,7 +885,7 @@ export default function MoonSidePanel({
 					<span
 						style={{
 							fontSize: 12,
-							color: "#2D3F55",
+							color: "#6B7F95",
 							fontWeight: 600,
 							letterSpacing: "0.05em",
 						}}>
@@ -889,7 +905,7 @@ export default function MoonSidePanel({
 					style={{
 						margin: "0 20px",
 						height: 1,
-						background: "rgba(255,255,255,0.055)",
+						background: "rgba(255,255,255,0.07)",
 						flexShrink: 0,
 					}}
 				/>
@@ -911,7 +927,7 @@ export default function MoonSidePanel({
 							fontWeight: 700,
 							letterSpacing: "0.14em",
 							textTransform: "uppercase",
-							color: "#253044",
+							color: "#7A8FA6",
 							marginBottom: 12,
 						}}>
 						Relationships
@@ -998,7 +1014,7 @@ export default function MoonSidePanel({
 				<div
 					style={{
 						padding: "14px 20px",
-						borderTop: "1px solid rgba(255,255,255,0.05)",
+						borderTop: "1px solid rgba(255,255,255,0.06)",
 						flexShrink: 0,
 						zIndex: 1,
 						position: "relative",
@@ -1011,11 +1027,11 @@ export default function MoonSidePanel({
 							width: "100%",
 							padding: "12px 16px",
 							borderRadius: 9,
-							border: `1px solid ${releaseHovered ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.07)"}`,
+							border: `1px solid ${releaseHovered ? "rgba(239,68,68,0.55)" : "rgba(255,255,255,0.09)"}`,
 							background: releaseHovered
-								? "rgba(239,68,68,0.08)"
-								: "rgba(255,255,255,0.02)",
-							color: releaseHovered ? "#EF4444" : "#2D3F55",
+								? "rgba(239,68,68,0.10)"
+								: "rgba(255,255,255,0.025)",
+							color: releaseHovered ? "#EF4444" : "#6B7F95",
 							cursor: "pointer",
 							fontSize: 12,
 							fontWeight: 700,
@@ -1028,7 +1044,7 @@ export default function MoonSidePanel({
 							justifyContent: "center",
 							gap: 7,
 						}}>
-						<span style={{ fontSize: 13, opacity: releaseHovered ? 1 : 0.5 }}>
+						<span style={{ fontSize: 13, opacity: releaseHovered ? 1 : 0.6 }}>
 							✦
 						</span>
 						Release into Void

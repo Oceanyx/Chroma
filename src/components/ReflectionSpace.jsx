@@ -1,6 +1,6 @@
-// src/components/ReflectionSpace.jsx - V5.0
-// Changes: removed comparison mode, ring-click to add moons, fixed centering,
-//          frame-rate independent orbit, e.currentTarget fixes
+// src/components/ReflectionSpace.jsx - V5.1
+// Fixes: moon creation now includes timestamp/ownership/isLocked,
+//        orbit scale kept at 0.62 matching seedData intent
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import Planet from "./Planet";
@@ -24,15 +24,15 @@ import {
 } from "../lib/db";
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const TOP_BAR_HEIGHT = 60; // px — the "Edit Observation" bar
-const BOTTOM_BAR_HEIGHT = 44; // px — the observation text strip at the bottom
+const TOP_BAR_HEIGHT = 60;
+const BOTTOM_BAR_HEIGHT = 44;
 const ORBIT_SCALE = 0.62;
 
 const DIMENSION_START_ANGLES = {
-	subjective: Math.PI * 1.5, // top
-	behavioral: 0, // right
-	intersubjective: Math.PI * 0.5, // bottom
-	symbolic: Math.PI, // left
+	subjective: Math.PI * 1.5,
+	behavioral: 0,
+	intersubjective: Math.PI * 0.5,
+	symbolic: Math.PI,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -72,37 +72,22 @@ export default function ReflectionSpace({
 	onSwitchToObservation,
 	onNodesUpdate,
 }) {
-	// Selection — single moon only (comparison removed)
 	const [selectedMoonId, setSelectedMoonId] = useState(null);
-
-	// Relationship creation
-	const [creatingRelationship, setCreatingRelationship] = useState(null); // 'tension' | 'support' | null
+	const [creatingRelationship, setCreatingRelationship] = useState(null);
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
-
-	// Hover states
 	const [hoveredMoonId, setHoveredMoonId] = useState(null);
 	const [hoveredRingDimension, setHoveredRingDimension] = useState(null);
-
-	// Moon input
 	const [showInputCard, setShowInputCard] = useState(false);
 	const [addingDimension, setAddingDimension] = useState(null);
-
-	// Unlock
 	const [unlockNotification, setUnlockNotification] = useState(null);
 	const [unlockedDimensions, setUnlockedDimensions] = useState([]);
-
-	// Orbit animation — frame-rate independent
 	const [orbitTime, setOrbitTime] = useState(0);
 	const lastTimestampRef = useRef(null);
-
-	// Toast
 	const [toast, setToast] = useState(null);
 
-	// ── Centering — accounts for panel width and bar heights ──────────────────
+	// ── Centering ──────────────────────────────────────────────────────────────
 	const panelOpen = selectedMoonId !== null;
 	const panelWidth = panelOpen ? PANEL_WIDTH : 0;
-
-	// Planet sits at center of the available canvas area
 	const viewportCenterX = (window.innerWidth - panelWidth) / 2;
 	const viewportCenterY =
 		(window.innerHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT) / 2;
@@ -118,18 +103,15 @@ export default function ReflectionSpace({
 	const childMoons = nodes.filter((n) => n.parentId === parentNode.id);
 	const distributedMoons = distributeMoonsEvenly(childMoons, centeredPlanet);
 	const orbitalPaths = getScaledOrbitalPaths(centeredPlanet);
-
 	const selectedMoon = childMoons.find((m) => m.id === selectedMoonId) || null;
 
-	// ── Orbit animation loop (frame-rate independent) ────────────────────────
+	// ── Orbit animation ────────────────────────────────────────────────────────
 	useEffect(() => {
 		let id;
 		const animate = (timestamp) => {
 			if (lastTimestampRef.current !== null) {
 				const delta = timestamp - lastTimestampRef.current;
-				// Clamp delta to 100ms max (handles tab unfocus resumption)
 				const clamped = Math.min(delta, 100);
-				// Normalize to 60fps equivalent so orbitSpeed values stay accurate
 				setOrbitTime((prev) => prev + clamped / 16.667);
 			}
 			lastTimestampRef.current = timestamp;
@@ -142,12 +124,12 @@ export default function ReflectionSpace({
 		};
 	}, []);
 
-	// ── Load unlocked dimensions ──────────────────────────────────────────────
+	// ── Load unlocked dimensions ───────────────────────────────────────────────
 	useEffect(() => {
 		getUnlockedDimensions().then(setUnlockedDimensions);
 	}, []);
 
-	// ── Keyboard shortcuts ────────────────────────────────────────────────────
+	// ── Keyboard ───────────────────────────────────────────────────────────────
 	useEffect(() => {
 		const onKey = (e) => {
 			if (e.key === "Escape") {
@@ -163,22 +145,21 @@ export default function ReflectionSpace({
 		return () => window.removeEventListener("keydown", onKey);
 	}, [creatingRelationship]);
 
-	// ── Toast helper ──────────────────────────────────────────────────────────
+	// ── Toast ──────────────────────────────────────────────────────────────────
 	const showToast = (message, color = "#10B981") => {
 		setToast({ message, color });
 		setTimeout(() => setToast(null), 2500);
 	};
 
-	// ── Ring click — open input for that dimension ────────────────────────────
+	// ── Ring click ─────────────────────────────────────────────────────────────
 	const handleRingClick = (dimension) => {
 		if (creatingRelationship || showInputCard) return;
 		setAddingDimension(dimension);
 		setShowInputCard(true);
 	};
 
-	// ── Moon click ────────────────────────────────────────────────────────────
-	const handleMoonClick = (moonNode, e) => {
-		// During relationship creation — select as target
+	// ── Moon click ─────────────────────────────────────────────────────────────
+	const handleMoonClick = (moonNode) => {
 		if (creatingRelationship && relationshipSourceMoon) {
 			handleCreateRelationship(
 				relationshipSourceMoon,
@@ -189,11 +170,10 @@ export default function ReflectionSpace({
 			setRelationshipSourceMoon(null);
 			return;
 		}
-		// Normal click — select / deselect
 		setSelectedMoonId((prev) => (prev === moonNode.id ? null : moonNode.id));
 	};
 
-	// ── Panel actions ─────────────────────────────────────────────────────────
+	// ── Panel actions ──────────────────────────────────────────────────────────
 	const handlePanelAction = async (action, moon, extra) => {
 		switch (action) {
 			case "ownership":
@@ -276,7 +256,7 @@ export default function ReflectionSpace({
 		}
 	};
 
-	// ── Relationship creation ─────────────────────────────────────────────────
+	// ── Relationship creation ──────────────────────────────────────────────────
 	const handleStartRelationship = (type, moon) => {
 		setCreatingRelationship(type);
 		setRelationshipSourceMoon(moon);
@@ -336,7 +316,7 @@ export default function ReflectionSpace({
 		);
 	};
 
-	// ── Save new reflection ───────────────────────────────────────────────────
+	// ── Save new reflection ────────────────────────────────────────────────────
 	const handleSaveReflection = async (data) => {
 		const previousCount = await getTotalReflectionCount();
 		await db.nodes.add({
@@ -344,6 +324,10 @@ export default function ReflectionSpace({
 			parentId: parentNode.id,
 			dimension: addingDimension,
 			text: data.text,
+			// ↓ fields that were previously missing and caused UI glitches
+			timestamp: Date.now(),
+			ownership: "asserted",
+			isLocked: false,
 			lensesUsed: data.lensesUsed || [],
 			orbitAngle: DIMENSION_START_ANGLES[addingDimension] || 0,
 			confidence: "stable",
@@ -363,7 +347,7 @@ export default function ReflectionSpace({
 		setAddingDimension(null);
 	};
 
-	// ── Build relationship line positions ─────────────────────────────────────
+	// ── Build relationship line positions ──────────────────────────────────────
 	const moonPositionMap = {};
 	distributedMoons.forEach((m) => {
 		moonPositionMap[m.id] = getMoonPosition(m, centeredPlanet, orbitTime);
@@ -434,7 +418,7 @@ export default function ReflectionSpace({
 		});
 	});
 
-	// ── Render ────────────────────────────────────────────────────────────────
+	// ── Render ─────────────────────────────────────────────────────────────────
 	return (
 		<div
 			style={{
@@ -446,7 +430,7 @@ export default function ReflectionSpace({
 				display: "flex",
 				flexDirection: "column",
 			}}>
-			{/* ── TOP BAR ─────────────────────────────────────────────────────── */}
+			{/* ── TOP BAR ──────────────────────────────────────────────────────── */}
 			<div
 				style={{
 					height: TOP_BAR_HEIGHT,
@@ -505,7 +489,7 @@ export default function ReflectionSpace({
 				<div style={{ width: "120px" }} />
 			</div>
 
-			{/* ── CANVAS + PANEL ROW ───────────────────────────────────────────── */}
+			{/* ── CANVAS + PANEL ROW ────────────────────────────────────────────── */}
 			<div
 				style={{
 					flex: 1,
@@ -513,7 +497,7 @@ export default function ReflectionSpace({
 					overflow: "hidden",
 					position: "relative",
 				}}>
-				{/* ── CANVAS ──────────────────────────────────────────────────────── */}
+				{/* ── CANVAS ────────────────────────────────────────────────────── */}
 				<div style={{ flex: 1, position: "relative" }}>
 					{/* Instruction hint */}
 					{!showInputCard && !creatingRelationship && !selectedMoonId && (
@@ -527,7 +511,7 @@ export default function ReflectionSpace({
 								background: "rgba(10,15,28,0.95)",
 								border: "1px solid rgba(108,99,255,0.18)",
 								borderRadius: "7px",
-								color: "#334155",
+								color: "#64748B",
 								fontSize: "11px",
 								fontWeight: 600,
 								zIndex: 10,
@@ -536,7 +520,7 @@ export default function ReflectionSpace({
 							}}>
 							{childMoons.length === 0
 								? "Hover an orbit ring and click to add your first reflection"
-								: "Click a moon to inspect • Click a ring to add a reflection"}
+								: "Click a moon to inspect · Click a ring to add a reflection"}
 						</div>
 					)}
 
@@ -604,7 +588,7 @@ export default function ReflectionSpace({
 						</div>
 					)}
 
-					{/* ── SVG CANVAS ────────────────────────────────────────────────── */}
+					{/* ── SVG CANVAS ─────────────────────────────────────────────── */}
 					<svg
 						style={{
 							position: "absolute",
@@ -632,7 +616,7 @@ export default function ReflectionSpace({
 						</defs>
 
 						<g style={{ pointerEvents: "auto" }}>
-							{/* ── ORBITAL RINGS (interactive) ─────────────────────────── */}
+							{/* ── ORBITAL RINGS ─────────────────────────────────────── */}
 							{orbitalPaths
 								.filter((p) => unlockedDimensions.includes(p.dimension))
 								.map((path) => {
@@ -650,10 +634,7 @@ export default function ReflectionSpace({
 												fill="none"
 												stroke="transparent"
 												strokeWidth={24}
-												style={{
-													pointerEvents: "stroke",
-													cursor: "pointer",
-												}}
+												style={{ pointerEvents: "stroke", cursor: "pointer" }}
 												onClick={() => handleRingClick(path.dimension)}
 												onMouseEnter={() =>
 													setHoveredRingDimension(path.dimension)
@@ -669,7 +650,7 @@ export default function ReflectionSpace({
 												fill="none"
 												stroke={path.color}
 												strokeWidth={isHovered ? 2.5 : 1.5}
-												strokeOpacity={isHovered ? 0.75 : 0.35}
+												strokeOpacity={isHovered ? 0.85 : 0.5}
 												strokeDasharray={isHovered ? "none" : "3,10"}
 												filter={
 													isHovered ? "url(#ringHoverGlow)" : "url(#orbitGlow)"
@@ -680,7 +661,7 @@ export default function ReflectionSpace({
 												}}
 											/>
 
-											{/* + badge at top of ring when hovered */}
+											{/* + badge at top of ring on hover */}
 											{isHovered && (
 												<g style={{ pointerEvents: "none" }}>
 													<circle
@@ -701,7 +682,6 @@ export default function ReflectionSpace({
 														style={{ userSelect: "none" }}>
 														+
 													</text>
-													{/* Dimension label next to badge */}
 													<text
 														x={plusX + 18}
 														y={plusY}
@@ -721,10 +701,10 @@ export default function ReflectionSpace({
 									);
 								})}
 
-							{/* ── RELATIONSHIP LINES ──────────────────────────────────── */}
+							{/* ── RELATIONSHIP LINES ────────────────────────────────── */}
 							{relLines}
 
-							{/* ── SOURCE MOON GLOW during relationship creation ────────── */}
+							{/* ── SOURCE MOON GLOW during relationship creation ─────── */}
 							{creatingRelationship &&
 								relationshipSourceMoon &&
 								(() => {
@@ -765,7 +745,7 @@ export default function ReflectionSpace({
 									);
 								})()}
 
-							{/* ── PLANET ──────────────────────────────────────────────── */}
+							{/* ── PLANET ────────────────────────────────────────────── */}
 							<Planet
 								node={centeredPlanet}
 								moons={childMoons}
@@ -774,7 +754,7 @@ export default function ReflectionSpace({
 								isFocused={true}
 							/>
 
-							{/* ── MOONS ───────────────────────────────────────────────── */}
+							{/* ── MOONS ─────────────────────────────────────────────── */}
 							{!showInputCard &&
 								distributedMoons.map((moon) => {
 									const pos = getMoonPosition(moon, centeredPlanet, orbitTime);
@@ -790,7 +770,7 @@ export default function ReflectionSpace({
 												position={pos}
 												isHovered={isHovered || isSelected}
 												isSelected={isSelected}
-												onClick={(n, e) => handleMoonClick(n, e)}
+												onClick={(n) => handleMoonClick(n)}
 												onMouseEnter={() => setHoveredMoonId(moon.id)}
 												onMouseLeave={() => setHoveredMoonId(null)}
 											/>
@@ -835,7 +815,7 @@ export default function ReflectionSpace({
 					</svg>
 				</div>
 
-				{/* ── SIDE PANEL ────────────────────────────────────────────────────── */}
+				{/* ── SIDE PANEL ─────────────────────────────────────────────────── */}
 				{panelOpen && selectedMoon && (
 					<MoonSidePanel
 						moon={selectedMoon}
@@ -865,7 +845,7 @@ export default function ReflectionSpace({
 				<span
 					style={{
 						fontSize: "10px",
-						color: "#3D5070",
+						color: "#64748B",
 						fontWeight: 700,
 						textTransform: "uppercase",
 						letterSpacing: "0.7px",
@@ -874,7 +854,7 @@ export default function ReflectionSpace({
 					Observation
 				</span>
 				<span
-					style={{ fontSize: "13px", color: "#4A6080", fontStyle: "italic" }}>
+					style={{ fontSize: "13px", color: "#7A8FA6", fontStyle: "italic" }}>
 					{parentNode.text?.substring(0, 120) || "No description"}
 					{parentNode.text?.length > 120 ? "…" : ""}
 				</span>
