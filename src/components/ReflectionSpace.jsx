@@ -1,6 +1,5 @@
-// src/components/ReflectionSpace.jsx - V5.1
-// Fixes: moon creation now includes timestamp/ownership/isLocked,
-//        orbit scale kept at 0.62 matching seedData intent
+// src/components/ReflectionSpace.jsx - V5.2
+// Fixes: window resize now re-centres the planet correctly (useWindowSize hook)
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import Planet from "./Planet";
@@ -34,6 +33,25 @@ const DIMENSION_START_ANGLES = {
 	intersubjective: Math.PI * 0.5,
 	symbolic: Math.PI,
 };
+
+// ── useWindowSize ─────────────────────────────────────────────────────────────
+// Re-renders any consumer when the browser window is resized.
+function useWindowSize() {
+	const [size, setSize] = useState({
+		width: window.innerWidth,
+		height: window.innerHeight,
+	});
+
+	useEffect(() => {
+		const handleResize = () =>
+			setSize({ width: window.innerWidth, height: window.innerHeight });
+
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	return size;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getMoonPosition(moon, parent, orbitTime) {
@@ -72,6 +90,8 @@ export default function ReflectionSpace({
 	onSwitchToObservation,
 	onNodesUpdate,
 }) {
+	const { width: windowWidth, height: windowHeight } = useWindowSize();
+
 	const [selectedMoonId, setSelectedMoonId] = useState(null);
 	const [creatingRelationship, setCreatingRelationship] = useState(null);
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
@@ -85,12 +105,12 @@ export default function ReflectionSpace({
 	const lastTimestampRef = useRef(null);
 	const [toast, setToast] = useState(null);
 
-	// ── Centering ──────────────────────────────────────────────────────────────
+	// ── Centering — reacts to windowWidth/windowHeight and panel state ─────────
 	const panelOpen = selectedMoonId !== null;
 	const panelWidth = panelOpen ? PANEL_WIDTH : 0;
-	const viewportCenterX = (window.innerWidth - panelWidth) / 2;
+	const viewportCenterX = (windowWidth - panelWidth) / 2;
 	const viewportCenterY =
-		(window.innerHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT) / 2;
+		(windowHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT) / 2;
 
 	const centeredPlanet = {
 		...parentNode,
@@ -188,7 +208,6 @@ export default function ReflectionSpace({
 				break;
 
 			case "save-edit":
-				// Quiet update — typos, small clarifications. No version created.
 				await db.nodes.update(moon.id, {
 					text: extra.text,
 					lensesUsed: extra.lensesUsed,
@@ -199,8 +218,6 @@ export default function ReflectionSpace({
 				break;
 
 			case "save-evolved":
-				// Intentional evolution — marks a genuine perceptual shift.
-				// Keeps last 4 versions + adds current = max 5 total.
 				await db.nodes.update(moon.id, {
 					text: extra.text,
 					lensesUsed: extra.lensesUsed,
@@ -346,7 +363,6 @@ export default function ReflectionSpace({
 			parentId: parentNode.id,
 			dimension: addingDimension,
 			text: data.text,
-			// ↓ fields that were previously missing and caused UI glitches
 			timestamp: Date.now(),
 			ownership: "asserted",
 			isLocked: false,
@@ -648,7 +664,6 @@ export default function ReflectionSpace({
 
 									return (
 										<g key={path.dimension}>
-											{/* Invisible wide stroke for easy click target */}
 											<circle
 												cx={path.centerX}
 												cy={path.centerY}
@@ -664,7 +679,6 @@ export default function ReflectionSpace({
 												onMouseLeave={() => setHoveredRingDimension(null)}
 											/>
 
-											{/* Visual ring */}
 											<circle
 												cx={path.centerX}
 												cy={path.centerY}
@@ -683,7 +697,6 @@ export default function ReflectionSpace({
 												}}
 											/>
 
-											{/* + badge at top of ring on hover */}
 											{isHovered && (
 												<g style={{ pointerEvents: "none" }}>
 													<circle
@@ -796,7 +809,6 @@ export default function ReflectionSpace({
 												onMouseEnter={() => setHoveredMoonId(moon.id)}
 												onMouseLeave={() => setHoveredMoonId(null)}
 											/>
-											{/* Text preview on hover */}
 											{isHovered && !isSelected && (
 												<g style={{ pointerEvents: "none" }}>
 													<rect
