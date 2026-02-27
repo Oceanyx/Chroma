@@ -154,8 +154,7 @@ export default function PlanetSidePanel({
 		!!node.focalQuestion,
 	);
 	const [showTemporalPrompt, setShowTemporalPrompt] = useState(
-		// Show once if not yet set and planet has no temporal distance
-		node.temporalDistance == null && (node.constellationIds || []).length === 0,
+		node.temporalDistance == null,
 	);
 	const [deleteHovered, setDeleteHovered] = useState(false);
 	const [openHovered, setOpenHovered] = useState(false);

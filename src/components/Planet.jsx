@@ -1,7 +1,9 @@
-// src/components/Planet.jsx - V4.2 (No changes needed - already has stormy effect)
-// Your Planet.jsx is already perfect! It calculates tension from moons array automatically.
-// The calculateSurfaceState() function already does what tensionCount would do.
-
+// src/components/Planet.jsx - V4.3
+// Changes from V4.2:
+//   - calculatePlanetColor: counts.symbolic → counts.framing
+//   - dimensionColors: symbolic key → framing key
+//   - State overlay conditionals updated: past→integrated, present→active, future→revisiting
+//   - planetConfig.states lookup: handles both new and legacy state keys gracefully
 import React from "react";
 import { planetConfig } from "../seedData";
 
@@ -11,7 +13,6 @@ import { planetConfig } from "../seedData";
 
 function calculatePlanetColor(moons) {
 	if (!moons || moons.length === 0) {
-		// No reflections = gray planet
 		return {
 			core: ["#475569", "#64748B"],
 			surface: ["#64748B", "#94A3B8"],
@@ -20,21 +21,19 @@ function calculatePlanetColor(moons) {
 		};
 	}
 
-	// Count moons per dimension
 	const counts = {
 		subjective: 0,
 		behavioral: 0,
 		intersubjective: 0,
-		symbolic: 0,
+		framing: 0,
 	};
 
 	moons.forEach((moon) => {
-		if (counts[moon.dimension] !== undefined) {
-			counts[moon.dimension]++;
-		}
+		// Normalise legacy "symbolic" moons
+		const dim = moon.dimension === "symbolic" ? "framing" : moon.dimension;
+		if (counts[dim] !== undefined) counts[dim]++;
 	});
 
-	// Find dominant dimension (most moons)
 	let dominant = "subjective";
 	let maxCount = 0;
 	Object.entries(counts).forEach(([dim, count]) => {
@@ -44,31 +43,27 @@ function calculatePlanetColor(moons) {
 		}
 	});
 
-	// Return color scheme based on dominant dimension
 	const dimensionColors = {
 		subjective: {
-			// Violet - Inner Experience
 			core: ["#7C3AED", "#8B5CF6"],
 			surface: ["#A78BFA", "#C4B5FD"],
 			atmosphere: ["#DDD6FE", "#EDE9FE"],
 			glow: "rgba(167, 139, 250, 0.4)",
 		},
 		behavioral: {
-			// Orange - Actions
 			core: ["#EA580C", "#F97316"],
 			surface: ["#FB923C", "#FDBA74"],
 			atmosphere: ["#FED7AA", "#FFEDD5"],
 			glow: "rgba(249, 115, 22, 0.4)",
 		},
 		intersubjective: {
-			// Green - External/Measurable
 			core: ["#059669", "#10B981"],
 			surface: ["#34D399", "#6EE7B7"],
 			atmosphere: ["#A7F3D0", "#D1FAE5"],
 			glow: "rgba(16, 185, 129, 0.4)",
 		},
-		symbolic: {
-			// Blue - Patterns/Meaning
+		framing: {
+			// Blue — Framing / conceptual models
 			core: ["#2563EB", "#3B82F6"],
 			surface: ["#60A5FA", "#93C5FD"],
 			atmosphere: ["#DBEAFE", "#EFF6FF"],
@@ -80,11 +75,8 @@ function calculatePlanetColor(moons) {
 }
 
 function calculateSurfaceState(moons) {
-	if (!moons || moons.length === 0) {
-		return "calm";
-	}
+	if (!moons || moons.length === 0) return "calm";
 
-	// Count tension relationships across all moons
 	const tensionCount = moons.reduce(
 		(sum, moon) =>
 			sum +
@@ -96,6 +88,19 @@ function calculateSurfaceState(moons) {
 	if (tensionCount <= 2) return "rippled";
 	return "stormy";
 }
+
+// Map new state keys → the visual effect they should produce.
+// Also handles legacy keys so old exported maps still render.
+const STATE_EFFECT = {
+	// New keys
+	active: "pulse",
+	integrated: "trail",
+	revisiting: "glow",
+	// Legacy keys (I-node temporal states, or pre-migration O/A nodes)
+	present: "pulse",
+	past: "trail",
+	future: "glow",
+};
 
 // ============================================================================
 // PLANET COMPONENT
@@ -113,7 +118,6 @@ export default function Planet({
 	onMouseLeave,
 	onMouseDown,
 }) {
-	// Calculate colors from moons
 	const colors = calculatePlanetColor(moons);
 	const surfaceState = calculateSurfaceState(moons);
 
@@ -126,14 +130,28 @@ export default function Planet({
 	const glowId = `glow-${node.id}`;
 	const noiseId = `noise-${node.id}`;
 
-	const stateConfig =
-		node.state && node.type === "A" ? planetConfig.states[node.state] : null;
-
-	const opacity = stateConfig?.opacity || 1;
+	const effect = STATE_EFFECT[node.state] || null;
 	const glowOpacity = isHovered ? 0.5 : 0.2;
 	const glowRadius = isHovered
 		? planetConfig.glowRadius * 1.2
 		: planetConfig.glowRadius;
+
+	// Visual colours per effect type
+	const pulseColor =
+		node.state === "active"
+			? "rgba(251, 191, 36, 0.5)"
+			: node.state === "present"
+				? "rgba(16, 185, 129, 0.5)"
+				: "rgba(16, 185, 129, 0.5)";
+
+	const trailColor = "rgba(100, 116, 139, 0.3)";
+
+	const glowColor =
+		node.state === "revisiting"
+			? "rgba(167, 139, 250, 0.5)"
+			: node.state === "future"
+				? "rgba(59, 130, 246, 0.6)"
+				: "rgba(167, 139, 250, 0.5)";
 
 	return (
 		<g
@@ -143,9 +161,8 @@ export default function Planet({
 			onMouseLeave={() => onMouseLeave?.()}
 			onMouseDown={(e) => onMouseDown?.(node, e)}
 			style={{ cursor: "pointer" }}
-			opacity={isFocused === false ? 0.3 : opacity}>
+			opacity={isFocused === false ? 0.3 : 1}>
 			<defs>
-				{/* Core to Surface Gradient */}
 				<radialGradient id={gradientId}>
 					<stop offset="0%" stopColor={colors.core[0]} />
 					<stop offset="40%" stopColor={colors.core[1]} />
@@ -153,7 +170,6 @@ export default function Planet({
 					<stop offset="100%" stopColor={colors.surface[1]} />
 				</radialGradient>
 
-				{/* Surface Texture Pattern */}
 				<filter id={noiseId}>
 					<feTurbulence
 						type="fractalNoise"
@@ -171,7 +187,6 @@ export default function Planet({
 					<feBlend in2="SourceGraphic" mode="overlay" />
 				</filter>
 
-				{/* Glow Filter */}
 				<filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
 					<feGaussianBlur stdDeviation={isHovered ? "8" : "5"} result="blur" />
 					<feFlood floodColor={colors.glow} floodOpacity="1" />
@@ -194,60 +209,56 @@ export default function Planet({
 				style={{ transition: "all 0.3s ease" }}
 			/>
 
-			{/* State-Specific Overlays for Action Nodes */}
-			{node.type === "A" && stateConfig && (
-				<>
-					{node.state === "past" && (
-						<ellipse
-							cx={centerX - 30}
-							cy={centerY}
-							rx={stateConfig.trailLength}
-							ry={radius * 0.5}
-							fill={stateConfig.trailColor}
-							opacity={0.4}
-						/>
-					)}
+			{/* State overlays */}
+			{effect === "trail" && (
+				<ellipse
+					cx={centerX - 30}
+					cy={centerY}
+					rx={30}
+					ry={radius * 0.5}
+					fill={trailColor}
+					opacity={0.4}
+				/>
+			)}
 
-					{node.state === "present" && (
-						<circle
-							cx={centerX}
-							cy={centerY}
-							r={radius + 8}
-							fill="none"
-							stroke={stateConfig.pulseColor}
-							strokeWidth={3}
-							opacity={0.7}>
-							<animate
-								attributeName="r"
-								values={`${radius + 5};${radius + 12};${radius + 5}`}
-								dur={`${stateConfig.pulseSpeed}s`}
-								repeatCount="indefinite"
-							/>
-							<animate
-								attributeName="opacity"
-								values="0.7;0.3;0.7"
-								dur={`${stateConfig.pulseSpeed}s`}
-								repeatCount="indefinite"
-							/>
-						</circle>
-					)}
+			{effect === "pulse" && (
+				<circle
+					cx={centerX}
+					cy={centerY}
+					r={radius + 8}
+					fill="none"
+					stroke={pulseColor}
+					strokeWidth={3}
+					opacity={0.7}>
+					<animate
+						attributeName="r"
+						values={`${radius + 5};${radius + 12};${radius + 5}`}
+						dur="2s"
+						repeatCount="indefinite"
+					/>
+					<animate
+						attributeName="opacity"
+						values="0.7;0.3;0.7"
+						dur="2s"
+						repeatCount="indefinite"
+					/>
+				</circle>
+			)}
 
-					{node.state === "future" && (
-						<circle
-							cx={centerX}
-							cy={centerY}
-							r={glowRadius * stateConfig.glowIntensity}
-							fill={stateConfig.glowColor}
-							opacity={0.25}>
-							<animate
-								attributeName="opacity"
-								values="0.15;0.35;0.15"
-								dur="3s"
-								repeatCount="indefinite"
-							/>
-						</circle>
-					)}
-				</>
+			{effect === "glow" && (
+				<circle
+					cx={centerX}
+					cy={centerY}
+					r={glowRadius * 1.3}
+					fill={glowColor}
+					opacity={0.25}>
+					<animate
+						attributeName="opacity"
+						values="0.15;0.35;0.15"
+						dur="3s"
+						repeatCount="indefinite"
+					/>
+				</circle>
 			)}
 
 			{/* Main Planet Body */}
@@ -261,7 +272,7 @@ export default function Planet({
 				filter={`url(#${noiseId})`}
 			/>
 
-			{/* Atmosphere Layer */}
+			{/* Atmosphere */}
 			<circle
 				cx={centerX}
 				cy={centerY}
@@ -270,27 +281,25 @@ export default function Planet({
 				opacity={0.15}
 			/>
 
-			{/* Highlight (Top-Left Shine) */}
+			{/* Highlights */}
 			<ellipse
 				cx={centerX + planetConfig.highlightOffset.x * radius}
 				cy={centerY + planetConfig.highlightOffset.y * radius}
 				rx={radius * 0.35}
 				ry={radius * 0.25}
-				fill="rgba(255, 255, 255, 0.5)"
+				fill="rgba(255,255,255,0.5)"
 				opacity={0.7}
 			/>
-
-			{/* Secondary Shine (Softer) */}
 			<ellipse
 				cx={centerX + planetConfig.highlightOffset.x * radius * 0.5}
 				cy={centerY + planetConfig.highlightOffset.y * radius * 0.5}
 				rx={radius * 0.2}
 				ry={radius * 0.15}
-				fill="rgba(255, 255, 255, 0.3)"
+				fill="rgba(255,255,255,0.3)"
 				opacity={0.5}
 			/>
 
-			{/* Surface Animation - Tension-based */}
+			{/* Surface tension animation */}
 			{surfaceState === "rippled" && (
 				<circle
 					cx={centerX}
@@ -314,7 +323,6 @@ export default function Planet({
 					/>
 				</circle>
 			)}
-
 			{surfaceState === "stormy" && (
 				<>
 					<circle
@@ -362,14 +370,14 @@ export default function Planet({
 				</>
 			)}
 
-			{/* Moon Count Badge (Bottom Right) */}
-			{moons && moons.length > 0 && (
+			{/* Moon count badge */}
+			{moons.length > 0 && (
 				<g>
 					<circle
 						cx={centerX + radius * 0.7}
 						cy={centerY + radius * 0.7}
 						r={12}
-						fill="rgba(15, 23, 36, 0.95)"
+						fill="rgba(15,23,36,0.95)"
 						stroke={colors.glow}
 						strokeWidth={2}
 					/>
@@ -387,7 +395,7 @@ export default function Planet({
 				</g>
 			)}
 
-			{/* Title Label Below Planet */}
+			{/* Title label */}
 			<text
 				x={centerX}
 				y={centerY + radius + 20}
@@ -401,7 +409,7 @@ export default function Planet({
 				{node.text?.length > 20 ? "..." : ""}
 			</text>
 
-			{/* Selection Ring Animation */}
+			{/* Selection ring */}
 			{isSelected && (
 				<circle
 					cx={centerX}
@@ -423,7 +431,7 @@ export default function Planet({
 				</circle>
 			)}
 
-			{/* Hover Tooltip */}
+			{/* Hover tooltip */}
 			{isHovered && node.text && (
 				<g>
 					<rect
@@ -432,8 +440,8 @@ export default function Planet({
 						width={200}
 						height={40}
 						rx={6}
-						fill="rgba(15, 23, 36, 0.95)"
-						stroke="rgba(108, 99, 255, 0.5)"
+						fill="rgba(15,23,36,0.95)"
+						stroke="rgba(108,99,255,0.5)"
 						strokeWidth={1}
 					/>
 					<text
