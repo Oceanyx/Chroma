@@ -82,9 +82,66 @@ db.version(5)
 		console.log("✅ v5 migration complete");
 	});
 
-// ============================================================================
-// INITIALIZE WITH SEED DATA
-// ============================================================================
+// V6 — dimension rename: "symbolic" → "framing"
+//       Moon gains: claimType ("reporting"|"reading"), vantage ("mine"|"theirs"), lensUsed (single id)
+//       Node gains: context (string), focalQuestion (string), temporalDistance (string)
+//       Lens records gain: instructions (object keyed by dimension)
+db.version(6)
+	.stores({
+		nodes: "++id, type, parentId, timestamp, dimension",
+		edges: "++id, sourceId, targetId, createdAt, type",
+		lenses: "++id, label",
+		patterns: "++id, label",
+		settings: "key",
+		constellations: "++id, label, createdAt",
+	})
+	.upgrade(async (tx) => {
+		console.log(
+			"🔄 Upgrading to v6: renaming symbolic→framing, adding moon/planet fields...",
+		);
+
+		// Rename dimension on all reflection nodes
+		const reflections = await tx
+			.table("nodes")
+			.where("type")
+			.equals("R")
+			.toArray();
+		for (const r of reflections) {
+			if (r.dimension === "symbolic") {
+				await tx.table("nodes").update(r.id, { dimension: "framing" });
+			}
+			// Add new moon fields with defaults
+			const updates = {};
+			if (!r.claimType) updates.claimType = "reporting";
+			if (!r.lensUsed) updates.lensUsed = (r.lensesUsed || [])[0] || null;
+			if (Object.keys(updates).length) {
+				await tx.table("nodes").update(r.id, updates);
+			}
+		}
+
+		// Add new planet fields
+		const planets = await tx
+			.table("nodes")
+			.filter((n) => n.type === "O" || n.type === "A" || n.type === "I")
+			.toArray();
+		for (const p of planets) {
+			const updates = {};
+			if (p.context === undefined) updates.context = "";
+			if (p.focalQuestion === undefined) updates.focalQuestion = "";
+			if (p.temporalDistance === undefined) updates.temporalDistance = null;
+			if (Object.keys(updates).length) {
+				await tx.table("nodes").update(p.id, updates);
+			}
+		}
+
+		// Replace lens records with new 5-lens set
+		await tx.table("lenses").clear();
+		const { lenses: newLenses } = await import("../seedData");
+		await tx.table("lenses").bulkAdd(newLenses);
+
+		console.log("✅ v6 migration complete");
+	});
+
 export async function initializeDB() {
 	try {
 		const nodeCount = await db.nodes.count();
@@ -180,7 +237,7 @@ export async function getMoonsGroupedByDimension(parentId) {
 		subjective: moons.filter((m) => m.dimension === "subjective"),
 		intersubjective: moons.filter((m) => m.dimension === "intersubjective"),
 		behavioral: moons.filter((m) => m.dimension === "behavioral"),
-		symbolic: moons.filter((m) => m.dimension === "symbolic"),
+		framing: moons.filter((m) => m.dimension === "framing"),
 	};
 }
 
@@ -198,10 +255,10 @@ export async function getUnlockedDimensions() {
 	const totalReflections = await getTotalReflectionCount();
 	const showAll = await getSetting("showAllDimensions");
 	if (showAll)
-		return ["subjective", "behavioral", "intersubjective", "symbolic"];
+		return ["subjective", "behavioral", "intersubjective", "framing"];
 	const unlocked = ["subjective", "intersubjective"];
 	if (totalReflections >= 5) unlocked.push("behavioral");
-	if (totalReflections >= 15) unlocked.push("symbolic");
+	if (totalReflections >= 15) unlocked.push("framing");
 	return unlocked;
 }
 
@@ -216,9 +273,9 @@ export async function checkDimensionUnlock(previousCount, newCount) {
 	}
 	if (previousCount < 15 && newCount >= 15) {
 		unlocks.push({
-			dimension: "symbolic",
+			dimension: "framing",
 			message:
-				"🎉 Symbolic dimension unlocked! Recognize patterns and meanings.",
+				"🎉 Framing dimension unlocked! Apply conceptual frameworks to illuminate what was happening.",
 		});
 	}
 	return unlocks;

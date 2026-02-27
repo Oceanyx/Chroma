@@ -1,4 +1,9 @@
 // src/components/TopNav.jsx
+// Changes from previous:
+//   - handleImport now fully restores constellations from exported JSON
+//   - ID remapping: nodes get new auto-increment IDs on import; old IDs are
+//     mapped to new ones so edge sourceId/targetId, constellation nodeIds,
+//     and node constellationIds[] all stay consistent
 import React, { useState } from "react";
 import { MousePointer, Hand, Download, Upload, Target } from "lucide-react";
 import PurposeModal from "./PurposeModal";
@@ -24,7 +29,7 @@ export default function TopNav({
 
 			if (
 				!window.confirm(
-					"This will replace ALL current nodes, edges, and reflections with the imported map. This cannot be undone. Continue?",
+					"This will replace ALL current nodes, edges, constellations, and reflections. This cannot be undone. Continue?",
 				)
 			)
 				return;
@@ -39,20 +44,69 @@ export default function TopNav({
 					return;
 				}
 
-				// Wipe existing data
+				// ── Wipe existing data ──────────────────────────────────────────
 				await db.nodes.clear();
 				await db.edges.clear();
+				await db.constellations.clear();
 
-				// Re-insert without auto-increment IDs so Dexie assigns fresh ones
+				// ── Re-insert nodes, building old→new ID map ───────────────────
+				// Strip old IDs so Dexie assigns fresh auto-increment values.
+				// We need the mapping to fix up edges and constellations afterward.
+				const idMap = {}; // oldId → newId
+
 				if (data.nodes?.length) {
-					// Strip the old numeric id so Dexie's ++ assigns new ones
-					await db.nodes.bulkAdd(data.nodes.map(({ id, ...rest }) => rest));
-				}
-				if (data.edges?.length) {
-					await db.edges.bulkAdd(data.edges.map(({ id, ...rest }) => rest));
+					for (const node of data.nodes) {
+						const { id: oldId, ...rest } = node;
+						// Ensure new fields exist with defaults for older exports
+						const newNode = {
+							...rest,
+							constellationIds: rest.constellationIds || [],
+							claimType:
+								rest.claimType || (rest.type === "R" ? "reporting" : undefined),
+							lensUsed: rest.lensUsed || rest.lensesUsed?.[0] || null,
+							context: rest.context ?? "",
+							focalQuestion: rest.focalQuestion ?? "",
+							temporalDistance: rest.temporalDistance ?? null,
+						};
+						const newId = await db.nodes.add(newNode);
+						if (oldId != null) idMap[oldId] = newId;
+					}
 				}
 
-				// Notify SpaceCanvas to reload state
+				// ── Re-insert edges with remapped IDs ──────────────────────────
+				if (data.edges?.length) {
+					const remapped = data.edges.map(({ id, ...rest }) => ({
+						...rest,
+						sourceId: idMap[rest.sourceId] ?? rest.sourceId,
+						targetId: idMap[rest.targetId] ?? rest.targetId,
+					}));
+					await db.edges.bulkAdd(remapped);
+				}
+
+				// ── Re-insert constellations with remapped node IDs ─────────────
+				if (data.constellations?.length) {
+					const remapped = data.constellations.map(({ id, ...rest }) => ({
+						...rest,
+						nodeIds: (rest.nodeIds || []).map((oid) => idMap[oid] ?? oid),
+					}));
+					await db.constellations.bulkAdd(remapped);
+
+					// Fix up constellationIds[] on nodes
+					const allConstellations = await db.constellations.toArray();
+					for (const c of allConstellations) {
+						for (const nodeId of c.nodeIds) {
+							const node = await db.nodes.get(nodeId);
+							if (!node) continue;
+							const current = node.constellationIds || [];
+							if (!current.includes(c.id)) {
+								await db.nodes.update(nodeId, {
+									constellationIds: [...current, c.id],
+								});
+							}
+						}
+					}
+				}
+
 				onImport?.(data.purposeData || null);
 			} catch (err) {
 				console.error("Import error:", err);

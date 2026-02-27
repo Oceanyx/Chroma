@@ -11,7 +11,7 @@
 //   onContextMenu   (e) => void  — right-click for Dissolve / Edit options
 
 import React from "react";
-import { CONSTELLATION_ARCHETYPES } from "./SpaceCanvas";
+import { CONSTELLATION_ARCHETYPES } from "../utils/constellationConfig";
 
 const NEBULA_COLOR = "#6C63FF";
 const NEBULA_COLOR_MID = "#8B5CF6";

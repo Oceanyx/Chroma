@@ -31,7 +31,7 @@ const DIMENSION_START_ANGLES = {
 	subjective: Math.PI * 1.5,
 	behavioral: 0,
 	intersubjective: Math.PI * 0.5,
-	symbolic: Math.PI,
+	framing: Math.PI,
 };
 
 // ── useWindowSize ─────────────────────────────────────────────────────────────
@@ -207,6 +207,22 @@ export default function ReflectionSpace({
 				);
 				break;
 
+			case "claimType":
+				await db.nodes.update(moon.id, { claimType: extra.claimType });
+				await onNodesUpdate();
+				showToast(
+					extra.claimType === "reading"
+						? "Marked as reading ◈"
+						: "Marked as reporting ○",
+					"#6366F1",
+				);
+				break;
+
+			case "vantage":
+				await db.nodes.update(moon.id, { vantage: extra.vantage });
+				await onNodesUpdate();
+				break;
+
 			case "save-edit":
 				await db.nodes.update(moon.id, {
 					text: extra.text,
@@ -366,7 +382,9 @@ export default function ReflectionSpace({
 			timestamp: Date.now(),
 			ownership: "asserted",
 			isLocked: false,
+			lensUsed: data.lensUsed || null,
 			lensesUsed: data.lensesUsed || [],
+			claimType: data.claimType || "reporting",
 			orbitAngle: DIMENSION_START_ANGLES[addingDimension] || 0,
 			confidence: "stable",
 			intensity: "medium",
@@ -523,6 +541,28 @@ export default function ReflectionSpace({
 					{parentNode.text?.substring(0, 60) || "Untitled"}
 					{parentNode.text?.length > 60 ? "…" : ""}
 				</div>
+
+				{/* Focal question — shown if set */}
+				{parentNode.focalQuestion && (
+					<div
+						style={{
+							position: "absolute",
+							top: TOP_BAR_HEIGHT,
+							left: "50%",
+							transform: "translateX(-50%)",
+							fontSize: 12,
+							fontStyle: "italic",
+							color: "rgba(255,255,255,0.25)",
+							pointerEvents: "none",
+							whiteSpace: "nowrap",
+							maxWidth: 480,
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							letterSpacing: "0.02em",
+						}}>
+						Exploring: {parentNode.focalQuestion}
+					</div>
+				)}
 
 				<div style={{ width: "120px" }} />
 			</div>
@@ -854,7 +894,13 @@ export default function ReflectionSpace({
 					<MoonSidePanel
 						moon={selectedMoon}
 						allMoons={childMoons}
-						dimColor={moonConfig.dimension[selectedMoon.dimension].color}
+						dimColor={
+							(
+								moonConfig.dimension[selectedMoon.dimension] ||
+								moonConfig.dimension.framing
+							).color
+						}
+						temporalDistance={parentNode?.temporalDistance}
 						onClose={() => setSelectedMoonId(null)}
 						onAction={handlePanelAction}
 						onStartRelationship={handleStartRelationship}

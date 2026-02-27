@@ -10,7 +10,7 @@
 //   - Custom lens creation and editing logic unchanged
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { moonConfig, lenses as DEFAULT_LENSES } from "../seedData";
+import { moonConfig, lenses as DEFAULT_LENSES, lensById } from "../seedData";
 
 export const PANEL_WIDTH = 460;
 
@@ -33,6 +33,13 @@ const DIM_STYLES = {
 		glow: "rgba(52,211,153,0.15)",
 		accent: "#34D399",
 	},
+	framing: {
+		bg: "linear-gradient(170deg, rgba(96,165,250,0.09) 0%, rgba(8,13,25,0.99) 32%)",
+		borderColor: "rgba(96,165,250,0.28)",
+		glow: "rgba(96,165,250,0.15)",
+		accent: "#60A5FA",
+	},
+	// Legacy alias — renders old symbolic moons correctly during transition
 	symbolic: {
 		bg: "linear-gradient(170deg, rgba(96,165,250,0.09) 0%, rgba(8,13,25,0.99) 32%)",
 		borderColor: "rgba(96,165,250,0.28)",
@@ -112,6 +119,83 @@ function StateChip({ active, activeColor, tooltip, onClick, children }) {
 					userSelect: "none",
 				}}>
 				{children}
+			</button>
+		</Tooltip>
+	);
+}
+
+// ── Claim type chip (reporting / reading) ────────────────────────────────────
+function ClaimTypeChip({ value, onToggle }) {
+	const isReading = value === "reading";
+	const [hov, setHov] = useState(false);
+	const color = isReading ? "#6366F1" : "#10B981";
+	return (
+		<Tooltip
+			text={
+				isReading
+					? "A framework or inference applied to make sense of what was present"
+					: "Your best reconstruction of what was present in that moment"
+			}>
+			<button
+				onClick={onToggle}
+				onMouseEnter={() => setHov(true)}
+				onMouseLeave={() => setHov(false)}
+				style={{
+					padding: "5px 13px",
+					borderRadius: 20,
+					border: `1px solid ${isReading ? "rgba(99,102,241,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
+					background: isReading
+						? "rgba(99,102,241,0.15)"
+						: hov
+							? "rgba(255,255,255,0.07)"
+							: "transparent",
+					color: isReading ? "#818CF8" : hov ? "#C8D6E8" : "#7A8FA6",
+					fontSize: 12,
+					fontWeight: 700,
+					letterSpacing: "0.04em",
+					cursor: "pointer",
+					transition: "all 0.15s",
+					outline: "none",
+				}}>
+				{isReading ? "◈ Reading" : "○ Reporting"}
+			</button>
+		</Tooltip>
+	);
+}
+
+// ── Vantage chip (whose perspective) ─────────────────────────────────────────
+function VantageChip({ value, onToggle }) {
+	const isOther = value === "theirs";
+	const [hov, setHov] = useState(false);
+	return (
+		<Tooltip
+			text={
+				isOther
+					? "Reconstructing another person's inner state or perspective"
+					: "Your own perspective on this moment"
+			}>
+			<button
+				onClick={onToggle}
+				onMouseEnter={() => setHov(true)}
+				onMouseLeave={() => setHov(false)}
+				style={{
+					padding: "5px 13px",
+					borderRadius: 20,
+					border: `1px solid ${isOther ? "rgba(251,191,36,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
+					background: isOther
+						? "rgba(251,191,36,0.12)"
+						: hov
+							? "rgba(255,255,255,0.07)"
+							: "transparent",
+					color: isOther ? "#FBBF24" : hov ? "#C8D6E8" : "#7A8FA6",
+					fontSize: 12,
+					fontWeight: 700,
+					letterSpacing: "0.04em",
+					cursor: "pointer",
+					transition: "all 0.15s",
+					outline: "none",
+				}}>
+				{isOther ? "⟳ Reconstructing another's" : "⊙ My perspective"}
 			</button>
 		</Tooltip>
 	);
@@ -471,6 +555,7 @@ export default function MoonSidePanel({
 	moon,
 	allMoons,
 	dimColor,
+	temporalDistance, // from parent planet node — e.g. "days later"
 	onClose,
 	onAction,
 	onStartRelationship,
@@ -583,7 +668,7 @@ export default function MoonSidePanel({
 				borderLeft: `1px solid ${ds.borderColor}`,
 				boxShadow: `inset 3px 0 0 0 ${ds.accent}, -8px 0 32px rgba(0,0,0,0.35)`,
 				position: "relative",
-				overflow: "hidden",
+				overflowY: "auto",
 				flexShrink: 0,
 				color: "#C8D6E8",
 			}}>
@@ -680,6 +765,17 @@ export default function MoonSidePanel({
 						borderBottom: "1px solid rgba(255,255,255,0.07)",
 						marginBottom: 0,
 					}}>
+					<ClaimTypeChip
+						value={moon.claimType || "reporting"}
+						onToggle={() =>
+							onAction("claimType", moon, {
+								claimType:
+									(moon.claimType || "reporting") === "reporting"
+										? "reading"
+										: "reporting",
+							})
+						}
+					/>
 					<OwnershipChip
 						value={moon.ownership || "asserted"}
 						onToggle={() =>
@@ -688,6 +784,19 @@ export default function MoonSidePanel({
 							})
 						}
 					/>
+					{(moon.dimension === "intersubjective" ||
+						moon.dimension === "framing" ||
+						moon.dimension === "symbolic") && (
+						<VantageChip
+							value={moon.vantage || "mine"}
+							onToggle={() =>
+								onAction("vantage", moon, {
+									vantage:
+										(moon.vantage || "mine") === "mine" ? "theirs" : "mine",
+								})
+							}
+						/>
+					)}
 					<StateChip
 						active={moon.confidence === "wobbly"}
 						activeColor="#FBBF24"
@@ -1087,57 +1196,67 @@ export default function MoonSidePanel({
 				)}
 			</div>
 
-			{/* ── LENSES read-only ───────────────────────────────────────────── */}
-			{!isEditing && moon.lensesUsed && moon.lensesUsed.length > 0 && (
-				<div
-					style={{
-						padding: "0 20px 16px",
-						display: "flex",
-						flexWrap: "wrap",
-						gap: 6,
-						flexShrink: 0,
-						zIndex: 1,
-						position: "relative",
-					}}>
-					<span
-						style={{
-							fontSize: 10,
-							fontWeight: 700,
-							letterSpacing: "0.12em",
-							textTransform: "uppercase",
-							color: "#7A8FA6",
-							width: "100%",
-							marginBottom: 4,
-						}}>
-						Viewed through
-					</span>
-					{moon.lensesUsed.map((lensId) => {
-						const l = allLenses.find((x) => x.id === lensId);
-						if (!l) return null;
-						return (
+			{/* ── LENS read-only ────────────────────────────────────────────── */}
+			{!isEditing &&
+				(() => {
+					// Support both new lensUsed (single) and legacy lensesUsed (array)
+					const usedIds = moon.lensUsed
+						? [moon.lensUsed]
+						: moon.lensesUsed || [];
+					const allLensMap = Object.fromEntries(
+						[...DEFAULT_LENSES, ...customLenses].map((l) => [l.id, l]),
+					);
+					const usedLenses = usedIds
+						.map((id) => allLensMap[id])
+						.filter(Boolean);
+					if (usedLenses.length === 0) return null;
+					return (
+						<div
+							style={{
+								padding: "0 20px 16px",
+								display: "flex",
+								flexWrap: "wrap",
+								gap: 6,
+								flexShrink: 0,
+								zIndex: 1,
+								position: "relative",
+							}}>
 							<span
-								key={lensId}
 								style={{
-									padding: "5px 12px",
-									borderRadius: 20,
-									fontSize: 13,
+									fontSize: 10,
 									fontWeight: 700,
-									color: l.color || dimColor,
-									background: `${l.color || dimColor}14`,
-									border: `1px solid ${l.color || dimColor}30`,
-									display: "flex",
-									alignItems: "center",
-									gap: 4,
-									letterSpacing: "0.04em",
+									letterSpacing: "0.12em",
+									textTransform: "uppercase",
+									color: "#7A8FA6",
+									width: "100%",
+									marginBottom: 4,
 								}}>
-								{l.emoji} {l.label}
+								Viewed through
 							</span>
-						);
-					})}
-				</div>
-			)}
+							{usedLenses.map((l) => (
+								<span
+									key={l.id}
+									style={{
+										padding: "5px 12px",
+										borderRadius: 20,
+										fontSize: 13,
+										fontWeight: 700,
+										color: l.color || dimColor,
+										background: `${l.color || dimColor}14`,
+										border: `1px solid ${l.color || dimColor}30`,
+										display: "flex",
+										alignItems: "center",
+										gap: 4,
+										letterSpacing: "0.04em",
+									}}>
+									{l.emoji} {l.label}
+								</span>
+							))}
+						</div>
+					);
+				})()}
 
-			{/* Timestamp */}
+			{/* Timestamp + temporal distance */}
 			{!isEditing && moon.timestamp && (
 				<div
 					style={{
@@ -1160,6 +1279,17 @@ export default function MoonSidePanel({
 							minute: "2-digit",
 						})}
 					</span>
+					{temporalDistance && (
+						<span
+							style={{
+								marginLeft: 10,
+								fontSize: 11,
+								color: "#475569",
+								fontStyle: "italic",
+							}}>
+							· written {temporalDistance} after the event
+						</span>
+					)}
 				</div>
 			)}
 

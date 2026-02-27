@@ -1,4 +1,8 @@
-// src/lib/orbitalPhysics.js - V4.0 with scale parameter
+// src/lib/orbitalPhysics.js - V4.1
+// Changes from V4.0: "symbolic" renamed to "framing" throughout.
+//   - groupMoonsByDimension: grouped keys + dimensionAngles
+//   - getGhostMoonPositions: symbolic → framing key + position
+//   - getOrbitalPaths: last orbital path entry
 import { moonConfig, planetConfig } from "../seedData";
 
 /**
@@ -31,12 +35,14 @@ export function groupMoonsByDimension(moons, parent) {
 		subjective: [],
 		intersubjective: [],
 		behavioral: [],
-		symbolic: [],
+		framing: [],
 	};
 
 	moons.forEach((moon) => {
-		if (grouped[moon.dimension]) {
-			grouped[moon.dimension].push(moon);
+		// Support legacy "symbolic" moons that haven't been migrated yet
+		const dim = moon.dimension === "symbolic" ? "framing" : moon.dimension;
+		if (grouped[dim]) {
+			grouped[dim].push(moon);
 		}
 	});
 
@@ -44,7 +50,7 @@ export function groupMoonsByDimension(moons, parent) {
 		subjective: Math.PI * 1.5,
 		intersubjective: Math.PI * 0.5,
 		behavioral: 0,
-		symbolic: Math.PI,
+		framing: Math.PI,
 	};
 
 	const result = {};
@@ -76,7 +82,9 @@ export function distributeMoonsEvenly(moons, parent) {
 
 	return moons.map((moon, index) => {
 		const angle = startAngle + angleStep * index;
-		const position = calculateMoonPosition(parent, angle, moon.dimension);
+		// Normalise legacy dimension key before passing down
+		const dim = moon.dimension === "symbolic" ? "framing" : moon.dimension;
+		const position = calculateMoonPosition(parent, angle, dim);
 
 		return {
 			...moon,
@@ -97,11 +105,12 @@ export function calculateAnimatedOrbit(
 	dimension = "subjective",
 	scale = 1.0,
 ) {
-	const dimensionConfig = moonConfig.dimension[dimension];
+	const dim = dimension === "symbolic" ? "framing" : dimension;
+	const dimensionConfig = moonConfig.dimension[dim];
 	const baseAngle = moon.orbitAngle || 0;
 
 	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
-	return calculateMoonPosition(parent, animatedAngle, dimension, scale);
+	return calculateMoonPosition(parent, animatedAngle, dim, scale);
 }
 
 /**
@@ -114,14 +123,15 @@ export function calculateAnimatedAggregatePosition(
 	time,
 	paused = false,
 ) {
-	const dimensionConfig = moonConfig.dimension[dimension];
+	const dim = dimension === "symbolic" ? "framing" : dimension;
+	const dimensionConfig = moonConfig.dimension[dim];
 
 	if (paused) {
-		return calculateMoonPosition(parent, baseAngle, dimension);
+		return calculateMoonPosition(parent, baseAngle, dim);
 	}
 
 	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
-	return calculateMoonPosition(parent, animatedAngle, dimension);
+	return calculateMoonPosition(parent, animatedAngle, dim);
 }
 
 /**
@@ -144,8 +154,8 @@ export function getGhostMoonPositions(parent) {
 			x: viewportCenterX + moonConfig.dimension.behavioral.orbitRadius,
 			y: viewportCenterY,
 		},
-		symbolic: {
-			x: viewportCenterX - moonConfig.dimension.symbolic.orbitRadius,
+		framing: {
+			x: viewportCenterX - moonConfig.dimension.framing.orbitRadius,
 			y: viewportCenterY,
 		},
 	};
@@ -162,12 +172,12 @@ export function calculateBinaryLock(moon1, moon2, parent) {
 		moon1Position: calculateMoonPosition(
 			parent,
 			midpointAngle - separation,
-			moon1.dimension,
+			moon1.dimension === "symbolic" ? "framing" : moon1.dimension,
 		),
 		moon2Position: calculateMoonPosition(
 			parent,
 			midpointAngle + separation,
-			moon2.dimension,
+			moon2.dimension === "symbolic" ? "framing" : moon2.dimension,
 		),
 		lockAngle: midpointAngle,
 	};
@@ -192,7 +202,8 @@ export function calculateTidalLock(moon, parent, target) {
 	const dy = targetCenter.y - parentCenter.y;
 	const angleToTarget = Math.atan2(dy, dx);
 
-	const position = calculateMoonPosition(parent, angleToTarget, moon.dimension);
+	const dim = moon.dimension === "symbolic" ? "framing" : moon.dimension;
+	const position = calculateMoonPosition(parent, angleToTarget, dim);
 
 	return {
 		position,
@@ -231,11 +242,11 @@ export function getOrbitalPaths(planet) {
 			color: moonConfig.dimension.intersubjective.color,
 		},
 		{
-			dimension: "symbolic",
+			dimension: "framing",
 			centerX,
 			centerY,
-			radius: moonConfig.dimension.symbolic.orbitRadius,
-			color: moonConfig.dimension.symbolic.color,
+			radius: moonConfig.dimension.framing.orbitRadius,
+			color: moonConfig.dimension.framing.color,
 		},
 	];
 }

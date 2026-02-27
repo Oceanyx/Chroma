@@ -41,6 +41,7 @@ import TopNav from "./TopNav";
 import PlanetSidePanel from "./PlanetSidePanel";
 import ConstellationNebula from "./ConstellationNebula";
 import { CANVAS } from "../utils/constants";
+import { CONSTELLATION_ARCHETYPES } from "../utils/constellationConfig";
 
 const DRAG_THRESHOLD = 4;
 const ORBIT_SCALE = 0.62;
@@ -52,7 +53,7 @@ const ORBIT_EFFECTIVE = {
 	subjective: 155 * ORBIT_SCALE + 16 + 24, // ~136px
 	behavioral: 245 * ORBIT_SCALE + 24 + 24, // ~200px
 	intersubjective: 355 * ORBIT_SCALE + 32 + 24, // ~276px
-	symbolic: 500 * ORBIT_SCALE + 40 + 28, // ~378px
+	framing: 500 * ORBIT_SCALE + 40 + 28, // ~378px
 };
 
 /**
@@ -65,7 +66,7 @@ function dynamicHullPadding(memberNodeIds, allNodes) {
 
 	let maxPadding = HULL_PADDING_MIN;
 	const dimensionOrder = [
-		"symbolic",
+		"framing",
 		"intersubjective",
 		"behavioral",
 		"subjective",
@@ -85,16 +86,7 @@ function dynamicHullPadding(memberNodeIds, allNodes) {
 	return maxPadding;
 }
 
-// Archetype options for constellations
-export const CONSTELLATION_ARCHETYPES = {
-	"": { label: "— none —", emoji: "" },
-	"turning-point": { label: "Turning point", emoji: "🌀" },
-	loop: { label: "Loop", emoji: "🔁" },
-	avoidance: { label: "Avoidance", emoji: "🌫️" },
-	breakthrough: { label: "Breakthrough", emoji: "⚡" },
-	drift: { label: "Drift", emoji: "🌊" },
-	awakening: { label: "Awakening", emoji: "✦" },
-};
+// CONSTELLATION_ARCHETYPES imported from ../utils/constellationConfig
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convex hull + hull-to-SVG-path helpers
@@ -834,6 +826,7 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 			setConstellations(updatedConstellations);
 			setSelectedNodeId(null);
 			setMultiSelectedIds(new Set());
+			setConstellationEditor(null);
 			setReflectionMode({
 				active: false,
 				parentNodeId: null,
@@ -849,11 +842,12 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 			[
 				JSON.stringify(
 					{
-						version: 3,
+						version: 4,
 						exportedAt: new Date().toISOString(),
 						purposeData,
 						nodes,
 						edges,
+						constellations,
 					},
 					null,
 					2,
@@ -867,13 +861,64 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 		a.download = `${purposeData?.title ? purposeData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase() : "chroma_map"}_${Date.now()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
-	}, [nodes, edges, purposeData]);
+	}, [nodes, edges, constellations, purposeData]);
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Constellation handlers
 	// ─────────────────────────────────────────────────────────────────────────
 
-	/** Opens the inline label input to form a new constellation. */
+	/** Removes one node from a constellation (called from PlanetSidePanel). */
+	const handleLeaveConstellation = useCallback(
+		async (nodeId, constellationId) => {
+			const { dissolved } = await removeNodeFromConstellation(
+				nodeId,
+				constellationId,
+			);
+			const [updatedNodes, updatedConstellations] = await Promise.all([
+				getAllNodes(),
+				getAllConstellations(),
+			]);
+			setNodes(updatedNodes);
+			setConstellations(
+				dissolved
+					? updatedConstellations.filter((c) => c.id !== constellationId)
+					: updatedConstellations,
+			);
+		},
+		[],
+	);
+
+	/**
+	 * Adds an existing node to an existing constellation (called from PlanetSidePanel).
+	 * Appends nodeId to constellation.nodeIds and adds constellationId to node.constellationIds.
+	 */
+	const handleJoinConstellation = useCallback(
+		async (nodeId, constellationId) => {
+			const c = await db.constellations.get(constellationId);
+			const node = await db.nodes.get(nodeId);
+			if (!c || !node) return;
+
+			if (!c.nodeIds.includes(nodeId)) {
+				await db.constellations.update(constellationId, {
+					nodeIds: [...c.nodeIds, nodeId],
+				});
+			}
+			const currentIds = node.constellationIds || [];
+			if (!currentIds.includes(constellationId)) {
+				await db.nodes.update(nodeId, {
+					constellationIds: [...currentIds, constellationId],
+				});
+			}
+
+			const [updatedNodes, updatedConstellations] = await Promise.all([
+				getAllNodes(),
+				getAllConstellations(),
+			]);
+			setNodes(updatedNodes);
+			setConstellations(updatedConstellations);
+		},
+		[],
+	);
 	const handleFormConstellation = useCallback(() => {
 		if (multiSelectedIds.size < 2) return;
 		const nodeIds = [...multiSelectedIds];
@@ -1536,9 +1581,12 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 					<PlanetSidePanel
 						node={selectedNode}
 						moons={selectedNodeMoons}
+						constellations={constellations}
 						onClose={() => setSelectedNodeId(null)}
 						onOpenReflections={() => enterReflectionMode(selectedNode)}
 						onNodesUpdate={async () => setNodes(await getAllNodes())}
+						onLeaveConstellation={handleLeaveConstellation}
+						onJoinConstellation={handleJoinConstellation}
 					/>
 				)}
 			</div>
@@ -1749,7 +1797,17 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 						Connection type
 					</p>
 					{Object.entries(CONNECTION_TYPES).map(([key, cfg]) => {
-						const isActive = (edgePopup.edge.type || "temporal") === key;
+						const EDGE_TYPE_ALIASES = {
+							temporal: "followed",
+							causal: "caused",
+							"intention-action": "triggered",
+							"intention-pattern": "enabled",
+						};
+						const resolvedType =
+							EDGE_TYPE_ALIASES[edgePopup.edge.type] ||
+							edgePopup.edge.type ||
+							"followed";
+						const isActive = resolvedType === key;
 						return (
 							<button
 								key={key}
@@ -1999,7 +2057,8 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 										letterSpacing: "0.06em",
 										fontWeight: 700,
 									}}>
-									What does this arc mean?
+									What patterns do you recognize across these events? What does
+									this arc reveal about how you tend to respond?
 								</label>
 								<textarea
 									defaultValue={c.note || ""}
