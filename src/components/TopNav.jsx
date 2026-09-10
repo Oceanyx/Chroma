@@ -5,7 +5,14 @@
 //     mapped to new ones so edge sourceId/targetId, constellation nodeIds,
 //     and node constellationIds[] all stay consistent
 import React, { useState } from "react";
-import { MousePointer, Hand, Download, Upload, Target } from "lucide-react";
+import {
+	MousePointer,
+	Hand,
+	Download,
+	Upload,
+	Target,
+	FilePlus,
+} from "lucide-react";
 import PurposeModal from "./PurposeModal";
 import { db } from "../lib/db";
 
@@ -15,6 +22,8 @@ export default function TopNav({
 	onToolChange,
 	onExport,
 	onImport,
+	onNewMap,
+	onPurposeUpdate,
 }) {
 	const [showPurpose, setShowPurpose] = useState(false);
 	const [importing, setImporting] = useState(false);
@@ -55,6 +64,10 @@ export default function TopNav({
 				const idMap = {}; // oldId → newId
 
 				if (data.nodes?.length) {
+					// Pass 1: insert every node, stripped of its old id, and record
+					// oldId -> newId. parentId and relationships still hold OLD ids
+					// at this point — we can't remap them until every node has its
+					// new id, which we won't know until this loop finishes.
 					for (const node of data.nodes) {
 						const { id: oldId, ...rest } = node;
 						// Ensure new fields exist with defaults for older exports
@@ -70,6 +83,33 @@ export default function TopNav({
 						};
 						const newId = await db.nodes.add(newNode);
 						if (oldId != null) idMap[oldId] = newId;
+					}
+
+					// Pass 2: now that every old id has a new id, fix up the two
+					// fields that reference other nodes by id: a moon's parentId
+					// (which planet it belongs to) and its relationships[].targetMoonId
+					// (which moon it's in tension/support with). Previously these were
+					// left pointing at old ids, which silently detached every
+					// imported reflection from its planet.
+					for (const node of data.nodes) {
+						const oldId = node.id;
+						if (oldId == null) continue;
+						const newId = idMap[oldId];
+						if (newId == null) continue;
+
+						const updates = {};
+						if (node.parentId != null) {
+							updates.parentId = idMap[node.parentId] ?? node.parentId;
+						}
+						if (node.relationships?.length) {
+							updates.relationships = node.relationships.map((rel) => ({
+								...rel,
+								targetMoonId: idMap[rel.targetMoonId] ?? rel.targetMoonId,
+							}));
+						}
+						if (Object.keys(updates).length) {
+							await db.nodes.update(newId, updates);
+						}
 					}
 				}
 
@@ -227,12 +267,12 @@ export default function TopNav({
 								borderLeft: "1px solid rgba(255,255,255,0.07)",
 								fontSize: 10,
 								fontWeight: 700,
-								color: "#475569",
+								color: "#94A3B8",
 								letterSpacing: "0.05em",
 								cursor: "default",
 								whiteSpace: "nowrap",
 							}}>
-							Hold SPACE to pan
+							SPACE pan · SHIFT+click connect · CTRL+click select
 						</div>
 					</div>
 				</div>
@@ -264,6 +304,11 @@ export default function TopNav({
 						label="Export"
 						accent
 					/>
+					<NavButton
+						onClick={onNewMap}
+						icon={<FilePlus size={13} />}
+						label="New Map"
+					/>
 				</div>
 			</div>
 
@@ -271,7 +316,10 @@ export default function TopNav({
 				<PurposeModal
 					purposeData={purposeData}
 					onClose={() => setShowPurpose(false)}
-					onEdit={() => setShowPurpose(false)}
+					onSave={(updated) => {
+						onPurposeUpdate?.(updated);
+						setShowPurpose(false);
+					}}
 				/>
 			)}
 		</>

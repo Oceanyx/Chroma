@@ -11,14 +11,40 @@ import { planetConfig } from "../seedData";
 // COLOR CALCULATION - Planet color based on dominant dimension
 // ============================================================================
 
-function calculatePlanetColor(moons) {
+// Fallback colors for a brand-new planet with no reflections yet, tinted by
+// node type (Observation/Action/Intention) instead of flat gray, matching
+// the colors already used in the type picker and PlanetSidePanel.
+const EMPTY_PLANET_COLORS_BY_TYPE = {
+	O: {
+		core: ["#2563EB", "#4D9FFF"],
+		surface: ["#60A5FA", "#93C5FD"],
+		atmosphere: ["#BFDBFE", "#DBEAFE"],
+		glow: "rgba(77, 159, 255, 0.35)",
+	},
+	A: {
+		core: ["#C2410C", "#FB923C"],
+		surface: ["#FDBA74", "#FED7AA"],
+		atmosphere: ["#FFEDD5", "#FFF7ED"],
+		glow: "rgba(251, 146, 60, 0.35)",
+	},
+	I: {
+		core: ["#B45309", "#FBBF24"],
+		surface: ["#FCD34D", "#FDE68A"],
+		atmosphere: ["#FEF3C7", "#FFFBEB"],
+		glow: "rgba(251, 191, 36, 0.35)",
+	},
+};
+
+function calculatePlanetColor(moons, nodeType) {
 	if (!moons || moons.length === 0) {
-		return {
-			core: ["#475569", "#64748B"],
-			surface: ["#64748B", "#94A3B8"],
-			atmosphere: ["#94A3B8", "#CBD5E1"],
-			glow: "rgba(148, 163, 184, 0.3)",
-		};
+		return (
+			EMPTY_PLANET_COLORS_BY_TYPE[nodeType] || {
+				core: ["#475569", "#64748B"],
+				surface: ["#64748B", "#94A3B8"],
+				atmosphere: ["#94A3B8", "#CBD5E1"],
+				glow: "rgba(148, 163, 184, 0.3)",
+			}
+		);
 	}
 
 	const counts = {
@@ -118,7 +144,7 @@ export default function Planet({
 	onMouseLeave,
 	onMouseDown,
 }) {
-	const colors = calculatePlanetColor(moons);
+	const colors = calculatePlanetColor(moons, node.type);
 	const surfaceState = calculateSurfaceState(moons);
 
 	const { x, y } = node.position;

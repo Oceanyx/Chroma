@@ -217,7 +217,7 @@ const menuDividerStyle = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
+export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) {
 	// ── Core data ─────────────────────────────────────────────────────────────
 	const [nodes, setNodes] = useState([]);
 	const [edges, setEdges] = useState([]);
@@ -700,7 +700,7 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 				return;
 			}
 
-			if (tool === "select" && !hasDraggedRef.current) {
+			if (tool === "select" && !hasDraggedRef.current && !creatingConnection) {
 				if (node.type === "R") {
 					const parent = nodes.find((n) => n.id === node.parentId);
 					if (parent) enterReflectionMode(parent);
@@ -1311,6 +1311,8 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 				onToolChange={setTool}
 				onExport={handleExport}
 				onImport={handleImport}
+				onNewMap={onNewMap}
+				onPurposeUpdate={onPurposeUpdate}
 			/>
 
 			<div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -2081,7 +2083,6 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate }) {
 										fontFamily: "system-ui, sans-serif",
 										resize: "vertical",
 										lineHeight: 1.5,
-										color: "rgba(255,255,255,0.85)",
 									}}
 								/>
 							</div>

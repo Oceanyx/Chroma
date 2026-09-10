@@ -1,8 +1,52 @@
 // src/components/PurposeModal.jsx
-import React from "react";
-import { X, Edit2, Target } from "lucide-react";
+// Fix: the Edit button previously called onEdit, which TopNav wired to just
+// close the modal — there was no actual edit mode. This adds one locally.
+import React, { useState } from "react";
+import { X, Edit2, Target, Check } from "lucide-react";
 
-export default function PurposeModal({ purposeData, onClose, onEdit }) {
+const fieldStyle = {
+  width: "100%",
+  fontSize: "14px",
+  color: "#E6EEF8",
+  lineHeight: "1.6",
+  padding: "12px",
+  background: "rgba(30, 41, 59, 0.4)",
+  borderRadius: "8px",
+  border: "1px solid rgba(108,99,255,0.35)",
+  fontFamily: "inherit",
+  resize: "vertical",
+  boxSizing: "border-box",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "12px",
+  color: "#94A3B8",
+  fontWeight: 500,
+  marginBottom: "6px",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+};
+
+export default function PurposeModal({ purposeData, onClose, onSave }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(purposeData);
+
+  const startEdit = () => {
+    setDraft(purposeData);
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    onSave?.(draft);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setDraft(purposeData);
+    setIsEditing(false);
+  };
+
   return (
     <div
       style={{
@@ -48,32 +92,68 @@ export default function PurposeModal({ purposeData, onClose, onEdit }) {
             </h2>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={onEdit}
-              style={{
-                padding: "6px 12px",
-                background: "transparent",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "6px",
-                color: "#94A3B8",
-                cursor: "pointer",
-                fontSize: "13px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.borderColor = "#6C63FF";
-                e.target.style.color = "#6C63FF";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = "rgba(255,255,255,0.1)";
-                e.target.style.color = "#94A3B8";
-              }}
-            >
-              <Edit2 size={14} /> Edit
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "6px",
+                    color: "#94A3B8",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  style={{
+                    padding: "6px 12px",
+                    background: "rgba(108,99,255,0.2)",
+                    border: "1px solid #6C63FF",
+                    borderRadius: "6px",
+                    color: "#A78BFA",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Check size={14} /> Save
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={startEdit}
+                style={{
+                  padding: "6px 12px",
+                  background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "6px",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = "#6C63FF";
+                  e.target.style.color = "#6C63FF";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = "rgba(255,255,255,0.1)";
+                  e.target.style.color = "#94A3B8";
+                }}
+              >
+                <Edit2 size={14} /> Edit
+              </button>
+            )}
             <button
               onClick={onClose}
               style={{
@@ -99,120 +179,112 @@ export default function PurposeModal({ purposeData, onClose, onEdit }) {
           }}
         >
           <div style={{ marginBottom: "20px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                color: "#94A3B8",
-                fontWeight: 500,
-                marginBottom: "6px",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Map Title
-            </label>
-            <div
-              style={{
-                fontSize: "18px",
-                color: "#E6EEF8",
-                fontWeight: 600,
-              }}
-            >
-              {purposeData.title || "Untitled Map"}
-            </div>
+            <label style={labelStyle}>Map Title</label>
+            {isEditing ? (
+              <input
+                style={{ ...fieldStyle, fontSize: "16px", fontWeight: 600 }}
+                value={draft.title || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: e.target.value }))
+                }
+              />
+            ) : (
+              <div style={{ fontSize: "18px", color: "#E6EEF8", fontWeight: 600 }}>
+                {purposeData.title || "Untitled Map"}
+              </div>
+            )}
           </div>
 
-          {purposeData.purpose && (
+          {(isEditing || purposeData.purpose) && (
             <div style={{ marginBottom: "20px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#94A3B8",
-                  fontWeight: 500,
-                  marginBottom: "6px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Purpose
-              </label>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#CBD5E1",
-                  lineHeight: "1.6",
-                  padding: "12px",
-                  background: "rgba(30, 41, 59, 0.4)",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                }}
-              >
-                {purposeData.purpose}
-              </div>
+              <label style={labelStyle}>Purpose</label>
+              {isEditing ? (
+                <textarea
+                  rows={3}
+                  style={fieldStyle}
+                  value={draft.purpose || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, purpose: e.target.value }))
+                  }
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#CBD5E1",
+                    lineHeight: "1.6",
+                    padding: "12px",
+                    background: "rgba(30, 41, 59, 0.4)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {purposeData.purpose}
+                </div>
+              )}
             </div>
           )}
 
-          {purposeData.currentState && (
+          {(isEditing || purposeData.currentState) && (
             <div style={{ marginBottom: "20px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#94A3B8",
-                  fontWeight: 500,
-                  marginBottom: "6px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Current State
-              </label>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#CBD5E1",
-                  lineHeight: "1.6",
-                  padding: "12px",
-                  background: "rgba(30, 41, 59, 0.4)",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                }}
-              >
-                {purposeData.currentState}
-              </div>
+              <label style={labelStyle}>Current State</label>
+              {isEditing ? (
+                <textarea
+                  rows={3}
+                  style={fieldStyle}
+                  value={draft.currentState || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, currentState: e.target.value }))
+                  }
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#CBD5E1",
+                    lineHeight: "1.6",
+                    padding: "12px",
+                    background: "rgba(30, 41, 59, 0.4)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {purposeData.currentState}
+                </div>
+              )}
             </div>
           )}
 
-          {purposeData.orientationQuestion && (
+          {(isEditing || purposeData.orientationQuestion) && (
             <div style={{ marginBottom: "20px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#94A3B8",
-                  fontWeight: 500,
-                  marginBottom: "6px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Guiding Question
-              </label>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#CBD5E1",
-                  lineHeight: "1.6",
-                  padding: "12px",
-                  background: "rgba(30, 41, 59, 0.4)",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                }}
-              >
-                {purposeData.orientationQuestion}
-              </div>
+              <label style={labelStyle}>Guiding Question</label>
+              {isEditing ? (
+                <textarea
+                  rows={2}
+                  style={fieldStyle}
+                  value={draft.orientationQuestion || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      orientationQuestion: e.target.value,
+                    }))
+                  }
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#CBD5E1",
+                    lineHeight: "1.6",
+                    padding: "12px",
+                    background: "rgba(30, 41, 59, 0.4)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {purposeData.orientationQuestion}
+                </div>
+              )}
             </div>
           )}
         </div>

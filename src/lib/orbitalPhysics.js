@@ -109,6 +109,13 @@ export function calculateAnimatedOrbit(
 	const dimensionConfig = moonConfig.dimension[dim];
 	const baseAngle = moon.orbitAngle || 0;
 
+	// Anchored moons should stay put, matching ReflectionSpace's own
+	// getMoonPosition — previously only ReflectionSpace respected isLocked,
+	// so an anchored moon kept orbiting once you left Reflection Mode.
+	if (moon.isLocked || paused) {
+		return calculateMoonPosition(parent, baseAngle, dim, scale);
+	}
+
 	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
 	return calculateMoonPosition(parent, animatedAngle, dim, scale);
 }

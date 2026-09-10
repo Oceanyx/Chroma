@@ -655,6 +655,19 @@ export default function PlanetSidePanel({
 				</div>
 			)}
 
+			{/* How long ago — shows once saved, so it's visibly different from skip */}
+			{!isEditing && node.temporalDistance != null && (
+				<div
+					style={{
+						padding: "0 20px 10px",
+						flexShrink: 0,
+						fontSize: 11,
+						color: "#7A8FA6",
+					}}>
+					Happened: <span style={{ color: "#C8D6E8" }}>{node.temporalDistance}</span>
+				</div>
+			)}
+
 			{/* Context + focal question read-only */}
 			{!isEditing && (node.context || node.focalQuestion) && (
 				<div
