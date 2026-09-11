@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { moonConfig, lenses as DEFAULT_LENSES, lensById } from "../seedData";
+import { loadCustomLenses, saveCustomLenses } from "../utils/customLenses";
 
 export const PANEL_WIDTH = 460;
 
@@ -332,7 +333,7 @@ function RelLink({ rel, onRemove }) {
 }
 
 // ── Custom lens helpers ───────────────────────────────────────────────────────
-const CUSTOM_KEY = "chroma_custom_lenses";
+// (storage moved to src/utils/customLenses.js, shared with MoonInputCard)
 const LENS_EMOJIS = [
 	"🔍",
 	"🌱",
@@ -350,16 +351,6 @@ const LENS_EMOJIS = [
 	"🧭",
 	"🌺",
 ];
-function loadCustomLenses() {
-	try {
-		return JSON.parse(localStorage.getItem(CUSTOM_KEY) || "[]");
-	} catch {
-		return [];
-	}
-}
-function saveCustomLenses(l) {
-	localStorage.setItem(CUSTOM_KEY, JSON.stringify(l));
-}
 
 // ── Version dot timeline ──────────────────────────────────────────────────────
 const MAX_VERSIONS = 5;

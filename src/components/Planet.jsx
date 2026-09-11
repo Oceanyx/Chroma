@@ -188,6 +188,18 @@ export default function Planet({
 			onMouseDown={(e) => onMouseDown?.(node, e)}
 			style={{ cursor: "pointer" }}
 			opacity={isFocused === false ? 0.3 : 1}>
+			{/* Invisible larger hit target — the visible planet circle alone was
+			    an unforgivingly small/precise click area, which is very likely
+			    why connections "take a few tries" to register. This sits behind
+			    the visible circle and only expands the clickable radius. */}
+			<circle
+				cx={centerX}
+				cy={centerY}
+				r={radius + 16}
+				fill="transparent"
+				stroke="none"
+				style={{ pointerEvents: "all" }}
+			/>
 			<defs>
 				<radialGradient id={gradientId}>
 					<stop offset="0%" stopColor={colors.core[0]} />

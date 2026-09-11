@@ -272,7 +272,7 @@ export default function TopNav({
 								cursor: "default",
 								whiteSpace: "nowrap",
 							}}>
-							SPACE pan · SHIFT+click connect · CTRL+click select
+							SPACE pan · CTRL+click connect · SHIFT+click select
 						</div>
 					</div>
 				</div>

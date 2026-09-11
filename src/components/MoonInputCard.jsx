@@ -8,7 +8,8 @@
 //   - lensUsed (single id) replaces multi-select lensesUsed array in save payload
 //   - Dimension renamed: symbolic → framing (reads from moonConfig)
 import React, { useState, useEffect, useRef } from "react";
-import { moonConfig, lenses } from "../seedData";
+import { moonConfig, lenses as PRESET_LENSES } from "../seedData";
+import { loadCustomLenses, addCustomLens } from "../utils/customLenses";
 
 // Fallback instruction if a custom lens has no instruction for this dimension
 function getLensInstruction(lens, dimension) {
@@ -23,11 +24,16 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 	const [selectedLensId, setSelectedLensId] = useState(null); // null = "Open"
 	const [text, setText] = useState("");
 	const [claimType, setClaimType] = useState("reporting");
+	const [customLenses, setCustomLenses] = useState(loadCustomLenses);
+	const [showNewLens, setShowNewLens] = useState(false);
+	const [newLensLabel, setNewLensLabel] = useState("");
+	const [newLensEmoji, setNewLensEmoji] = useState("🔍");
 	const textareaRef = useRef(null);
 
 	const dimensionConfig = moonConfig.dimension[dimension];
 	if (!dimensionConfig) return null;
 
+	const lenses = [...PRESET_LENSES, ...customLenses];
 	const selectedLens = lenses.find((l) => l.id === selectedLensId) || null;
 
 	// Placeholder text: lens instruction if lens selected, else dimension default
@@ -52,6 +58,20 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 
 	const handleLensConfirm = () => {
 		goToWrite();
+	};
+
+	const handleAddCustomLens = () => {
+		if (!newLensLabel.trim()) return;
+		const updated = addCustomLens({
+			label: newLensLabel,
+			emoji: newLensEmoji,
+			color: dimensionConfig.color,
+		});
+		setCustomLenses(updated);
+		setSelectedLensId(updated[updated.length - 1].id);
+		setNewLensLabel("");
+		setNewLensEmoji("🔍");
+		setShowNewLens(false);
 	};
 
 	const handleSave = () => {
@@ -244,7 +264,85 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 								</button>
 							);
 						})}
+
+						{/* + New lens */}
+						{!showNewLens && (
+							<button
+								onClick={() => setShowNewLens(true)}
+								style={{
+									padding: "8px 14px",
+									background: "rgba(30,41,59,0.4)",
+									border: "1px dashed rgba(148,163,184,0.35)",
+									borderRadius: 10,
+									color: "#64748B",
+									cursor: "pointer",
+									fontSize: 13,
+									fontWeight: 500,
+								}}>
+								+ New lens
+							</button>
+						)}
 					</div>
+
+					{showNewLens && (
+						<div
+							style={{
+								display: "flex",
+								gap: 8,
+								alignItems: "center",
+								marginBottom: 16,
+							}}>
+							<input
+								value={newLensEmoji}
+								onChange={(e) => setNewLensEmoji(e.target.value)}
+								maxLength={2}
+								style={{
+									width: 40,
+									textAlign: "center",
+									padding: "8px 0",
+									background: "rgba(30,41,59,0.6)",
+									border: "1px solid rgba(148,163,184,0.25)",
+									borderRadius: 8,
+									color: "#E6EEF8",
+									fontSize: 15,
+								}}
+							/>
+							<input
+								autoFocus
+								value={newLensLabel}
+								onChange={(e) => setNewLensLabel(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") handleAddCustomLens();
+									if (e.key === "Escape") setShowNewLens(false);
+								}}
+								placeholder="Name this lens…"
+								style={{
+									flex: 1,
+									padding: "8px 12px",
+									background: "rgba(30,41,59,0.6)",
+									border: "1px solid rgba(148,163,184,0.25)",
+									borderRadius: 8,
+									color: "#E6EEF8",
+									fontSize: 13,
+									outline: "none",
+								}}
+							/>
+							<button
+								onClick={handleAddCustomLens}
+								style={{
+									padding: "8px 14px",
+									background: dimColor,
+									border: "none",
+									borderRadius: 8,
+									color: "#fff",
+									cursor: "pointer",
+									fontSize: 13,
+									fontWeight: 700,
+								}}>
+								Add
+							</button>
+						</div>
+					)}
 
 					{/* Attentional instruction preview */}
 					{selectedLensId && (

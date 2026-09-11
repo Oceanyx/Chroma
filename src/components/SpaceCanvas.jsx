@@ -217,7 +217,11 @@ const menuDividerStyle = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
-export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) {
+export default function SpaceCanvas({
+	purposeData,
+	onPurposeUpdate,
+	onNewMap,
+}) {
 	// ── Core data ─────────────────────────────────────────────────────────────
 	const [nodes, setNodes] = useState([]);
 	const [edges, setEdges] = useState([]);
@@ -236,6 +240,7 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) 
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 	const hasDraggedRef = useRef(false);
 	const mouseDownPosRef = useRef({ x: 0, y: 0 });
+	const justStartedConnectionRef = useRef(false);
 
 	// ── Node creation ─────────────────────────────────────────────────────────
 	const [showNodeTypePicker, setShowNodeTypePicker] = useState(false);
@@ -383,7 +388,7 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) 
 			setConstellationEditor(null);
 			return;
 		}
-		if (e.shiftKey && tool === "select") return;
+		if ((e.ctrlKey || e.metaKey) && tool === "select") return;
 
 		if (
 			tool === "select" &&
@@ -648,11 +653,24 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) 
 	// ─────────────────────────────────────────────────────────────────────────
 	const handlePlanetMouseDown = useCallback(
 		(node, e) => {
-			if (e.shiftKey && tool === "select") {
+			if ((e.ctrlKey || e.metaKey) && tool === "select") {
 				e.stopPropagation();
+				// Set synchronously via ref, not just state — state updates
+				// aren't guaranteed to be visible yet in the click handler that
+				// fires right after this same mousedown, which was why the side
+				// panel kept opening even after the earlier state-based guard.
+				justStartedConnectionRef.current = true;
 				setCreatingConnection(true);
 				setConnectionSource(node);
 				setConnectionPreview(null);
+				return;
+			}
+			if (e.shiftKey && tool === "select") {
+				// Shift+click toggles multi-select in handlePlanetClick below.
+				// Previously this fell through to the drag-start branch, which
+				// nudged the planet on every shift+click and silently broke
+				// multi-select.
+				e.stopPropagation();
 				return;
 			}
 			if (tool === "select") {
@@ -674,8 +692,16 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) 
 		(node, e) => {
 			e.stopPropagation();
 
-			// Ctrl/Cmd+click → toggle multi-select (for constellation ops)
-			if ((e.ctrlKey || e.metaKey) && tool === "select") {
+			// This click immediately follows a shift+mousedown that started a
+			// connection on this same node — consume it and stop, so it can't
+			// also select the node and open its side panel.
+			if (justStartedConnectionRef.current) {
+				justStartedConnectionRef.current = false;
+				return;
+			}
+
+			// Shift+click → toggle multi-select (for constellation ops)
+			if (e.shiftKey && tool === "select") {
 				if (node.type === "O" || node.type === "A" || node.type === "I") {
 					setMultiSelectedIds((prev) => {
 						const next = new Set(prev);
@@ -683,7 +709,7 @@ export default function SpaceCanvas({ purposeData, onPurposeUpdate, onNewMap }) 
 						else next.add(node.id);
 						return next;
 					});
-					// Don't fire single-select when ctrl+clicking
+					// Don't fire single-select when shift+clicking
 					return;
 				}
 			}
