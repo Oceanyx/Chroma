@@ -465,7 +465,11 @@ export default function SpaceCanvas({
 			hasDraggedRef.current = false;
 		}
 
-		if (creatingConnection && !connectionPreview) {
+		if (
+			creatingConnection &&
+			!connectionPreview &&
+			!justStartedConnectionRef.current
+		) {
 			setCreatingConnection(false);
 			setConnectionSource(null);
 			setConnectionPreview(null);
