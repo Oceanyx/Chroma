@@ -257,7 +257,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 					gap: "12px",
 				}}>
 				<img
-					src="/logo.PNG"
+					src={`${import.meta.env.BASE_URL}logo.PNG`}
 					alt="Chroma Logo"
 					style={{
 						width: "48px",

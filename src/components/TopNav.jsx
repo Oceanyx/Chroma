@@ -177,7 +177,7 @@ export default function TopNav({
 				{/* Left: Logo */}
 				<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
 					<img
-						src="/logo.PNG"
+						src={`${import.meta.env.BASE_URL}logo.PNG`}
 						alt="Chroma"
 						style={{
 							width: 34,
