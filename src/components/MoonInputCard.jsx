@@ -343,6 +343,26 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 							</button>
 						</div>
 					)}
+					{showNewLens && (
+						<div
+							style={{
+								fontSize: 11,
+								color: "#5B6B80",
+								marginTop: -10,
+								marginBottom: 16,
+							}}>
+							Tip: your keyboard probably has a built-in emoji picker (Win + .
+							on Windows, Cmd + Ctrl + Space on Mac), or browse{" "}
+							<a
+								href="https://emojipedia.org"
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{ color: "#94A3B8" }}>
+								Emojipedia
+							</a>{" "}
+							and paste one in.
+						</div>
+					)}
 
 					{/* Attentional instruction preview */}
 					{selectedLensId && (

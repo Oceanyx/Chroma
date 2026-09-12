@@ -13,6 +13,7 @@ import {
 	Target,
 	FilePlus,
 	Link2,
+	Locate,
 } from "lucide-react";
 import PurposeModal from "./PurposeModal";
 import { db } from "../lib/db";
@@ -25,6 +26,7 @@ export default function TopNav({
 	onImport,
 	onNewMap,
 	onPurposeUpdate,
+	onRecenter,
 }) {
 	const [showPurpose, setShowPurpose] = useState(false);
 	const [importing, setImporting] = useState(false);
@@ -262,20 +264,44 @@ export default function TopNav({
 								{label}
 							</button>
 						))}
-						<div
+						<button
+							onClick={onRecenter}
+							title="Recenter — fit everything back in view"
 							style={{
-								padding: "4px 8px",
+								padding: "4px 10px",
 								marginLeft: 2,
-								borderLeft: "1px solid rgba(255,255,255,0.07)",
-								fontSize: 10,
-								fontWeight: 700,
+								background: "transparent",
+								border: "none",
+								borderLeft: "1px solid rgba(255,255,255,0.1)",
+								borderRadius: 0,
 								color: "#94A3B8",
-								letterSpacing: "0.05em",
-								cursor: "default",
+								cursor: "pointer",
+								fontSize: 11,
+								fontWeight: 600,
+								display: "flex",
+								alignItems: "center",
+								gap: 5,
 								whiteSpace: "nowrap",
 							}}>
-							SPACE pan · Connect tool to link · SHIFT+click select
-						</div>
+							<Locate size={12} />
+							Recenter
+						</button>
+					</div>
+					{/* Hint — deliberately styled apart from the tool buttons above
+					    (no shared background/border) so it reads as passive
+					    information, not another interactive control */}
+					<div
+						style={{
+							padding: "4px 6px",
+							fontSize: 10,
+							fontStyle: "italic",
+							fontWeight: 500,
+							color: "#5B6B80",
+							letterSpacing: "0.02em",
+							cursor: "default",
+							whiteSpace: "nowrap",
+						}}>
+						SPACE pan · Connect tool to link · SHIFT+click select
 					</div>
 				</div>
 

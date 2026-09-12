@@ -620,6 +620,39 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	// Reflection mode
 	// ─────────────────────────────────────────────────────────────────────────
+	const handleRecenter = useCallback(() => {
+		const planets = nodes.filter(
+			(n) => n.type === "O" || n.type === "A" || n.type === "I",
+		);
+		if (planets.length === 0) {
+			setZoom(CANVAS.defaultZoom);
+			setPan(CANVAS.defaultPan);
+			return;
+		}
+		const r = planetConfig.baseRadius;
+		const xs = planets.map((n) => n.position.x + r);
+		const ys = planets.map((n) => n.position.y + r);
+		const pad = 80;
+		const minX = Math.min(...xs) - r - pad;
+		const maxX = Math.max(...xs) + r + pad;
+		const minY = Math.min(...ys) - r - pad;
+		const maxY = Math.max(...ys) + r + pad;
+		const viewW = window.innerWidth;
+		const viewH = window.innerHeight - 60;
+		const fitZoom = Math.min(
+			viewW / Math.max(maxX - minX, 1),
+			viewH / Math.max(maxY - minY, 1),
+		);
+		const targetZoom = Math.max(0.15, Math.min(fitZoom, 1.5));
+		const cx = (minX + maxX) / 2;
+		const cy = (minY + maxY) / 2;
+		setZoom(targetZoom);
+		setPan({
+			x: viewW / 2 - cx * targetZoom,
+			y: viewH / 2 + 60 - cy * targetZoom,
+		});
+	}, [nodes]);
+
 	const enterReflectionMode = useCallback(
 		(parentNode) => {
 			const targetZoom = 2.5;
@@ -1346,7 +1379,22 @@ export default function SpaceCanvas({
 				onImport={handleImport}
 				onNewMap={onNewMap}
 				onPurposeUpdate={onPurposeUpdate}
+				onRecenter={handleRecenter}
 			/>
+
+			<div
+				style={{
+					position: "fixed",
+					bottom: 10,
+					right: 14,
+					fontSize: 10,
+					color: "rgba(148,163,184,0.35)",
+					pointerEvents: "none",
+					zIndex: 5,
+					userSelect: "none",
+				}}>
+				© 2026 Oceanyx · Brian Chan
+			</div>
 
 			<div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 				<div
