@@ -12,6 +12,7 @@ import {
 	Upload,
 	Target,
 	FilePlus,
+	Link2,
 } from "lucide-react";
 import PurposeModal from "./PurposeModal";
 import { db } from "../lib/db";
@@ -235,6 +236,7 @@ export default function TopNav({
 						}}>
 						{[
 							{ id: "select", Icon: MousePointer, label: "Select" },
+							{ id: "connect", Icon: Link2, label: "Connect" },
 							{ id: "hand", Icon: Hand, label: "Pan" },
 						].map(({ id, Icon, label }) => (
 							<button
@@ -272,7 +274,7 @@ export default function TopNav({
 								cursor: "default",
 								whiteSpace: "nowrap",
 							}}>
-							SPACE pan · CTRL+click connect · SHIFT+click select
+							SPACE pan · Connect tool to link · SHIFT+click select
 						</div>
 					</div>
 				</div>

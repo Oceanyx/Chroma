@@ -244,7 +244,7 @@ export default function Planet({
 				fill={colors.glow}
 				opacity={glowOpacity}
 				filter={`url(#${glowId})`}
-				style={{ transition: "all 0.3s ease" }}
+				style={{ transition: "opacity 0.3s ease, filter 0.3s ease" }}
 			/>
 
 			{/* State overlays */}

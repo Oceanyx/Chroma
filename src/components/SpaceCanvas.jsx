@@ -240,7 +240,7 @@ export default function SpaceCanvas({
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 	const hasDraggedRef = useRef(false);
 	const mouseDownPosRef = useRef({ x: 0, y: 0 });
-	const justStartedConnectionRef = useRef(false);
+	const toolBeforePanRef = useRef("select");
 
 	// ── Node creation ─────────────────────────────────────────────────────────
 	const [showNodeTypePicker, setShowNodeTypePicker] = useState(false);
@@ -250,9 +250,11 @@ export default function SpaceCanvas({
 	const [nodeCreationPos, setNodeCreationPos] = useState({ x: 0, y: 0 });
 
 	// ── Connection creation ────────────────────────────────────────────────────
-	const [creatingConnection, setCreatingConnection] = useState(false);
 	const [connectionSource, setConnectionSource] = useState(null);
 	const [connectionPreview, setConnectionPreview] = useState(null);
+	// Derived, not separate state — a connection is "in progress" exactly
+	// when there's a source, nothing more to keep in sync.
+	const creatingConnection = connectionSource !== null;
 
 	// ── Selection ─────────────────────────────────────────────────────────────
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
@@ -388,8 +390,6 @@ export default function SpaceCanvas({
 			setConstellationEditor(null);
 			return;
 		}
-		if ((e.ctrlKey || e.metaKey) && tool === "select") return;
-
 		if (
 			tool === "select" &&
 			(e.target === containerRef.current || e.target === canvasRef.current)
@@ -414,7 +414,7 @@ export default function SpaceCanvas({
 		if (isPanning)
 			setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
 
-		if (creatingConnection && connectionSource && canvasRef.current) {
+		if (connectionSource && canvasRef.current) {
 			const r = canvasRef.current.getBoundingClientRect();
 			setConnectionPreview({
 				x: (e.clientX - r.left - pan.x) / zoom,
@@ -463,16 +463,6 @@ export default function SpaceCanvas({
 			}
 			setDraggingNodeId(null);
 			hasDraggedRef.current = false;
-		}
-
-		if (
-			creatingConnection &&
-			!connectionPreview &&
-			!justStartedConnectionRef.current
-		) {
-			setCreatingConnection(false);
-			setConnectionSource(null);
-			setConnectionPreview(null);
 		}
 	};
 
@@ -573,8 +563,14 @@ export default function SpaceCanvas({
 				document.activeElement?.tagName === "TEXTAREA" ||
 				document.activeElement?.isContentEditable;
 
-			if (e.key === " " && !e.repeat && tool === "select" && !typing) {
+			if (
+				e.key === " " &&
+				!e.repeat &&
+				(tool === "select" || tool === "connect") &&
+				!typing
+			) {
 				e.preventDefault();
+				toolBeforePanRef.current = tool;
 				setTool("hand");
 			}
 			if (e.key === "Escape") {
@@ -583,10 +579,11 @@ export default function SpaceCanvas({
 				setEdgePopup(null);
 				setConstellationEditor(null);
 				if (reflectionMode.active) exitReflectionMode();
-				if (creatingConnection) {
-					setCreatingConnection(false);
+				if (connectionSource) {
 					setConnectionSource(null);
 					setConnectionPreview(null);
+				} else if (tool === "connect") {
+					setTool("select");
 				}
 				if (showNodeTypePicker || showNodeTextInput) handleNodeInputCancel();
 				if (selectedNodeId) setSelectedNodeId(null);
@@ -598,7 +595,9 @@ export default function SpaceCanvas({
 				document.activeElement?.tagName === "INPUT" ||
 				document.activeElement?.tagName === "TEXTAREA" ||
 				document.activeElement?.isContentEditable;
-			if (e.key === " " && tool === "hand" && !typing) setTool("select");
+			if (e.key === " " && tool === "hand" && !typing) {
+				setTool(toolBeforePanRef.current || "select");
+			}
 		};
 		window.addEventListener("keydown", down);
 		window.addEventListener("keyup", up);
@@ -609,7 +608,7 @@ export default function SpaceCanvas({
 	}, [
 		tool,
 		reflectionMode.active,
-		creatingConnection,
+		connectionSource,
 		showNodeTypePicker,
 		showNodeTextInput,
 		selectedNodeId,
@@ -657,16 +656,12 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	const handlePlanetMouseDown = useCallback(
 		(node, e) => {
-			if ((e.ctrlKey || e.metaKey) && tool === "select") {
+			if (tool === "connect") {
+				// Nothing to do on mousedown in Connect mode — planets shouldn't
+				// drag while placing a connection, and the actual source/target
+				// logic all happens in handlePlanetClick below. No modifier key,
+				// no drag-vs-click race to get wrong.
 				e.stopPropagation();
-				// Set synchronously via ref, not just state — state updates
-				// aren't guaranteed to be visible yet in the click handler that
-				// fires right after this same mousedown, which was why the side
-				// panel kept opening even after the earlier state-based guard.
-				justStartedConnectionRef.current = true;
-				setCreatingConnection(true);
-				setConnectionSource(node);
-				setConnectionPreview(null);
 				return;
 			}
 			if (e.shiftKey && tool === "select") {
@@ -696,11 +691,31 @@ export default function SpaceCanvas({
 		(node, e) => {
 			e.stopPropagation();
 
-			// This click immediately follows a shift+mousedown that started a
-			// connection on this same node — consume it and stop, so it can't
-			// also select the node and open its side panel.
-			if (justStartedConnectionRef.current) {
-				justStartedConnectionRef.current = false;
+			// Connect tool: plain clicks only, no modifier keys, no timing
+			// races with mousedown/mouseup. First click on a planet (of a
+			// connectable type) sets the source; a second click on a
+			// *different* planet completes it; clicking the source again
+			// cancels it, as a friendly way to back out mid-pick.
+			if (tool === "connect") {
+				if (node.type !== "O" && node.type !== "A" && node.type !== "I") {
+					return;
+				}
+				if (!connectionSource) {
+					setConnectionSource(node);
+					setConnectionPreview(null);
+					return;
+				}
+				if (node.id === connectionSource.id) {
+					setConnectionSource(null);
+					setConnectionPreview(null);
+					return;
+				}
+				createConnection(connectionSource, node);
+				setConnectionSource(null);
+				setConnectionPreview(null);
+				// Deliberately stays in Connect tool — makes several
+				// connections in a row painless. Escape or the Select button
+				// exits it.
 				return;
 			}
 
@@ -718,19 +733,7 @@ export default function SpaceCanvas({
 				}
 			}
 
-			if (
-				creatingConnection &&
-				connectionSource &&
-				node.id !== connectionSource.id
-			) {
-				createConnection(connectionSource, node);
-				setCreatingConnection(false);
-				setConnectionSource(null);
-				setConnectionPreview(null);
-				return;
-			}
-
-			if (tool === "select" && !hasDraggedRef.current && !creatingConnection) {
+			if (tool === "select" && !hasDraggedRef.current) {
 				if (node.type === "R") {
 					const parent = nodes.find((n) => n.id === node.parentId);
 					if (parent) enterReflectionMode(parent);
@@ -740,7 +743,7 @@ export default function SpaceCanvas({
 				setMultiSelectedIds(new Set()); // clear multi-select on single click
 			}
 		},
-		[tool, creatingConnection, connectionSource, nodes, enterReflectionMode],
+		[tool, connectionSource, nodes, enterReflectionMode],
 	);
 
 	const handlePlanetDoubleClick = useCallback(
@@ -1362,7 +1365,7 @@ export default function SpaceCanvas({
 								? isPanning
 									? "grabbing"
 									: "grab"
-								: creatingConnection
+								: tool === "connect" || creatingConnection
 									? "crosshair"
 									: "default",
 						overflow: "hidden",
@@ -1459,7 +1462,10 @@ export default function SpaceCanvas({
 											node={node}
 											moons={nodes.filter((n) => n.parentId === node.id)}
 											isHovered={hoveredNodeId === node.id}
-											isSelected={selectedNodeId === node.id}
+											isSelected={
+												selectedNodeId === node.id ||
+												connectionSource?.id === node.id
+											}
 											isFocused={
 												reflectionMode.active
 													? node.id === reflectionMode.parentNodeId

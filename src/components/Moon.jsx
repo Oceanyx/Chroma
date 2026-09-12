@@ -171,7 +171,7 @@ export default function Moon({
 				fill={config.color}
 				opacity={glowOpacity}
 				filter={`url(#${glowId})`}
-				style={{ transition: "all 0.3s ease" }}
+				style={{ transition: "opacity 0.3s ease, filter 0.3s ease" }}
 			/>
 
 			{/* Body */}
@@ -182,7 +182,7 @@ export default function Moon({
 				fill={`url(#${gradientId})`}
 				opacity={opacity}
 				filter={dimension === "subjective" ? `url(#${blurId})` : undefined}
-				style={{ transition: "all 0.2s ease" }}
+				style={{ transition: "opacity 0.2s ease" }}
 			/>
 
 			{/* SUBJECTIVE overlays */}
