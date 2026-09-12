@@ -11,7 +11,16 @@
 //   - Context menu closes on any canvas click or Escape
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { MousePointer, Hand, Link2, Locate } from "lucide-react";
+import {
+	MousePointer,
+	Hand,
+	Link2,
+	Locate,
+	Sparkles,
+	HelpCircle,
+} from "lucide-react";
+import LegendModal from "./LegendModal";
+import Onboarding from "./Onboarding";
 import {
 	db,
 	initializeDB,
@@ -24,6 +33,8 @@ import {
 	updateConstellation,
 	dissolveConstellation,
 	removeNodeFromConstellation,
+	getSetting,
+	setSetting,
 } from "../lib/db";
 import {
 	groupMoonsByDimension,
@@ -263,6 +274,8 @@ export default function SpaceCanvas({
 	const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
 	/** Set of planet node ids selected via Ctrl/Cmd+click for constellation ops */
 	const [multiSelectedIds, setMultiSelectedIds] = useState(new Set());
+	const [showLegend, setShowLegend] = useState(false);
+	const [showOnboarding, setShowOnboarding] = useState(false);
 
 	// ── Reflection mode ────────────────────────────────────────────────────────
 	const [reflectionMode, setReflectionMode] = useState({
@@ -362,6 +375,9 @@ export default function SpaceCanvas({
 			const { zoom: z, pan: p } = computeFitView(planets);
 			setZoom(z);
 			setPan(p);
+
+			const seenOnboarding = await getSetting("hasSeenOnboarding");
+			if (!seenOnboarding) setShowOnboarding(true);
 		}
 		loadData();
 	}, [computeFitView]);
@@ -626,6 +642,8 @@ export default function SpaceCanvas({
 					setConnectionPreview(null);
 				} else if (tool === "connect") {
 					setTool("select");
+				} else if (tool === "constellation" && multiSelectedIds.size === 0) {
+					setTool("select");
 				}
 				if (showNodeTypePicker || showNodeTextInput) handleNodeInputCancel();
 				if (selectedNodeId) setSelectedNodeId(null);
@@ -707,11 +725,11 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	const handlePlanetMouseDown = useCallback(
 		(node, e) => {
-			if (tool === "connect") {
-				// Nothing to do on mousedown in Connect mode — planets shouldn't
-				// drag while placing a connection, and the actual source/target
-				// logic all happens in handlePlanetClick below. No modifier key,
-				// no drag-vs-click race to get wrong.
+			if (tool === "connect" || tool === "constellation") {
+				// Nothing to do on mousedown in Connect or Constellation mode —
+				// planets shouldn't drag while placing a connection or building
+				// a group, and the actual logic all happens in
+				// handlePlanetClick below.
 				e.stopPropagation();
 				return;
 			}
@@ -767,6 +785,22 @@ export default function SpaceCanvas({
 				// Deliberately stays in Connect tool — makes several
 				// connections in a row painless. Escape or the Select button
 				// exits it.
+				return;
+			}
+
+			// Constellation tool: plain clicks toggle a planet into the pending
+			// group — same explicit, no-modifier-key approach as Connect, and
+			// reuses the exact same multiSelectedIds Set that Shift+click in
+			// Select mode already writes to, so the two never conflict.
+			if (tool === "constellation") {
+				if (node.type === "O" || node.type === "A" || node.type === "I") {
+					setMultiSelectedIds((prev) => {
+						const next = new Set(prev);
+						if (next.has(node.id)) next.delete(node.id);
+						else next.add(node.id);
+						return next;
+					});
+				}
 				return;
 			}
 
@@ -1432,6 +1466,13 @@ export default function SpaceCanvas({
 						title: "Connect — click a planet, then click another to link them",
 					},
 					{
+						id: "constellation",
+						Icon: Sparkles,
+						label: "Group",
+						title:
+							"Group — click planets to add them to a group, then Form Constellation",
+					},
+					{
 						id: "hand",
 						Icon: Hand,
 						label: "Pan",
@@ -1487,6 +1528,45 @@ export default function SpaceCanvas({
 				</button>
 			</div>
 
+			{tool === "constellation" && multiSelectedIds.size >= 2 && (
+				<div
+					style={{
+						position: "fixed",
+						bottom: 70,
+						left: "50%",
+						transform: "translateX(-50%)",
+						display: "flex",
+						alignItems: "center",
+						gap: 10,
+						padding: "8px 8px 8px 16px",
+						background: "rgba(15,23,36,0.92)",
+						backdropFilter: "blur(6px)",
+						borderRadius: 9,
+						border: "1px solid rgba(167,139,250,0.4)",
+						boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
+						zIndex: 10,
+					}}>
+					<span style={{ fontSize: 12, color: "#CBD5E1" }}>
+						{multiSelectedIds.size} planets selected
+					</span>
+					<button
+						onClick={handleFormConstellation}
+						style={{
+							padding: "6px 14px",
+							background: "#6C63FF",
+							border: "none",
+							borderRadius: 6,
+							color: "#fff",
+							cursor: "pointer",
+							fontSize: 12,
+							fontWeight: 700,
+							whiteSpace: "nowrap",
+						}}>
+						✦ Form Constellation
+					</button>
+				</div>
+			)}
+
 			<div
 				style={{
 					position: "fixed",
@@ -1500,6 +1580,48 @@ export default function SpaceCanvas({
 				}}>
 				© 2026 Oceanyx · Brian Chan
 			</div>
+
+			<button
+				onClick={() => setShowLegend(true)}
+				title="Help — how Chroma works"
+				style={{
+					position: "fixed",
+					bottom: 14,
+					left: 14,
+					width: 30,
+					height: 30,
+					borderRadius: "50%",
+					background: "rgba(15,23,36,0.85)",
+					backdropFilter: "blur(6px)",
+					border: "1px solid rgba(255,255,255,0.15)",
+					color: "#94A3B8",
+					cursor: "pointer",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					zIndex: 10,
+				}}>
+				<HelpCircle size={16} />
+			</button>
+
+			{showLegend && (
+				<LegendModal
+					onClose={() => setShowLegend(false)}
+					onReplayWalkthrough={() => {
+						setShowLegend(false);
+						setShowOnboarding(true);
+					}}
+				/>
+			)}
+
+			{showOnboarding && (
+				<Onboarding
+					onDone={() => {
+						setShowOnboarding(false);
+						setSetting("hasSeenOnboarding", true);
+					}}
+				/>
+			)}
 
 			<div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 				<div

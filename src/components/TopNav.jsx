@@ -209,7 +209,7 @@ export default function TopNav({
 								overflow: "hidden",
 								textOverflow: "ellipsis",
 								whiteSpace: "nowrap",
-								lineHeight: 1,
+								lineHeight: 1.4,
 							}}>
 							{purposeData.title}
 						</span>
