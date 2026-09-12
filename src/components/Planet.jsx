@@ -433,7 +433,8 @@ export default function Planet({
 				</g>
 			)}
 
-			{/* Title label */}
+			{/* Title label — expands to show more on hover instead of also
+			    popping up a separate, redundant tooltip box above the planet */}
 			<text
 				x={centerX}
 				y={centerY + radius + 20}
@@ -442,9 +443,15 @@ export default function Planet({
 				fill="#E6EEF8"
 				fontWeight={500}
 				opacity={0.9}
-				style={{ pointerEvents: "none" }}>
-				{node.text?.substring(0, 20) || "Untitled"}
-				{node.text?.length > 20 ? "..." : ""}
+				style={{
+					pointerEvents: "none",
+					paintOrder: "stroke",
+					stroke: "rgba(8,13,25,0.85)",
+					strokeWidth: 4,
+					strokeLinejoin: "round",
+				}}>
+				{node.text?.substring(0, isHovered ? 60 : 20) || "Untitled"}
+				{node.text?.length > (isHovered ? 60 : 20) ? "..." : ""}
 			</text>
 
 			{/* Selection ring */}
@@ -467,34 +474,6 @@ export default function Planet({
 						repeatCount="indefinite"
 					/>
 				</circle>
-			)}
-
-			{/* Hover tooltip */}
-			{isHovered && node.text && (
-				<g>
-					<rect
-						x={centerX - 100}
-						y={centerY - radius - 50}
-						width={200}
-						height={40}
-						rx={6}
-						fill="rgba(15,23,36,0.95)"
-						stroke="rgba(108,99,255,0.5)"
-						strokeWidth={1}
-					/>
-					<text
-						x={centerX}
-						y={centerY - radius - 30}
-						textAnchor="middle"
-						dominantBaseline="central"
-						fontSize={12}
-						fill="#E6EEF8"
-						fontWeight={500}
-						style={{ pointerEvents: "none" }}>
-						{node.text.substring(0, 30)}
-						{node.text.length > 30 ? "..." : ""}
-					</text>
-				</g>
 			)}
 		</g>
 	);

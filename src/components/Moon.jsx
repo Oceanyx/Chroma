@@ -420,6 +420,8 @@ export default function Moon({
 						textAnchor="middle"
 						dominantBaseline="central"
 						fontSize={12}
+						fill="#E6EEF8"
+						fontWeight="600"
 						style={{ pointerEvents: "none", userSelect: "none" }}>
 						{moonNumber}
 					</text>
@@ -434,9 +436,15 @@ export default function Moon({
 					textAnchor="middle"
 					fontSize={11}
 					fill={config.color}
-					opacity={isHovered ? 0.9 : 0.6}
+					opacity={isHovered ? 1 : 0.85}
 					fontWeight={600}
-					style={{ pointerEvents: "none" }}>
+					style={{
+						pointerEvents: "none",
+						paintOrder: "stroke",
+						stroke: "rgba(8,13,25,0.85)",
+						strokeWidth: 3,
+						strokeLinejoin: "round",
+					}}>
 					{ghostLabel || config.name}
 				</text>
 			)}

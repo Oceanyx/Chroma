@@ -39,7 +39,7 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						margin: "0 0 12px 0",
 						fontSize: "13px",
 						fontWeight: 600,
-						color: "#64748B",
+						color: "#94A3B8",
 						textTransform: "uppercase",
 						letterSpacing: "0.05em",
 					}}>
@@ -187,7 +187,7 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						background: "transparent",
 						border: "1px solid rgba(255,255,255,0.2)",
 						borderRadius: "6px",
-						color: "#64748B",
+						color: "#94A3B8",
 						fontSize: "13px",
 						cursor: "pointer",
 						transition: "all 0.2s",
@@ -198,7 +198,7 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 					}}
 					onMouseLeave={(e) => {
 						e.target.style.background = "transparent";
-						e.target.style.color = "#64748B";
+						e.target.style.color = "#94A3B8";
 					}}>
 					Cancel
 				</button>

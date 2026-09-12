@@ -66,7 +66,7 @@ const I_STATE_CONFIG = {
 	past: {
 		label: "Past",
 		description: "This intention was held in the past",
-		color: "#64748B",
+		color: "#94A3B8",
 	},
 	present: {
 		label: "Present",
@@ -295,7 +295,7 @@ export default function PlanetSidePanel({
 						background: "none",
 						border: "1px solid rgba(255,255,255,0.1)",
 						borderRadius: 6,
-						color: "#6B7F95",
+						color: "#94A3B8",
 						cursor: "pointer",
 						width: 28,
 						height: 28,
@@ -310,7 +310,7 @@ export default function PlanetSidePanel({
 						e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
 					}}
 					onMouseLeave={(e) => {
-						e.currentTarget.style.color = "#6B7F95";
+						e.currentTarget.style.color = "#94A3B8";
 						e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
 					}}>
 					<X size={13} />
@@ -356,7 +356,7 @@ export default function PlanetSidePanel({
 							(e.currentTarget.style.background = "rgba(255,255,255,0.03)")
 						}>
 						{node.text || (
-							<span style={{ color: "#4A6080", fontStyle: "italic" }}>
+							<span style={{ color: "#94A3B8", fontStyle: "italic" }}>
 								{tc.description}
 							</span>
 						)}
@@ -366,7 +366,7 @@ export default function PlanetSidePanel({
 								bottom: 7,
 								right: 9,
 								fontSize: 10,
-								color: "#4A6080",
+								color: "#94A3B8",
 								fontStyle: "normal",
 								fontFamily: "system-ui, sans-serif",
 								letterSpacing: "0.08em",
@@ -437,7 +437,7 @@ export default function PlanetSidePanel({
 								style={{
 									background: "none",
 									border: "none",
-									color: "#6B7F95",
+									color: "#94A3B8",
 									fontSize: 11,
 									fontWeight: 700,
 									cursor: "pointer",
@@ -480,7 +480,7 @@ export default function PlanetSidePanel({
 								style={{
 									background: "none",
 									border: "none",
-									color: "#6B7F95",
+									color: "#94A3B8",
 									fontSize: 11,
 									fontWeight: 700,
 									cursor: "pointer",
@@ -522,7 +522,7 @@ export default function PlanetSidePanel({
 									borderRadius: 8,
 									border: "1px solid rgba(255,255,255,0.1)",
 									background: "transparent",
-									color: "#6B7F95",
+									color: "#94A3B8",
 									fontSize: 13,
 									fontWeight: 700,
 									cursor: "pointer",
@@ -530,7 +530,7 @@ export default function PlanetSidePanel({
 									transition: "all 0.15s",
 								}}
 								onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
-								onMouseLeave={(e) => (e.currentTarget.style.color = "#6B7F95")}>
+								onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}>
 								Cancel
 							</button>
 							<button
@@ -569,7 +569,7 @@ export default function PlanetSidePanel({
 					<span
 						style={{
 							fontSize: 12,
-							color: "#6B7F95",
+							color: "#94A3B8",
 							fontWeight: 600,
 							letterSpacing: "0.05em",
 						}}>
@@ -644,7 +644,7 @@ export default function PlanetSidePanel({
 								padding: "5px 10px",
 								background: "none",
 								border: "none",
-								color: "#475569",
+								color: "#94A3B8",
 								fontSize: 11,
 								cursor: "pointer",
 								outline: "none",
@@ -664,7 +664,8 @@ export default function PlanetSidePanel({
 						fontSize: 11,
 						color: "#7A8FA6",
 					}}>
-					Happened: <span style={{ color: "#C8D6E8" }}>{node.temporalDistance}</span>
+					Happened:{" "}
+					<span style={{ color: "#C8D6E8" }}>{node.temporalDistance}</span>
 				</div>
 			)}
 
@@ -765,7 +766,7 @@ export default function PlanetSidePanel({
 							style={{
 								margin: 0,
 								fontSize: 13,
-								color: "#4A6080",
+								color: "#94A3B8",
 								fontStyle: "italic",
 							}}>
 							No reflections yet. Open this planet to begin.
@@ -920,7 +921,7 @@ export default function PlanetSidePanel({
 							style={{
 								margin: 0,
 								fontSize: 13,
-								color: "#4A6080",
+								color: "#94A3B8",
 								fontStyle: "italic",
 							}}>
 							Not part of any constellation.
@@ -1056,7 +1057,7 @@ export default function PlanetSidePanel({
 							background: deleteHovered
 								? "rgba(239,68,68,0.10)"
 								: "rgba(255,255,255,0.02)",
-							color: deleteHovered ? "#EF4444" : "#6B7F95",
+							color: deleteHovered ? "#EF4444" : "#94A3B8",
 							cursor: "pointer",
 							fontSize: 12,
 							fontWeight: 700,

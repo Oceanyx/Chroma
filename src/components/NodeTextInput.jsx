@@ -97,7 +97,7 @@ export default function NodeTextInput({
 							height: "28px",
 							border: "none",
 							background: "transparent",
-							color: "#64748B",
+							color: "#94A3B8",
 							fontSize: "20px",
 							cursor: "pointer",
 							transition: "all 0.2s",
@@ -108,7 +108,7 @@ export default function NodeTextInput({
 							e.target.style.background = "rgba(255,255,255,0.1)";
 						}}
 						onMouseLeave={(e) => {
-							e.target.style.color = "#64748B";
+							e.target.style.color = "#94A3B8";
 							e.target.style.background = "transparent";
 						}}>
 						✕
@@ -166,7 +166,7 @@ export default function NodeTextInput({
 					<span
 						style={{
 							fontSize: "11px",
-							color: text.length > 180 ? "#FB923C" : "#64748B",
+							color: text.length > 180 ? "#FB923C" : "#94A3B8",
 							fontFamily: "monospace",
 						}}>
 						{text.length} / 200
@@ -208,7 +208,7 @@ export default function NodeTextInput({
 					style={{
 						marginTop: "12px",
 						fontSize: "11px",
-						color: "#64748B",
+						color: "#94A3B8",
 						textAlign: "center",
 						fontStyle: "italic",
 					}}>

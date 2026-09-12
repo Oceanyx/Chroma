@@ -601,13 +601,13 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							padding: "6px",
 							background: "transparent",
 							border: "none",
-							color: "#64748B",
+							color: "#94A3B8",
 							fontSize: "12px",
 							cursor: "pointer",
 							transition: "color 0.2s",
 						}}
 						onMouseEnter={(e) => (e.target.style.color = "#94A3B8")}
-						onMouseLeave={(e) => (e.target.style.color = "#64748B")}>
+						onMouseLeave={(e) => (e.target.style.color = "#94A3B8")}>
 						Skip for now
 					</button>
 				</form>
@@ -711,7 +711,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 				<div
 					style={{
 						fontSize: "12px",
-						color: "#64748B",
+						color: "#94A3B8",
 						textAlign: "right",
 					}}>
 					© 2026 Oceanyx · Brian Chan

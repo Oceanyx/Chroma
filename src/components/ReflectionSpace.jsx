@@ -297,7 +297,7 @@ export default function ReflectionSpace({
 					isLocked: false,
 				});
 				await onNodesUpdate();
-				showToast("Relationship removed", "#64748B");
+				showToast("Relationship removed", "#94A3B8");
 				break;
 
 			case "delete":
@@ -305,7 +305,7 @@ export default function ReflectionSpace({
 					await db.nodes.delete(moon.id);
 					await onNodesUpdate();
 					setSelectedMoonId(null);
-					showToast("Released 🌌", "#64748B");
+					showToast("Released 🌌", "#94A3B8");
 				}
 				break;
 		}
@@ -437,7 +437,7 @@ export default function ReflectionSpace({
 					...extraUpdates,
 				});
 				onNodesUpdate();
-				showToast("Relationship removed", "#64748B");
+				showToast("Relationship removed", "#94A3B8");
 			};
 
 			if (rel.type === "support") {
@@ -529,6 +529,7 @@ export default function ReflectionSpace({
 				</button>
 
 				<div
+					title={parentNode.text || "Untitled"}
 					style={{
 						fontSize: "14px",
 						fontWeight: 600,
@@ -537,6 +538,7 @@ export default function ReflectionSpace({
 						overflow: "hidden",
 						textOverflow: "ellipsis",
 						whiteSpace: "nowrap",
+						cursor: parentNode.text?.length > 60 ? "help" : "default",
 					}}>
 					{parentNode.text?.substring(0, 60) || "Untitled"}
 					{parentNode.text?.length > 60 ? "…" : ""}
@@ -545,6 +547,7 @@ export default function ReflectionSpace({
 				{/* Focal question — shown if set */}
 				{parentNode.focalQuestion && (
 					<div
+						title={parentNode.focalQuestion}
 						style={{
 							position: "absolute",
 							top: TOP_BAR_HEIGHT,
@@ -553,7 +556,9 @@ export default function ReflectionSpace({
 							fontSize: 12,
 							fontStyle: "italic",
 							color: "rgba(255,255,255,0.25)",
-							pointerEvents: "none",
+							pointerEvents: "auto",
+							cursor:
+								parentNode.focalQuestion?.length > 60 ? "help" : "default",
 							whiteSpace: "nowrap",
 							maxWidth: 480,
 							overflow: "hidden",
@@ -589,7 +594,7 @@ export default function ReflectionSpace({
 								background: "rgba(10,15,28,0.95)",
 								border: "1px solid rgba(108,99,255,0.18)",
 								borderRadius: "7px",
-								color: "#64748B",
+								color: "#94A3B8",
 								fontSize: "11px",
 								fontWeight: 600,
 								zIndex: 10,
@@ -633,7 +638,7 @@ export default function ReflectionSpace({
 							<div
 								style={{
 									fontSize: "10px",
-									color: "#475569",
+									color: "#94A3B8",
 									fontWeight: 400,
 									marginTop: "3px",
 								}}>
@@ -925,7 +930,7 @@ export default function ReflectionSpace({
 				<span
 					style={{
 						fontSize: "10px",
-						color: "#64748B",
+						color: "#94A3B8",
 						fontWeight: 700,
 						textTransform: "uppercase",
 						letterSpacing: "0.7px",

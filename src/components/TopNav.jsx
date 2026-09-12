@@ -247,7 +247,7 @@ export default function TopNav({
 									background: tool === id ? "#6C63FF" : "transparent",
 									border: "none",
 									borderRadius: 5,
-									color: tool === id ? "#fff" : "#64748B",
+									color: tool === id ? "#fff" : "#94A3B8",
 									cursor: "pointer",
 									fontSize: 11,
 									fontWeight: 600,
@@ -346,8 +346,8 @@ function NavButton({ onClick, icon, label, accent = false, disabled = false }) {
 						? "rgba(255,255,255,0.06)"
 						: "transparent",
 				border: accent
-					? `1px solid ${hovered ? "rgba(108,99,255,0.6)" : "rgba(108,99,255,0.3)"}`
-					: `1px solid ${hovered ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.07)"}`,
+					? `1px solid ${hovered ? "rgba(108,99,255,0.6)" : "rgba(108,99,255,0.35)"}`
+					: `1px solid ${hovered ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.16)"}`,
 				borderRadius: 7,
 				color: disabled
 					? "#334155"
@@ -356,8 +356,8 @@ function NavButton({ onClick, icon, label, accent = false, disabled = false }) {
 							? "#A78BFA"
 							: "#6C63FF"
 						: hovered
-							? "#94A3B8"
-							: "#475569",
+							? "#CBD5E1"
+							: "#94A3B8",
 				cursor: disabled ? "not-allowed" : "pointer",
 				fontSize: 12,
 				fontWeight: 600,

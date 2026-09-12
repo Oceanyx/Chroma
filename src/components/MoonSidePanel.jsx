@@ -256,7 +256,7 @@ function RelActionButton({ type, onClick }) {
 				background: hov ? `${accent}20` : "rgba(255,255,255,0.03)",
 				border: `1px solid ${hov ? `${accent}60` : "rgba(255,255,255,0.09)"}`,
 				borderRadius: 10,
-				color: hov ? accent : "#6B7F95",
+				color: hov ? accent : "#94A3B8",
 				cursor: "pointer",
 				fontSize: 12,
 				fontWeight: 700,
@@ -396,7 +396,7 @@ function VersionDots({ versions, accent }) {
 						fontWeight: 700,
 						letterSpacing: "0.12em",
 						textTransform: "uppercase",
-						color: "#6B7F95",
+						color: "#94A3B8",
 						flexShrink: 0,
 					}}>
 					Evolution
@@ -440,7 +440,7 @@ function VersionDots({ versions, accent }) {
 					<span
 						style={{
 							fontSize: 10,
-							color: "#475569",
+							color: "#94A3B8",
 							fontWeight: 600,
 							letterSpacing: "0.06em",
 						}}>
@@ -462,7 +462,7 @@ function VersionDots({ versions, accent }) {
 					<div
 						style={{
 							fontSize: 11,
-							color: "#6B7F95",
+							color: "#94A3B8",
 							fontWeight: 600,
 							letterSpacing: "0.05em",
 							marginBottom: 7,
@@ -514,7 +514,7 @@ function VersionDots({ versions, accent }) {
 					<div
 						style={{
 							fontWeight: 700,
-							color: "#6B7F95",
+							color: "#94A3B8",
 							marginBottom: 4,
 							letterSpacing: "0.05em",
 						}}>
@@ -723,7 +723,7 @@ export default function MoonSidePanel({
 							background: "none",
 							border: "1px solid rgba(255,255,255,0.1)",
 							borderRadius: 6,
-							color: "#6B7F95",
+							color: "#94A3B8",
 							cursor: "pointer",
 							width: 28,
 							height: 28,
@@ -739,7 +739,7 @@ export default function MoonSidePanel({
 							e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
 						}}
 						onMouseLeave={(e) => {
-							e.currentTarget.style.color = "#6B7F95";
+							e.currentTarget.style.color = "#94A3B8";
 							e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
 						}}>
 						<X size={13} />
@@ -866,7 +866,7 @@ export default function MoonSidePanel({
 								bottom: 8,
 								right: 10,
 								fontSize: 10,
-								color: "#4A6080",
+								color: "#94A3B8",
 								fontStyle: "normal",
 								fontFamily: "system-ui, sans-serif",
 								letterSpacing: "0.08em",
@@ -973,7 +973,7 @@ export default function MoonSidePanel({
 										borderRadius: 20,
 										border: "1px dashed rgba(255,255,255,0.18)",
 										background: "transparent",
-										color: "#6B7F95",
+										color: "#94A3B8",
 										fontSize: 12,
 										fontWeight: 700,
 										cursor: "pointer",
@@ -987,7 +987,7 @@ export default function MoonSidePanel({
 										(e.currentTarget.style.color = "#94A3B8")
 									}
 									onMouseLeave={(e) =>
-										(e.currentTarget.style.color = "#6B7F95")
+										(e.currentTarget.style.color = "#94A3B8")
 									}>
 									+ New lens
 								</button>
@@ -1071,7 +1071,7 @@ export default function MoonSidePanel({
 										style={{
 											background: "none",
 											border: "none",
-											color: "#6B7F95",
+											color: "#94A3B8",
 											fontSize: 12,
 											cursor: "pointer",
 											outline: "none",
@@ -1093,7 +1093,7 @@ export default function MoonSidePanel({
 									borderRadius: 8,
 									border: "1px solid rgba(255,255,255,0.1)",
 									background: "transparent",
-									color: "#6B7F95",
+									color: "#94A3B8",
 									fontSize: 13,
 									fontWeight: 700,
 									cursor: "pointer",
@@ -1101,7 +1101,7 @@ export default function MoonSidePanel({
 									transition: "all 0.15s",
 								}}
 								onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
-								onMouseLeave={(e) => (e.currentTarget.style.color = "#6B7F95")}>
+								onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}>
 								Cancel
 							</button>
 							<button
@@ -1259,7 +1259,7 @@ export default function MoonSidePanel({
 					<span
 						style={{
 							fontSize: 12,
-							color: "#6B7F95",
+							color: "#94A3B8",
 							fontWeight: 600,
 							letterSpacing: "0.05em",
 						}}>
@@ -1275,7 +1275,7 @@ export default function MoonSidePanel({
 							style={{
 								marginLeft: 10,
 								fontSize: 11,
-								color: "#475569",
+								color: "#94A3B8",
 								fontStyle: "italic",
 							}}>
 							· written {temporalDistance} after the event
@@ -1421,7 +1421,7 @@ export default function MoonSidePanel({
 							background: releaseHovered
 								? "rgba(239,68,68,0.10)"
 								: "rgba(255,255,255,0.025)",
-							color: releaseHovered ? "#EF4444" : "#6B7F95",
+							color: releaseHovered ? "#EF4444" : "#94A3B8",
 							cursor: "pointer",
 							fontSize: 12,
 							fontWeight: 700,
