@@ -5,28 +5,16 @@
 //     mapped to new ones so edge sourceId/targetId, constellation nodeIds,
 //     and node constellationIds[] all stay consistent
 import React, { useState } from "react";
-import {
-	MousePointer,
-	Hand,
-	Download,
-	Upload,
-	Target,
-	FilePlus,
-	Link2,
-	Locate,
-} from "lucide-react";
+import { Download, Upload, Target, FilePlus } from "lucide-react";
 import PurposeModal from "./PurposeModal";
 import { db } from "../lib/db";
 
 export default function TopNav({
 	purposeData,
-	tool,
-	onToolChange,
 	onExport,
 	onImport,
 	onNewMap,
 	onPurposeUpdate,
-	onRecenter,
 }) {
 	const [showPurpose, setShowPurpose] = useState(false);
 	const [importing, setImporting] = useState(false);
@@ -226,83 +214,6 @@ export default function TopNav({
 							{purposeData.title}
 						</span>
 					)}
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-							gap: 3,
-							padding: "3px",
-							background: "rgba(15,23,36,0.6)",
-							borderRadius: 7,
-							border: "1px solid rgba(255,255,255,0.07)",
-						}}>
-						{[
-							{ id: "select", Icon: MousePointer, label: "Select" },
-							{ id: "connect", Icon: Link2, label: "Connect" },
-							{ id: "hand", Icon: Hand, label: "Pan" },
-						].map(({ id, Icon, label }) => (
-							<button
-								key={id}
-								onClick={() => onToolChange(id)}
-								style={{
-									padding: "4px 10px",
-									background: tool === id ? "#6C63FF" : "transparent",
-									border: "none",
-									borderRadius: 5,
-									color: tool === id ? "#fff" : "#94A3B8",
-									cursor: "pointer",
-									fontSize: 11,
-									fontWeight: 600,
-									display: "flex",
-									alignItems: "center",
-									gap: 5,
-									transition: "all 0.15s",
-									outline: "none",
-									whiteSpace: "nowrap",
-								}}>
-								<Icon size={12} />
-								{label}
-							</button>
-						))}
-						<button
-							onClick={onRecenter}
-							title="Recenter — fit everything back in view"
-							style={{
-								padding: "4px 10px",
-								marginLeft: 2,
-								background: "transparent",
-								border: "none",
-								borderLeft: "1px solid rgba(255,255,255,0.1)",
-								borderRadius: 0,
-								color: "#94A3B8",
-								cursor: "pointer",
-								fontSize: 11,
-								fontWeight: 600,
-								display: "flex",
-								alignItems: "center",
-								gap: 5,
-								whiteSpace: "nowrap",
-							}}>
-							<Locate size={12} />
-							Recenter
-						</button>
-					</div>
-					{/* Hint — deliberately styled apart from the tool buttons above
-					    (no shared background/border) so it reads as passive
-					    information, not another interactive control */}
-					<div
-						style={{
-							padding: "4px 6px",
-							fontSize: 10,
-							fontStyle: "italic",
-							fontWeight: 500,
-							color: "#5B6B80",
-							letterSpacing: "0.02em",
-							cursor: "default",
-							whiteSpace: "nowrap",
-						}}>
-						SPACE pan · Connect tool to link · SHIFT+click select
-					</div>
 				</div>
 
 				{/* Right: Actions */}

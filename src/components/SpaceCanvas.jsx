@@ -11,6 +11,7 @@
 //   - Context menu closes on any canvas click or Escape
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { MousePointer, Hand, Link2, Locate } from "lucide-react";
 import {
 	db,
 	initializeDB,
@@ -308,6 +309,36 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	// Load data
 	// ─────────────────────────────────────────────────────────────────────────
+	const computeFitView = useCallback((planetList) => {
+		if (planetList.length === 0) {
+			return { zoom: CANVAS.defaultZoom, pan: CANVAS.defaultPan };
+		}
+		const r = planetConfig.baseRadius;
+		const xs = planetList.map((n) => n.position.x + r);
+		const ys = planetList.map((n) => n.position.y + r);
+		const pad = 80;
+		const minX = Math.min(...xs) - r - pad;
+		const maxX = Math.max(...xs) + r + pad;
+		const minY = Math.min(...ys) - r - pad;
+		const maxY = Math.max(...ys) + r + pad;
+		const viewW = window.innerWidth;
+		const viewH = window.innerHeight - 60;
+		const fitZoom = Math.min(
+			viewW / Math.max(maxX - minX, 1),
+			viewH / Math.max(maxY - minY, 1),
+		);
+		const targetZoom = Math.max(0.15, Math.min(fitZoom, 1.5));
+		const cx = (minX + maxX) / 2;
+		const cy = (minY + maxY) / 2;
+		return {
+			zoom: targetZoom,
+			pan: {
+				x: viewW / 2 - cx * targetZoom,
+				y: viewH / 2 + 60 - cy * targetZoom,
+			},
+		};
+	}, []);
+
 	useEffect(() => {
 		async function loadData() {
 			await initializeDB();
@@ -320,9 +351,20 @@ export default function SpaceCanvas({
 			setNodes(loadedNodes);
 			setEdges(loadedEdges);
 			setConstellations(loadedConstellations);
+
+			// Frame whatever's already on the map on first load, instead of
+			// always starting at a fixed default regardless of where the
+			// content actually is — same fit-to-content math the Recenter
+			// button uses.
+			const planets = loadedNodes.filter(
+				(n) => n.type === "O" || n.type === "A" || n.type === "I",
+			);
+			const { zoom: z, pan: p } = computeFitView(planets);
+			setZoom(z);
+			setPan(p);
 		}
 		loadData();
-	}, []);
+	}, [computeFitView]);
 
 	// Refresh unlocked dimensions only when moon count changes
 	const moonCount = nodes.filter((n) => n.type === "R").length;
@@ -624,34 +666,10 @@ export default function SpaceCanvas({
 		const planets = nodes.filter(
 			(n) => n.type === "O" || n.type === "A" || n.type === "I",
 		);
-		if (planets.length === 0) {
-			setZoom(CANVAS.defaultZoom);
-			setPan(CANVAS.defaultPan);
-			return;
-		}
-		const r = planetConfig.baseRadius;
-		const xs = planets.map((n) => n.position.x + r);
-		const ys = planets.map((n) => n.position.y + r);
-		const pad = 80;
-		const minX = Math.min(...xs) - r - pad;
-		const maxX = Math.max(...xs) + r + pad;
-		const minY = Math.min(...ys) - r - pad;
-		const maxY = Math.max(...ys) + r + pad;
-		const viewW = window.innerWidth;
-		const viewH = window.innerHeight - 60;
-		const fitZoom = Math.min(
-			viewW / Math.max(maxX - minX, 1),
-			viewH / Math.max(maxY - minY, 1),
-		);
-		const targetZoom = Math.max(0.15, Math.min(fitZoom, 1.5));
-		const cx = (minX + maxX) / 2;
-		const cy = (minY + maxY) / 2;
-		setZoom(targetZoom);
-		setPan({
-			x: viewW / 2 - cx * targetZoom,
-			y: viewH / 2 + 60 - cy * targetZoom,
-		});
-	}, [nodes]);
+		const { zoom: z, pan: p } = computeFitView(planets);
+		setZoom(z);
+		setPan(p);
+	}, [nodes, computeFitView]);
 
 	const enterReflectionMode = useCallback(
 		(parentNode) => {
@@ -1373,14 +1391,101 @@ export default function SpaceCanvas({
 			}}>
 			<TopNav
 				purposeData={purposeData}
-				tool={tool}
-				onToolChange={setTool}
 				onExport={handleExport}
 				onImport={handleImport}
 				onNewMap={onNewMap}
 				onPurposeUpdate={onPurposeUpdate}
-				onRecenter={handleRecenter}
 			/>
+
+			{/* Floating tool switcher — moved out from under the map title,
+			    where it was crowding it. Each button carries its own hover
+			    tooltip instead of a separate, always-visible hint line. */}
+			<div
+				style={{
+					position: "fixed",
+					bottom: 16,
+					left: "50%",
+					transform: "translateX(-50%)",
+					display: "flex",
+					alignItems: "center",
+					gap: 3,
+					padding: "4px",
+					background: "rgba(15,23,36,0.85)",
+					backdropFilter: "blur(6px)",
+					borderRadius: 9,
+					border: "1px solid rgba(255,255,255,0.1)",
+					boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
+					zIndex: 10,
+				}}>
+				{[
+					{
+						id: "select",
+						Icon: MousePointer,
+						label: "Select",
+						title:
+							"Select — click a planet to open it, Shift+click to multi-select for constellations",
+					},
+					{
+						id: "connect",
+						Icon: Link2,
+						label: "Connect",
+						title: "Connect — click a planet, then click another to link them",
+					},
+					{
+						id: "hand",
+						Icon: Hand,
+						label: "Pan",
+						title:
+							"Pan — drag the canvas to move around, or hold Space anytime",
+					},
+				].map(({ id, Icon, label, title }) => (
+					<button
+						key={id}
+						onClick={() => setTool(id)}
+						title={title}
+						style={{
+							padding: "6px 12px",
+							background: tool === id ? "#6C63FF" : "transparent",
+							border: "none",
+							borderRadius: 6,
+							color: tool === id ? "#fff" : "#94A3B8",
+							cursor: "pointer",
+							fontSize: 12,
+							fontWeight: 600,
+							display: "flex",
+							alignItems: "center",
+							gap: 6,
+							transition: "all 0.15s",
+							outline: "none",
+							whiteSpace: "nowrap",
+						}}>
+						<Icon size={13} />
+						{label}
+					</button>
+				))}
+				<button
+					onClick={handleRecenter}
+					title="Recenter — fit everything back in view"
+					style={{
+						padding: "6px 12px",
+						marginLeft: 2,
+						background: "transparent",
+						border: "none",
+						borderLeft: "1px solid rgba(255,255,255,0.12)",
+						borderRadius: 0,
+						color: "#94A3B8",
+						cursor: "pointer",
+						fontSize: 12,
+						fontWeight: 600,
+						display: "flex",
+						alignItems: "center",
+						gap: 6,
+						whiteSpace: "nowrap",
+					}}>
+					<Locate size={13} />
+					Recenter
+				</button>
+			</div>
 
 			<div
 				style={{
