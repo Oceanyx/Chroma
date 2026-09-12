@@ -511,4 +511,4 @@ export default function Moon({
 			)}
 		</g>
 	);
-}
+
