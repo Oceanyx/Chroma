@@ -1460,6 +1460,13 @@ export default function SpaceCanvas({
 							"Select — click a planet to open it, Shift+click to multi-select for constellations",
 					},
 					{
+						id: "hand",
+						Icon: Hand,
+						label: "Pan",
+						title:
+							"Pan — drag the canvas to move around, or hold Space anytime",
+					},
+					{
 						id: "connect",
 						Icon: Link2,
 						label: "Connect",
@@ -1471,13 +1478,6 @@ export default function SpaceCanvas({
 						label: "Group",
 						title:
 							"Group — click planets to add them to a group, then Form Constellation",
-					},
-					{
-						id: "hand",
-						Icon: Hand,
-						label: "Pan",
-						title:
-							"Pan — drag the canvas to move around, or hold Space anytime",
 					},
 				].map(({ id, Icon, label, title }) => (
 					<button

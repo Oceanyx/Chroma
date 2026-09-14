@@ -5,7 +5,7 @@ import {
 	ArrowRight,
 	Upload,
 	Github,
-	Linkedin,
+	Globe,
 	Mail,
 	Coffee,
 	HelpCircle,
@@ -280,16 +280,16 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							transition: "all 0.3s ease",
 						}}
 						onMouseEnter={(e) => {
-							e.target.style.background =
+							e.currentTarget.style.background =
 								"linear-gradient(135deg, #A78BFA 0%, #6C63FF 50%, #4D9FFF 100%)";
-							e.target.style.WebkitBackgroundClip = "text";
-							e.target.style.backgroundClip = "text";
+							e.currentTarget.style.WebkitBackgroundClip = "text";
+							e.currentTarget.style.backgroundClip = "text";
 						}}
 						onMouseLeave={(e) => {
-							e.target.style.background =
+							e.currentTarget.style.background =
 								"linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)";
-							e.target.style.WebkitBackgroundClip = "text";
-							e.target.style.backgroundClip = "text";
+							e.currentTarget.style.WebkitBackgroundClip = "text";
+							e.currentTarget.style.backgroundClip = "text";
 						}}>
 						Chroma
 					</h1>
@@ -386,12 +386,13 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 								boxSizing: "border-box",
 							}}
 							onFocus={(e) => {
-								e.target.style.borderColor = "#6C63FF";
-								e.target.style.boxShadow = "0 0 0 3px rgba(108, 99, 255, 0.1)";
+								e.currentTarget.style.borderColor = "#6C63FF";
+								e.currentTarget.style.boxShadow =
+									"0 0 0 3px rgba(108, 99, 255, 0.1)";
 							}}
 							onBlur={(e) => {
-								e.target.style.borderColor = "rgba(148, 163, 184, 0.3)";
-								e.target.style.boxShadow = "none";
+								e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+								e.currentTarget.style.boxShadow = "none";
 							}}
 						/>
 					</div>
@@ -429,12 +430,13 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 								boxSizing: "border-box",
 							}}
 							onFocus={(e) => {
-								e.target.style.borderColor = "#6C63FF";
-								e.target.style.boxShadow = "0 0 0 3px rgba(108, 99, 255, 0.1)";
+								e.currentTarget.style.borderColor = "#6C63FF";
+								e.currentTarget.style.boxShadow =
+									"0 0 0 3px rgba(108, 99, 255, 0.1)";
 							}}
 							onBlur={(e) => {
-								e.target.style.borderColor = "rgba(148, 163, 184, 0.3)";
-								e.target.style.boxShadow = "none";
+								e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+								e.currentTarget.style.boxShadow = "none";
 							}}
 						/>
 					</div>
@@ -475,12 +477,13 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 								boxSizing: "border-box",
 							}}
 							onFocus={(e) => {
-								e.target.style.borderColor = "#6C63FF";
-								e.target.style.boxShadow = "0 0 0 3px rgba(108, 99, 255, 0.1)";
+								e.currentTarget.style.borderColor = "#6C63FF";
+								e.currentTarget.style.boxShadow =
+									"0 0 0 3px rgba(108, 99, 255, 0.1)";
 							}}
 							onBlur={(e) => {
-								e.target.style.borderColor = "rgba(148, 163, 184, 0.3)";
-								e.target.style.boxShadow = "none";
+								e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+								e.currentTarget.style.boxShadow = "none";
 							}}
 						/>
 					</div>
@@ -521,12 +524,13 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 								boxSizing: "border-box",
 							}}
 							onFocus={(e) => {
-								e.target.style.borderColor = "#6C63FF";
-								e.target.style.boxShadow = "0 0 0 3px rgba(108, 99, 255, 0.1)";
+								e.currentTarget.style.borderColor = "#6C63FF";
+								e.currentTarget.style.boxShadow =
+									"0 0 0 3px rgba(108, 99, 255, 0.1)";
 							}}
 							onBlur={(e) => {
-								e.target.style.borderColor = "rgba(148, 163, 184, 0.3)";
-								e.target.style.boxShadow = "none";
+								e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+								e.currentTarget.style.boxShadow = "none";
 							}}
 						/>
 					</div>
@@ -552,12 +556,12 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							marginBottom: "12px",
 						}}
 						onMouseEnter={(e) => {
-							e.target.style.background = "rgba(16, 185, 129, 0.2)";
-							e.target.style.borderColor = "rgba(16, 185, 129, 0.5)";
+							e.currentTarget.style.background = "rgba(16, 185, 129, 0.2)";
+							e.currentTarget.style.borderColor = "rgba(16, 185, 129, 0.5)";
 						}}
 						onMouseLeave={(e) => {
-							e.target.style.background = "rgba(16, 185, 129, 0.1)";
-							e.target.style.borderColor = "rgba(16, 185, 129, 0.3)";
+							e.currentTarget.style.background = "rgba(16, 185, 129, 0.1)";
+							e.currentTarget.style.borderColor = "rgba(16, 185, 129, 0.3)";
 						}}>
 						<Upload size={18} /> Import Existing Map
 					</button>
@@ -582,12 +586,14 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							boxShadow: "0 4px 12px rgba(108, 99, 255, 0.3)",
 						}}
 						onMouseEnter={(e) => {
-							e.target.style.transform = "translateY(-2px)";
-							e.target.style.boxShadow = "0 6px 20px rgba(108, 99, 255, 0.4)";
+							e.currentTarget.style.transform = "translateY(-2px)";
+							e.currentTarget.style.boxShadow =
+								"0 6px 20px rgba(108, 99, 255, 0.4)";
 						}}
 						onMouseLeave={(e) => {
-							e.target.style.transform = "translateY(0)";
-							e.target.style.boxShadow = "0 4px 12px rgba(108, 99, 255, 0.3)";
+							e.currentTarget.style.transform = "translateY(0)";
+							e.currentTarget.style.boxShadow =
+								"0 4px 12px rgba(108, 99, 255, 0.3)";
 						}}>
 						Begin Mapping <ArrowRight size={18} />
 					</button>
@@ -606,8 +612,8 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							cursor: "pointer",
 							transition: "color 0.2s",
 						}}
-						onMouseEnter={(e) => (e.target.style.color = "#94A3B8")}
-						onMouseLeave={(e) => (e.target.style.color = "#94A3B8")}>
+						onMouseEnter={(e) => (e.currentTarget.style.color = "#94A3B8")}
+						onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}>
 						Skip for now
 					</button>
 				</form>
@@ -635,12 +641,14 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 					boxShadow: "0 4px 12px rgba(108, 99, 255, 0.2)",
 				}}
 				onMouseEnter={(e) => {
-					e.target.style.transform = "scale(1.1)";
-					e.target.style.boxShadow = "0 6px 20px rgba(108, 99, 255, 0.4)";
+					e.currentTarget.style.transform = "scale(1.1)";
+					e.currentTarget.style.boxShadow =
+						"0 6px 20px rgba(108, 99, 255, 0.4)";
 				}}
 				onMouseLeave={(e) => {
-					e.target.style.transform = "scale(1)";
-					e.target.style.boxShadow = "0 4px 12px rgba(108, 99, 255, 0.2)";
+					e.currentTarget.style.transform = "scale(1)";
+					e.currentTarget.style.boxShadow =
+						"0 4px 12px rgba(108, 99, 255, 0.2)";
 				}}>
 				<HelpCircle size={28} />
 			</button>
@@ -672,28 +680,40 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 						border: "1px solid rgba(108, 99, 255, 0.2)",
 					}}>
 					<a
-						href="https://github.com/Oceanyx"
+						href="https://github.com/Oceanyx/Chroma"
 						target="_blank"
 						rel="noopener noreferrer"
 						style={{ color: "#88CCFF", transition: "transform 0.2s" }}
-						onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-						onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}>
+						onMouseEnter={(e) =>
+							(e.currentTarget.style.transform = "scale(1.1)")
+						}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.transform = "scale(1)")
+						}>
 						<Github size={24} />
 					</a>
 					<a
-						href="https://www.linkedin.com/in/oceanyx/"
+						href="https://oceanyx.github.io"
 						target="_blank"
 						rel="noopener noreferrer"
 						style={{ color: "#4D9FFF", transition: "transform 0.2s" }}
-						onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-						onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}>
-						<Linkedin size={24} />
+						onMouseEnter={(e) =>
+							(e.currentTarget.style.transform = "scale(1.1)")
+						}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.transform = "scale(1)")
+						}>
+						<Globe size={24} />
 					</a>
 					<a
 						href="mailto:bchanyx@gmail.com"
 						style={{ color: "#10B981", transition: "transform 0.2s" }}
-						onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-						onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}>
+						onMouseEnter={(e) =>
+							(e.currentTarget.style.transform = "scale(1.1)")
+						}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.transform = "scale(1)")
+						}>
 						<Mail size={24} />
 					</a>
 					<a
@@ -701,8 +721,12 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 						target="_blank"
 						rel="noopener noreferrer"
 						style={{ color: "#FF5E5B", transition: "transform 0.2s" }}
-						onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-						onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}>
+						onMouseEnter={(e) =>
+							(e.currentTarget.style.transform = "scale(1.1)")
+						}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.transform = "scale(1)")
+						}>
 						<Coffee size={24} />
 					</a>
 				</div>

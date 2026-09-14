@@ -25,6 +25,11 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 	const [text, setText] = useState("");
 	const [claimType, setClaimType] = useState("reporting");
 	const [customLenses, setCustomLenses] = useState(loadCustomLenses);
+	// Same fix as MoonSidePanel: resync on open rather than trusting the
+	// state from whenever this component instance first mounted.
+	useEffect(() => {
+		setCustomLenses(loadCustomLenses());
+	}, [dimension]);
 	const [showNewLens, setShowNewLens] = useState(false);
 	const [newLensLabel, setNewLensLabel] = useState("");
 	const [newLensEmoji, setNewLensEmoji] = useState("🔍");
@@ -471,12 +476,12 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 							marginBottom: 16,
 						}}
 						onFocus={(e) => {
-							e.target.style.borderColor = dimColor;
-							e.target.style.boxShadow = `0 0 0 2px ${dimColor}20`;
+							e.currentTarget.style.borderColor = dimColor;
+							e.currentTarget.style.boxShadow = `0 0 0 2px ${dimColor}20`;
 						}}
 						onBlur={(e) => {
-							e.target.style.borderColor = `${dimColor}40`;
-							e.target.style.boxShadow = "none";
+							e.currentTarget.style.borderColor = `${dimColor}40`;
+							e.currentTarget.style.boxShadow = "none";
 						}}
 					/>
 

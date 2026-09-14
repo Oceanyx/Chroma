@@ -138,12 +138,12 @@ export default function PurposeModal({ purposeData, onClose, onSave }) {
 									transition: "all 0.2s",
 								}}
 								onMouseEnter={(e) => {
-									e.target.style.borderColor = "#6C63FF";
-									e.target.style.color = "#6C63FF";
+									e.currentTarget.style.borderColor = "#6C63FF";
+									e.currentTarget.style.color = "#6C63FF";
 								}}
 								onMouseLeave={(e) => {
-									e.target.style.borderColor = "rgba(255,255,255,0.1)";
-									e.target.style.color = "#94A3B8";
+									e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+									e.currentTarget.style.color = "#94A3B8";
 								}}>
 								<Edit2 size={14} /> Edit
 							</button>

@@ -149,10 +149,8 @@ export default function PlanetSidePanel({
 	const [editFocalQuestion, setEditFocalQuestion] = useState(
 		node.focalQuestion || "",
 	);
-	const [showContext, setShowContext] = useState(!!node.context);
-	const [showFocalQuestion, setShowFocalQuestion] = useState(
-		!!node.focalQuestion,
-	);
+	const [showContext, setShowContext] = useState(true);
+	const [showFocalQuestion, setShowFocalQuestion] = useState(true);
 	const [showTemporalPrompt, setShowTemporalPrompt] = useState(
 		node.temporalDistance == null,
 	);
@@ -348,6 +346,8 @@ export default function PlanetSidePanel({
 							transition: "background 0.2s",
 							position: "relative",
 							minHeight: 56,
+							wordBreak: "break-word",
+							overflowWrap: "break-word",
 						}}
 						onMouseEnter={(e) =>
 							(e.currentTarget.style.background = "rgba(255,255,255,0.055)")

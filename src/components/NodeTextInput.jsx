@@ -104,12 +104,12 @@ export default function NodeTextInput({
 							borderRadius: "4px",
 						}}
 						onMouseEnter={(e) => {
-							e.target.style.color = "#E6EEF8";
-							e.target.style.background = "rgba(255,255,255,0.1)";
+							e.currentTarget.style.color = "#E6EEF8";
+							e.currentTarget.style.background = "rgba(255,255,255,0.1)";
 						}}
 						onMouseLeave={(e) => {
-							e.target.style.color = "#94A3B8";
-							e.target.style.background = "transparent";
+							e.currentTarget.style.color = "#94A3B8";
+							e.currentTarget.style.background = "transparent";
 						}}>
 						✕
 					</button>
@@ -146,12 +146,12 @@ export default function NodeTextInput({
 						lineHeight: "1.5",
 					}}
 					onFocus={(e) => {
-						e.target.style.borderColor = config.color;
-						e.target.style.boxShadow = `0 0 0 3px ${config.color}20`;
+						e.currentTarget.style.borderColor = config.color;
+						e.currentTarget.style.boxShadow = `0 0 0 3px ${config.color}20`;
 					}}
 					onBlur={(e) => {
-						e.target.style.borderColor = `${config.color}40`;
-						e.target.style.boxShadow = "none";
+						e.currentTarget.style.borderColor = `${config.color}40`;
+						e.currentTarget.style.boxShadow = "none";
 					}}
 				/>
 
@@ -189,14 +189,14 @@ export default function NodeTextInput({
 						}}
 						onMouseEnter={(e) => {
 							if (text.trim()) {
-								e.target.style.transform = "translateY(-2px)";
-								e.target.style.boxShadow = `0 4px 12px ${config.color}60`;
+								e.currentTarget.style.transform = "translateY(-2px)";
+								e.currentTarget.style.boxShadow = `0 4px 12px ${config.color}60`;
 							}
 						}}
 						onMouseLeave={(e) => {
 							if (text.trim()) {
-								e.target.style.transform = "translateY(0)";
-								e.target.style.boxShadow = "none";
+								e.currentTarget.style.transform = "translateY(0)";
+								e.currentTarget.style.boxShadow = "none";
 							}
 						}}>
 						Create Node

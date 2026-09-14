@@ -559,6 +559,14 @@ export default function MoonSidePanel({
 	const [showHistory, setShowHistory] = useState(false);
 
 	const [customLenses, setCustomLenses] = useState(loadCustomLenses);
+	// Bug fix: this only read localStorage once, at first mount. If a lens
+	// was added elsewhere (e.g. while creating a different moon) while this
+	// panel was already open, it would never see it — looked like custom
+	// lenses "randomly" not showing up. Resync every time a different moon
+	// is opened.
+	useEffect(() => {
+		setCustomLenses(loadCustomLenses());
+	}, [moon.id]);
 	const [showNewLens, setShowNewLens] = useState(false);
 	const [newLensLabel, setNewLensLabel] = useState("");
 	const [newLensEmoji, setNewLensEmoji] = useState("🔍");
@@ -837,6 +845,8 @@ export default function MoonSidePanel({
 							transition: "background 0.2s",
 							position: "relative",
 							minHeight: 64,
+							wordBreak: "break-word",
+							overflowWrap: "break-word",
 						}}
 						onMouseEnter={(e) =>
 							(e.currentTarget.style.background = "rgba(255,255,255,0.055)")

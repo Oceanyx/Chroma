@@ -139,13 +139,14 @@ export default function LegendModal({ onClose, onReplayWalkthrough }) {
 
 					<div style={sectionTitle}>Moons — reflecting on a planet</div>
 					<div style={row}>
-						<span style={rowLabel}>Subjective</span>
+						<span style={rowLabel}>Inner Experience</span>
 						<span style={rowDesc}>How it felt, from the inside.</span>
 					</div>
 					<div style={row}>
-						<span style={rowLabel}>Intersubjective</span>
+						<span style={rowLabel}>External</span>
 						<span style={rowDesc}>
-							How it looked from outside, or to someone else.
+							What can be verified or observed in shared space — how it looked
+							from outside, or to someone else.
 						</span>
 					</div>
 					<div style={row}>
@@ -199,6 +200,12 @@ export default function LegendModal({ onClose, onReplayWalkthrough }) {
 						</span>
 					</div>
 					<div style={row}>
+						<Hand size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+						<span style={rowDesc}>
+							<strong>Pan</strong> — drag to move around, or hold Space anytime.
+						</span>
+					</div>
+					<div style={row}>
 						<Link2 size={16} style={{ marginTop: 2, flexShrink: 0 }} />
 						<span style={rowDesc}>
 							<strong>Connect</strong> — click a planet, then click another to
@@ -210,12 +217,6 @@ export default function LegendModal({ onClose, onReplayWalkthrough }) {
 						<span style={rowDesc}>
 							<strong>Group</strong> — click planets to gather them, then Form
 							Constellation.
-						</span>
-					</div>
-					<div style={row}>
-						<Hand size={16} style={{ marginTop: 2, flexShrink: 0 }} />
-						<span style={rowDesc}>
-							<strong>Pan</strong> — drag to move around, or hold Space anytime.
 						</span>
 					</div>
 					<div style={row}>

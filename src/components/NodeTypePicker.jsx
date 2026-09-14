@@ -67,14 +67,14 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						transition: "all 0.2s",
 					}}
 					onMouseEnter={(e) => {
-						e.target.style.background = "rgba(59, 130, 246, 0.2)";
-						e.target.style.borderColor = "#3B82F6";
-						e.target.style.transform = "translateX(4px)";
+						e.currentTarget.style.background = "rgba(59, 130, 246, 0.2)";
+						e.currentTarget.style.borderColor = "#3B82F6";
+						e.currentTarget.style.transform = "translateX(4px)";
 					}}
 					onMouseLeave={(e) => {
-						e.target.style.background = "rgba(15, 23, 36, 0.6)";
-						e.target.style.borderColor = "rgba(59, 130, 246, 0.3)";
-						e.target.style.transform = "translateX(0)";
+						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
+						e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.3)";
+						e.currentTarget.style.transform = "translateX(0)";
 					}}>
 					<Eye size={20} />
 					<div>
@@ -111,14 +111,14 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						transition: "all 0.2s",
 					}}
 					onMouseEnter={(e) => {
-						e.target.style.background = "rgba(249, 115, 22, 0.2)";
-						e.target.style.borderColor = "#F97316";
-						e.target.style.transform = "translateX(4px)";
+						e.currentTarget.style.background = "rgba(249, 115, 22, 0.2)";
+						e.currentTarget.style.borderColor = "#F97316";
+						e.currentTarget.style.transform = "translateX(4px)";
 					}}
 					onMouseLeave={(e) => {
-						e.target.style.background = "rgba(15, 23, 36, 0.6)";
-						e.target.style.borderColor = "rgba(249, 115, 22, 0.3)";
-						e.target.style.transform = "translateX(0)";
+						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
+						e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.3)";
+						e.currentTarget.style.transform = "translateX(0)";
 					}}>
 					<Zap size={20} />
 					<div>
@@ -155,14 +155,14 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						transition: "all 0.2s",
 					}}
 					onMouseEnter={(e) => {
-						e.target.style.background = "rgba(251, 191, 36, 0.2)";
-						e.target.style.borderColor = "#FBBF24";
-						e.target.style.transform = "translateX(4px)";
+						e.currentTarget.style.background = "rgba(251, 191, 36, 0.2)";
+						e.currentTarget.style.borderColor = "#FBBF24";
+						e.currentTarget.style.transform = "translateX(4px)";
 					}}
 					onMouseLeave={(e) => {
-						e.target.style.background = "rgba(15, 23, 36, 0.6)";
-						e.target.style.borderColor = "rgba(251, 191, 36, 0.3)";
-						e.target.style.transform = "translateX(0)";
+						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
+						e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.3)";
+						e.currentTarget.style.transform = "translateX(0)";
 					}}>
 					<Target size={20} />
 					<div>
@@ -193,12 +193,12 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 						transition: "all 0.2s",
 					}}
 					onMouseEnter={(e) => {
-						e.target.style.background = "rgba(255,255,255,0.05)";
-						e.target.style.color = "#94A3B8";
+						e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+						e.currentTarget.style.color = "#94A3B8";
 					}}
 					onMouseLeave={(e) => {
-						e.target.style.background = "transparent";
-						e.target.style.color = "#94A3B8";
+						e.currentTarget.style.background = "transparent";
+						e.currentTarget.style.color = "#94A3B8";
 					}}>
 					Cancel
 				</button>

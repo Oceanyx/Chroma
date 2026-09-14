@@ -150,12 +150,12 @@ export default function DimensionUnlockNotification({ dimension, onDismiss }) {
 					boxShadow: `0 4px 16px ${config.color}40`,
 				}}
 				onMouseEnter={(e) => {
-					e.target.style.transform = "translateY(-2px)";
-					e.target.style.boxShadow = `0 6px 24px ${config.color}60`;
+					e.currentTarget.style.transform = "translateY(-2px)";
+					e.currentTarget.style.boxShadow = `0 6px 24px ${config.color}60`;
 				}}
 				onMouseLeave={(e) => {
-					e.target.style.transform = "translateY(0)";
-					e.target.style.boxShadow = `0 4px 16px ${config.color}40`;
+					e.currentTarget.style.transform = "translateY(0)";
+					e.currentTarget.style.boxShadow = `0 4px 16px ${config.color}40`;
 				}}>
 				Got it! ✨
 			</button>

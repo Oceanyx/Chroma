@@ -186,7 +186,7 @@ function ReflectMoonDemo() {
 // each — shows "these switch what clicking does" without needing to
 // simulate all four distinct behaviors.
 function ToolsDemo() {
-	const tools = ["Select", "Connect", "Group", "Pan"];
+	const tools = ["Select", "Pan", "Connect", "Group"];
 	return (
 		<div
 			style={{
@@ -390,7 +390,7 @@ const steps = [
 	},
 	{
 		title: "Tools, at the bottom",
-		body: "Select opens planets. Connect links two planets together. Group gathers several into a named constellation. Pan moves you around — or just hold Space anytime.",
+		body: "Select opens planets. Pan moves you around — or just hold Space anytime. Connect links two planets together. Group gathers several into a named constellation.",
 		demo: ToolsDemo,
 	},
 	{
