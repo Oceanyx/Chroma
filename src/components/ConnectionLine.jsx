@@ -13,7 +13,7 @@ export const CONNECTION_TYPES = {
 	followed: {
 		label: "Followed",
 		description: "A then B — neutral sequence",
-		color: "rgba(148, 163, 184, 0.45)",
+		color: "rgba(148, 163, 184, 0.7)",
 		particleColor: "#94A3B8",
 		dotColor: "#94A3B8",
 		strokeWidth: 1.5,
@@ -23,7 +23,7 @@ export const CONNECTION_TYPES = {
 	caused: {
 		label: "Caused",
 		description: "A directly produced B",
-		color: "rgba(230, 238, 248, 0.75)",
+		color: "rgba(230, 238, 248, 0.95)",
 		particleColor: "#E6EEF8",
 		dotColor: "#E6EEF8",
 		strokeWidth: 2,
@@ -33,7 +33,7 @@ export const CONNECTION_TYPES = {
 	triggered: {
 		label: "Triggered",
 		description: "A was the catalyst for B",
-		color: "rgba(251, 191, 36, 0.75)",
+		color: "rgba(251, 191, 36, 0.9)",
 		particleColor: "#FBBF24",
 		dotColor: "#FBBF24",
 		strokeWidth: 2,
@@ -43,7 +43,7 @@ export const CONNECTION_TYPES = {
 	enabled: {
 		label: "Enabled",
 		description: "A made B possible",
-		color: "rgba(52, 211, 153, 0.65)",
+		color: "rgba(52, 211, 153, 0.85)",
 		particleColor: "#34D399",
 		dotColor: "#34D399",
 		strokeWidth: 1.5,
@@ -53,7 +53,7 @@ export const CONNECTION_TYPES = {
 	contradicts: {
 		label: "Contradicts",
 		description: "A and B are in tension",
-		color: "rgba(248, 113, 113, 0.65)",
+		color: "rgba(248, 113, 113, 0.85)",
 		particleColor: "#F87171",
 		dotColor: "#F87171",
 		strokeWidth: 2,
@@ -63,7 +63,7 @@ export const CONNECTION_TYPES = {
 	resolved: {
 		label: "Resolved",
 		description: "A brought closure to B",
-		color: "rgba(129, 140, 248, 0.65)",
+		color: "rgba(129, 140, 248, 0.85)",
 		particleColor: "#818CF8",
 		dotColor: "#818CF8",
 		strokeWidth: 2,

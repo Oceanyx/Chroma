@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import MoonInputCard from "./MoonInputCard";
-import MoonSidePanel, { PANEL_WIDTH } from "./MoonSidePanel";
+import MoonSidePanel from "./MoonSidePanel";
 import DimensionUnlockNotification from "./DimensionUnlockNotification";
 import SupportLine from "./SupportLine";
 import TensionLine from "./TensionLine";
@@ -20,6 +20,7 @@ import {
 	getTotalReflectionCount,
 	checkDimensionUnlock,
 	getUnlockedDimensions,
+	getSetting,
 } from "../lib/db";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ function useWindowSize() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function getMoonPosition(moon, parent, orbitTime) {
+function getMoonPosition(moon, parent, orbitTime, speedMultiplier = 1) {
 	if (moon.isLocked) {
 		return calculateMoonPosition(
 			parent,
@@ -70,6 +71,7 @@ function getMoonPosition(moon, parent, orbitTime) {
 		false,
 		moon.dimension,
 		ORBIT_SCALE,
+		speedMultiplier,
 	);
 }
 
@@ -104,11 +106,20 @@ export default function ReflectionSpace({
 	const [orbitTime, setOrbitTime] = useState(0);
 	const lastTimestampRef = useRef(null);
 	const [toast, setToast] = useState(null);
+	const [orbitSpeedMultiplier, setOrbitSpeedMultiplier] = useState(1);
 
-	// ── Centering — reacts to windowWidth/windowHeight and panel state ─────────
+	useEffect(() => {
+		getSetting("orbitSpeedMultiplier").then((v) => {
+			if (v) setOrbitSpeedMultiplier(v);
+		});
+	}, []);
+
+	// ── Centering — reacts to windowWidth/windowHeight only. Previously also
+	// shifted left when the moon panel opened to "make room" for it; now
+	// that the panel overlays instead of pushing, the view no longer needs
+	// to move when it opens.
 	const panelOpen = selectedMoonId !== null;
-	const panelWidth = panelOpen ? PANEL_WIDTH : 0;
-	const viewportCenterX = (windowWidth - panelWidth) / 2;
+	const viewportCenterX = windowWidth / 2;
 	const viewportCenterY =
 		(windowHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT) / 2;
 
@@ -372,8 +383,29 @@ export default function ReflectionSpace({
 	};
 
 	// ── Save new reflection ────────────────────────────────────────────────────
+	const MAX_MOONS_PER_DIMENSION = 12;
 	const handleSaveReflection = async (data) => {
+		const dimensionMoons = childMoons.filter(
+			(m) => m.dimension === addingDimension,
+		);
+		if (dimensionMoons.length >= MAX_MOONS_PER_DIMENSION) {
+			showToast(
+				`This dimension is full (${MAX_MOONS_PER_DIMENSION} max) — mark an
+				 existing reflection as evolved instead, or start a new planet`,
+				"#EF4444",
+			);
+			return;
+		}
 		const previousCount = await getTotalReflectionCount();
+		// Spread evenly around the ring based on how many already exist here —
+		// previously every new moon in a dimension started at the exact same
+		// fixed angle, and since moons in the same dimension all orbit at the
+		// same speed, they animated in permanent lockstep and never actually
+		// separated visually.
+		const angleStep = (Math.PI * 2) / MAX_MOONS_PER_DIMENSION;
+		const orbitAngle =
+			(DIMENSION_START_ANGLES[addingDimension] || 0) +
+			dimensionMoons.length * angleStep;
 		await db.nodes.add({
 			type: "R",
 			parentId: parentNode.id,
@@ -385,7 +417,7 @@ export default function ReflectionSpace({
 			lensUsed: data.lensUsed || null,
 			lensesUsed: data.lensesUsed || [],
 			claimType: data.claimType || "reporting",
-			orbitAngle: DIMENSION_START_ANGLES[addingDimension] || 0,
+			orbitAngle,
 			confidence: "stable",
 			intensity: "medium",
 			temporality: "concurrent",
@@ -406,7 +438,12 @@ export default function ReflectionSpace({
 	// ── Build relationship line positions ──────────────────────────────────────
 	const moonPositionMap = {};
 	distributedMoons.forEach((m) => {
-		moonPositionMap[m.id] = getMoonPosition(m, centeredPlanet, orbitTime);
+		moonPositionMap[m.id] = getMoonPosition(
+			m,
+			centeredPlanet,
+			orbitTime,
+			orbitSpeedMultiplier,
+		);
 	});
 
 	const rendered = new Set();
@@ -792,7 +829,12 @@ export default function ReflectionSpace({
 										(m) => m.id === relationshipSourceMoon.id,
 									);
 									if (!src) return null;
-									const pos = getMoonPosition(src, centeredPlanet, orbitTime);
+									const pos = getMoonPosition(
+										src,
+										centeredPlanet,
+										orbitTime,
+										orbitSpeedMultiplier,
+									);
 									const r =
 										moonConfig.dimension[relationshipSourceMoon.dimension]
 											.radius;
@@ -837,7 +879,12 @@ export default function ReflectionSpace({
 							{/* ── MOONS ─────────────────────────────────────────────── */}
 							{!showInputCard &&
 								distributedMoons.map((moon) => {
-									const pos = getMoonPosition(moon, centeredPlanet, orbitTime);
+									const pos = getMoonPosition(
+										moon,
+										centeredPlanet,
+										orbitTime,
+										orbitSpeedMultiplier,
+									);
 									const liveMoon =
 										childMoons.find((m) => m.id === moon.id) || moon;
 									const isSelected = selectedMoonId === moon.id;

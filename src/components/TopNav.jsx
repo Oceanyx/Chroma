@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import { Download, Upload, Target, FilePlus } from "lucide-react";
 import PurposeModal from "./PurposeModal";
 import { db } from "../lib/db";
+import { loadCustomLenses, saveCustomLenses } from "../utils/customLenses";
 
 export default function TopNav({
 	purposeData,
@@ -138,6 +139,19 @@ export default function TopNav({
 					}
 				}
 
+				// Custom lenses live in localStorage, separate from the DB nodes
+				// above — merge (not replace) since they aren't map-specific and
+				// the user may have lenses from other work they'd want to keep.
+				if (data.customLenses?.length) {
+					const existing = loadCustomLenses();
+					const existingIds = new Set(existing.map((l) => l.id));
+					const merged = [
+						...existing,
+						...data.customLenses.filter((l) => !existingIds.has(l.id)),
+					];
+					saveCustomLenses(merged);
+				}
+
 				onImport?.(data.purposeData || null);
 			} catch (err) {
 				console.error("Import error:", err);
@@ -202,14 +216,15 @@ export default function TopNav({
 					{purposeData?.title && (
 						<span
 							style={{
-								fontSize: 13,
-								fontWeight: 600,
-								color: "#94A3B8",
+								fontSize: 16,
+								fontWeight: 700,
+								color: "#E6EEF8",
 								maxWidth: 360,
 								overflow: "hidden",
 								textOverflow: "ellipsis",
 								whiteSpace: "nowrap",
 								lineHeight: 1.4,
+								letterSpacing: "0.01em",
 							}}>
 							{purposeData.title}
 						</span>

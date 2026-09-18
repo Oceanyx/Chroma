@@ -351,8 +351,8 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 					{showNewLens && (
 						<div
 							style={{
-								fontSize: 11,
-								color: "#5B6B80",
+								fontSize: 12,
+								color: "#94A3B8",
 								marginTop: -10,
 								marginBottom: 16,
 							}}>
@@ -485,73 +485,80 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 						}}
 					/>
 
-					{/* Claim type toggle */}
-					<div style={{ marginBottom: 18 }}>
-						<p
-							style={{
-								margin: "0 0 9px",
-								fontSize: 11,
-								fontWeight: 700,
-								color: "rgba(255,255,255,0.3)",
-								letterSpacing: "0.08em",
-								textTransform: "uppercase",
-							}}>
-							This reflection is —
-						</p>
-						<div style={{ display: "flex", gap: 8 }}>
-							{[
-								{
-									id: "reporting",
-									label: "Reporting",
-									desc: "Best reconstruction of what was present",
-									color: "#10B981",
-								},
-								{
-									id: "reading",
-									label: "Reading",
-									desc: "A framework applied to make sense of it",
-									color: "#6366F1",
-								},
-							].map(({ id, label, desc, color }) => {
-								const active = claimType === id;
-								return (
-									<button
-										key={id}
-										onClick={() => setClaimType(id)}
-										title={desc}
-										style={{
-											flex: 1,
-											padding: "9px 12px",
-											background: active
-												? `${color}18`
-												: "rgba(255,255,255,0.03)",
-											border: `1px solid ${active ? `${color}60` : "rgba(255,255,255,0.1)"}`,
-											borderRadius: 9,
-											color: active ? color : "#94A3B8",
-											cursor: "pointer",
-											fontSize: 12,
-											fontWeight: 700,
-											outline: "none",
-											transition: "all 0.15s",
-											textAlign: "left",
-										}}>
-										<div>{label}</div>
-										<div
+					{/* Claim type toggle — only shown for Inner Experience and
+					    External. For Behavioral, "reporting" is redundant with what
+					    the dimension already means (just the observable facts), and
+					    for Framing, "reading" is redundant with what framing already
+					    is (interpretation). Narrowing this removed the corner cases
+					    that didn't make sense. */}
+					{(dimension === "subjective" || dimension === "intersubjective") && (
+						<div style={{ marginBottom: 18 }}>
+							<p
+								style={{
+									margin: "0 0 9px",
+									fontSize: 12,
+									fontWeight: 700,
+									color: "rgba(255,255,255,0.5)",
+									letterSpacing: "0.08em",
+									textTransform: "uppercase",
+								}}>
+								This reflection is —
+							</p>
+							<div style={{ display: "flex", gap: 8 }}>
+								{[
+									{
+										id: "reporting",
+										label: "Reporting",
+										desc: "Best reconstruction of what was present",
+										color: "#10B981",
+									},
+									{
+										id: "reading",
+										label: "Reading",
+										desc: "A framework applied to make sense of it",
+										color: "#6366F1",
+									},
+								].map(({ id, label, desc, color }) => {
+									const active = claimType === id;
+									return (
+										<button
+											key={id}
+											onClick={() => setClaimType(id)}
+											title={desc}
 											style={{
-												fontSize: 10,
-												fontWeight: 500,
-												marginTop: 3,
-												opacity: 0.7,
-												whiteSpace: "normal",
-												lineHeight: 1.4,
+												flex: 1,
+												padding: "9px 12px",
+												background: active
+													? `${color}18`
+													: "rgba(255,255,255,0.03)",
+												border: `1px solid ${active ? `${color}60` : "rgba(255,255,255,0.1)"}`,
+												borderRadius: 9,
+												color: active ? color : "#94A3B8",
+												cursor: "pointer",
+												fontSize: 12,
+												fontWeight: 700,
+												outline: "none",
+												transition: "all 0.15s",
+												textAlign: "left",
 											}}>
-											{desc}
-										</div>
-									</button>
-								);
-							})}
+											<div>{label}</div>
+											<div
+												style={{
+													fontSize: 11,
+													fontWeight: 500,
+													marginTop: 3,
+													opacity: 0.85,
+													whiteSpace: "normal",
+													lineHeight: 1.4,
+												}}>
+												{desc}
+											</div>
+										</button>
+									);
+								})}
+							</div>
 						</div>
-					</div>
+					)}
 
 					{/* Save / Cancel */}
 					<div style={{ display: "flex", gap: 10 }}>

@@ -7,6 +7,8 @@
 //   - v5 upgrade migrates existing constellationId → constellationIds
 //   - addEdge default type changed from "temporal" → "followed"
 import Dexie from "dexie";
+// seedNodes/seedEdges no longer auto-seeded (see initializeDB) but kept
+// importable here in case an opt-in "try an example" feature gets built later
 import { seedNodes, seedEdges, lenses } from "../seedData";
 
 export const db = new Dexie("PerceptionMapDB_v3");
@@ -146,9 +148,12 @@ export async function initializeDB() {
 	try {
 		const nodeCount = await db.nodes.count();
 		if (nodeCount === 0) {
-			const nodes = seedNodes.map((n) => ({ ...n, constellationIds: [] }));
-			await db.nodes.bulkAdd(nodes);
-			await db.edges.bulkAdd(seedEdges);
+			// Deliberately not seeding example nodes/edges — a new user
+			// opening their own reflection tool for the first time shouldn't
+			// find someone else's fake scenario sitting there. Onboarding and
+			// Legend now cover orientation instead. Lens definitions and
+			// settings defaults are real functional data, not example
+			// content, so those still seed normally.
 			await db.lenses.bulkAdd(lenses);
 			await db.settings.put({ key: "showOrbitalPaths", value: true });
 			await db.settings.put({ key: "showAllDimensions", value: false });

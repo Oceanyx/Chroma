@@ -104,6 +104,7 @@ export function calculateAnimatedOrbit(
 	paused = false,
 	dimension = "subjective",
 	scale = 1.0,
+	speedMultiplier = 1,
 ) {
 	const dim = dimension === "symbolic" ? "framing" : dimension;
 	const dimensionConfig = moonConfig.dimension[dim];
@@ -116,7 +117,8 @@ export function calculateAnimatedOrbit(
 		return calculateMoonPosition(parent, baseAngle, dim, scale);
 	}
 
-	const animatedAngle = baseAngle + time * dimensionConfig.orbitSpeed;
+	const animatedAngle =
+		baseAngle + time * dimensionConfig.orbitSpeed * speedMultiplier;
 	return calculateMoonPosition(parent, animatedAngle, dim, scale);
 }
 

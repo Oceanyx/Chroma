@@ -9,7 +9,7 @@
 //   - Close button default state brighter: #334155 → #6B7F95
 //   - Custom lens creation and editing logic unchanged
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { moonConfig, lenses as DEFAULT_LENSES, lensById } from "../seedData";
 import { loadCustomLenses, saveCustomLenses } from "../utils/customLenses";
 
@@ -399,7 +399,7 @@ function VersionDots({ versions, accent }) {
 						color: "#94A3B8",
 						flexShrink: 0,
 					}}>
-					Evolution
+					Version History
 				</span>
 				<div style={{ display: "flex", gap: 6, alignItems: "center" }}>
 					{slots.map((_, i) => {
@@ -414,8 +414,8 @@ function VersionDots({ versions, accent }) {
 								onMouseLeave={() => setHoveredIdx(null)}
 								onClick={() => filled && handleDotClick(i)}
 								style={{
-									width: filled ? 10 : 8,
-									height: filled ? 10 : 8,
+									width: filled ? 14 : 11,
+									height: filled ? 14 : 11,
 									borderRadius: "50%",
 									background: filled
 										? isSelected || isHovered
@@ -423,13 +423,13 @@ function VersionDots({ versions, accent }) {
 											: `${accent}80`
 										: "rgba(255,255,255,0.08)",
 									border: filled
-										? `1px solid ${isSelected || isHovered ? accent : `${accent}50`}`
+										? `2px solid ${isSelected || isHovered ? accent : `${accent}50`}`
 										: "1px solid rgba(255,255,255,0.12)",
 									cursor: filled ? "pointer" : "default",
 									transition: "all 0.15s",
 									transform:
-										isHovered || isSelected ? "scale(1.3)" : "scale(1)",
-									boxShadow: isSelected ? `0 0 8px ${accent}60` : "none",
+										isHovered || isSelected ? "scale(1.25)" : "scale(1)",
+									boxShadow: isSelected ? `0 0 10px ${accent}70` : "none",
 									flexShrink: 0,
 								}}
 							/>
@@ -448,6 +448,14 @@ function VersionDots({ versions, accent }) {
 					</span>
 				)}
 			</div>
+			<p
+				style={{
+					fontSize: 10,
+					color: "#5B6B80",
+					margin: "4px 0 0",
+				}}>
+				Each dot is an earlier version — tap one to read it
+			</p>
 
 			{/* Expanded version card */}
 			{selectedIdx !== null && reversed[selectedIdx] && (
@@ -552,6 +560,7 @@ export default function MoonSidePanel({
 	onStartRelationship,
 }) {
 	const [isEditing, setIsEditing] = useState(false);
+	const [isHoveringText, setIsHoveringText] = useState(false);
 	const [editText, setEditText] = useState(moon.text);
 	const [editLenses, setEditLenses] = useState(moon.lensesUsed || []);
 	const [relationshipMode, setRelationshipMode] = useState(null);
@@ -660,15 +669,17 @@ export default function MoonSidePanel({
 		<div
 			style={{
 				width: PANEL_WIDTH,
-				height: "100%",
+				position: "fixed",
+				top: 60,
+				right: 0,
+				bottom: 0,
 				display: "flex",
 				flexDirection: "column",
 				background: ds.bg,
 				borderLeft: `1px solid ${ds.borderColor}`,
 				boxShadow: `inset 3px 0 0 0 ${ds.accent}, -8px 0 32px rgba(0,0,0,0.35)`,
-				position: "relative",
 				overflowY: "auto",
-				flexShrink: 0,
+				zIndex: 100,
 				color: "#C8D6E8",
 			}}>
 			{/* Ambient glow */}
@@ -764,17 +775,20 @@ export default function MoonSidePanel({
 						borderBottom: "1px solid rgba(255,255,255,0.07)",
 						marginBottom: 0,
 					}}>
-					<ClaimTypeChip
-						value={moon.claimType || "reporting"}
-						onToggle={() =>
-							onAction("claimType", moon, {
-								claimType:
-									(moon.claimType || "reporting") === "reporting"
-										? "reading"
-										: "reporting",
-							})
-						}
-					/>
+					{(moon.dimension === "subjective" ||
+						moon.dimension === "intersubjective") && (
+						<ClaimTypeChip
+							value={moon.claimType || "reporting"}
+							onToggle={() =>
+								onAction("claimType", moon, {
+									claimType:
+										(moon.claimType || "reporting") === "reporting"
+											? "reading"
+											: "reporting",
+								})
+							}
+						/>
+					)}
 					<OwnershipChip
 						value={moon.ownership || "asserted"}
 						onToggle={() =>
@@ -848,12 +862,14 @@ export default function MoonSidePanel({
 							wordBreak: "break-word",
 							overflowWrap: "break-word",
 						}}
-						onMouseEnter={(e) =>
-							(e.currentTarget.style.background = "rgba(255,255,255,0.055)")
-						}
-						onMouseLeave={(e) =>
-							(e.currentTarget.style.background = "rgba(255,255,255,0.03)")
-						}>
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "rgba(255,255,255,0.055)";
+							setIsHoveringText(true);
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+							setIsHoveringText(false);
+						}}>
 						{isEntertained && (
 							<span
 								style={{
@@ -870,21 +886,17 @@ export default function MoonSidePanel({
 							</span>
 						)}
 						{moon.text}
-						<span
-							style={{
-								position: "absolute",
-								bottom: 8,
-								right: 10,
-								fontSize: 10,
-								color: "#94A3B8",
-								fontStyle: "normal",
-								fontFamily: "system-ui, sans-serif",
-								letterSpacing: "0.08em",
-								textTransform: "uppercase",
-								fontWeight: 700,
-							}}>
-							edit
-						</span>
+						{isHoveringText && (
+							<Pencil
+								size={13}
+								style={{
+									position: "absolute",
+									bottom: 10,
+									right: 10,
+									color: "rgba(255,255,255,0.4)",
+								}}
+							/>
+						)}
 					</div>
 				) : (
 					<div>
@@ -1094,7 +1106,7 @@ export default function MoonSidePanel({
 						</div>
 
 						{/* Cancel + Update row */}
-						<div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+						<div style={{ display: "flex", gap: 8, marginBottom: 3 }}>
 							<button
 								onClick={handleCancelEdit}
 								style={{
@@ -1135,6 +1147,15 @@ export default function MoonSidePanel({
 								Update
 							</button>
 						</div>
+						<p
+							style={{
+								fontSize: 10,
+								color: "#5B6B80",
+								margin: "0 0 6px",
+								textAlign: "right",
+							}}>
+							Update = fix a typo, no history kept
+						</p>
 
 						{/* Mark as Evolved — intentional version */}
 						{(() => {
@@ -1193,6 +1214,16 @@ export default function MoonSidePanel({
 								</button>
 							);
 						})()}
+						<p
+							style={{
+								fontSize: 10,
+								color: "#5B6B80",
+								margin: "6px 0 0",
+								textAlign: "right",
+							}}>
+							Mark as Evolved = a deliberate change of mind, keeps the old
+							version below
+						</p>
 					</div>
 				)}
 			</div>

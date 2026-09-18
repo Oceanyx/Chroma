@@ -18,9 +18,12 @@ import {
 	Locate,
 	Sparkles,
 	HelpCircle,
+	ZoomIn,
+	ZoomOut,
 } from "lucide-react";
 import LegendModal from "./LegendModal";
 import Onboarding from "./Onboarding";
+import { loadCustomLenses, saveCustomLenses } from "../utils/customLenses";
 import {
 	db,
 	initializeDB,
@@ -276,6 +279,7 @@ export default function SpaceCanvas({
 	const [multiSelectedIds, setMultiSelectedIds] = useState(new Set());
 	const [showLegend, setShowLegend] = useState(false);
 	const [showOnboarding, setShowOnboarding] = useState(false);
+	const [orbitSpeedMultiplier, setOrbitSpeedMultiplier] = useState(1);
 
 	// ── Reflection mode ────────────────────────────────────────────────────────
 	const [reflectionMode, setReflectionMode] = useState({
@@ -378,15 +382,22 @@ export default function SpaceCanvas({
 
 			const seenOnboarding = await getSetting("hasSeenOnboarding");
 			if (!seenOnboarding) setShowOnboarding(true);
+
+			const savedSpeed = await getSetting("orbitSpeedMultiplier");
+			if (savedSpeed) setOrbitSpeedMultiplier(savedSpeed);
 		}
 		loadData();
 	}, [computeFitView]);
 
-	// Refresh unlocked dimensions only when moon count changes
+	// Refresh unlocked dimensions when moon count changes, or on demand
+	// (e.g. when the "show all dimensions" preference is toggled in Legend)
 	const moonCount = nodes.filter((n) => n.type === "R").length;
-	useEffect(() => {
+	const refreshUnlockedDimensions = useCallback(() => {
 		getUnlockedDimensions().then(setUnlockedDimensions);
-	}, [moonCount]);
+	}, []);
+	useEffect(() => {
+		refreshUnlockedDimensions();
+	}, [moonCount, refreshUnlockedDimensions]);
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Orbit animation
@@ -680,6 +691,31 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	// Reflection mode
 	// ─────────────────────────────────────────────────────────────────────────
+	const handleMagnify = useCallback(
+		(direction) => {
+			const viewW = window.innerWidth;
+			const viewH = window.innerHeight - 60;
+			const screenCenterX = viewW / 2;
+			const screenCenterY = viewH / 2 + 60;
+
+			const worldX = (screenCenterX - pan.x) / zoom;
+			const worldY = (screenCenterY - pan.y) / zoom;
+
+			const delta = direction === "in" ? 0.25 : -0.25;
+			const newZoom = Math.min(
+				Math.max(CANVAS.minZoom, zoom + delta),
+				CANVAS.maxZoom,
+			);
+
+			setZoom(newZoom);
+			setPan({
+				x: screenCenterX - worldX * newZoom,
+				y: screenCenterY - worldY * newZoom,
+			});
+		},
+		[zoom, pan],
+	);
+
 	const handleRecenter = useCallback(() => {
 		const planets = nodes.filter(
 			(n) => n.type === "O" || n.type === "A" || n.type === "I",
@@ -960,12 +996,15 @@ export default function SpaceCanvas({
 			[
 				JSON.stringify(
 					{
-						version: 4,
+						version: 5,
 						exportedAt: new Date().toISOString(),
 						purposeData,
 						nodes,
 						edges,
 						constellations,
+						// Custom lenses live in localStorage, not the DB — without
+						// this they were silently excluded from every export.
+						customLenses: loadCustomLenses(),
 					},
 					null,
 					2,
@@ -1231,6 +1270,7 @@ export default function SpaceCanvas({
 								false,
 								dimension,
 								ORBIT_SCALE,
+								orbitSpeedMultiplier,
 							);
 							moonElements.push(
 								<Moon
@@ -1259,6 +1299,7 @@ export default function SpaceCanvas({
 								false,
 								dimension,
 								ORBIT_SCALE,
+								orbitSpeedMultiplier,
 							)
 						: data.position;
 					const agg = {
@@ -1526,6 +1567,38 @@ export default function SpaceCanvas({
 					<Locate size={13} />
 					Recenter
 				</button>
+				<button
+					onClick={() => handleMagnify("out")}
+					title="Zoom out (from viewport center)"
+					style={{
+						padding: "6px 9px",
+						marginLeft: 2,
+						background: "transparent",
+						border: "none",
+						borderLeft: "1px solid rgba(255,255,255,0.12)",
+						borderRadius: 0,
+						color: "#94A3B8",
+						cursor: "pointer",
+						display: "flex",
+						alignItems: "center",
+					}}>
+					<ZoomOut size={14} />
+				</button>
+				<button
+					onClick={() => handleMagnify("in")}
+					title="Zoom in (from viewport center)"
+					style={{
+						padding: "6px 9px",
+						background: "transparent",
+						border: "none",
+						borderRadius: 0,
+						color: "#94A3B8",
+						cursor: "pointer",
+						display: "flex",
+						alignItems: "center",
+					}}>
+					<ZoomIn size={14} />
+				</button>
 			</div>
 
 			{tool === "constellation" && multiSelectedIds.size >= 2 && (
@@ -1611,6 +1684,8 @@ export default function SpaceCanvas({
 						setShowLegend(false);
 						setShowOnboarding(true);
 					}}
+					onDimensionPrefChange={refreshUnlockedDimensions}
+					onOrbitSpeedChange={setOrbitSpeedMultiplier}
 				/>
 			)}
 
@@ -2103,7 +2178,7 @@ export default function SpaceCanvas({
 							margin: "0 12px 6px",
 							fontSize: 10,
 							fontWeight: 700,
-							color: "rgba(255,255,255,0.3)",
+							color: "#94A3B8",
 							textTransform: "uppercase",
 							letterSpacing: "0.06em",
 						}}>
@@ -2173,7 +2248,7 @@ export default function SpaceCanvas({
 							margin: "4px 12px 5px",
 							fontSize: 10,
 							fontWeight: 700,
-							color: "rgba(255,255,255,0.3)",
+							color: "#94A3B8",
 							textTransform: "uppercase",
 							letterSpacing: "0.06em",
 						}}>
@@ -2196,6 +2271,7 @@ export default function SpaceCanvas({
 							maxLength={40}
 							style={{
 								flex: 1,
+								minWidth: 0,
 								background: "rgba(255,255,255,0.06)",
 								border: "1px solid rgba(108,99,255,0.3)",
 								borderRadius: 5,
@@ -2210,6 +2286,7 @@ export default function SpaceCanvas({
 							onClick={handleEdgeLabelSave}
 							style={{
 								padding: "5px 10px",
+								flexShrink: 0,
 								background: "rgba(108,99,255,0.7)",
 								border: "none",
 								borderRadius: 5,
@@ -2290,7 +2367,7 @@ export default function SpaceCanvas({
 										style={{
 											margin: 0,
 											fontSize: 10,
-											color: "rgba(108,99,255,0.7)",
+											color: "#A78BFA",
 											textTransform: "uppercase",
 											letterSpacing: "0.08em",
 											fontWeight: 700,
@@ -2312,7 +2389,7 @@ export default function SpaceCanvas({
 									style={{
 										background: "none",
 										border: "none",
-										color: "rgba(255,255,255,0.35)",
+										color: "#94A3B8",
 										cursor: "pointer",
 										fontSize: 18,
 										padding: "0 2px",
@@ -2325,8 +2402,8 @@ export default function SpaceCanvas({
 							<div>
 								<label
 									style={{
-										fontSize: 10,
-										color: "rgba(255,255,255,0.35)",
+										fontSize: 11,
+										color: "#94A3B8",
 										textTransform: "uppercase",
 										letterSpacing: "0.06em",
 										fontWeight: 700,
@@ -2364,8 +2441,8 @@ export default function SpaceCanvas({
 							<div>
 								<label
 									style={{
-										fontSize: 10,
-										color: "rgba(255,255,255,0.35)",
+										fontSize: 11,
+										color: "#94A3B8",
 										textTransform: "uppercase",
 										letterSpacing: "0.06em",
 										fontWeight: 700,
@@ -2402,8 +2479,8 @@ export default function SpaceCanvas({
 							<div>
 								<label
 									style={{
-										fontSize: 10,
-										color: "rgba(255,255,255,0.35)",
+										fontSize: 11,
+										color: "#94A3B8",
 										textTransform: "uppercase",
 										letterSpacing: "0.06em",
 										fontWeight: 700,
@@ -2431,7 +2508,7 @@ export default function SpaceCanvas({
 															: "rgba(255,255,255,0.05)",
 														border: `1px solid ${active ? "rgba(108,99,255,0.6)" : "rgba(255,255,255,0.1)"}`,
 														borderRadius: 20,
-														color: active ? "#C4B5FD" : "rgba(255,255,255,0.5)",
+														color: active ? "#C4B5FD" : "#94A3B8",
 														fontSize: 12,
 														cursor: "pointer",
 														fontFamily: "system-ui, sans-serif",
@@ -2457,7 +2534,7 @@ export default function SpaceCanvas({
 									style={{
 										margin: 0,
 										fontSize: 11,
-										color: "rgba(255,255,255,0.2)",
+										color: "#7A8FA6",
 									}}>
 									{c.nodeIds.length} {c.nodeIds.length === 1 ? "node" : "nodes"}{" "}
 									· created {new Date(c.createdAt).toLocaleDateString()}

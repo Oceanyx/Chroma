@@ -221,15 +221,17 @@ export default function PlanetSidePanel({
 		<div
 			style={{
 				width: PLANET_PANEL_WIDTH,
-				height: "100%",
+				position: "fixed",
+				top: 60,
+				right: 0,
+				bottom: 0,
 				display: "flex",
 				flexDirection: "column",
 				background: `linear-gradient(165deg, ${tc.bg} 0%, rgba(8,13,25,0.99) 28%)`,
 				borderLeft: `1px solid ${tc.border}`,
 				boxShadow: `inset 3px 0 0 0 ${tc.color}, -8px 0 32px rgba(0,0,0,0.35)`,
-				position: "relative",
 				overflowY: "auto",
-				flexShrink: 0,
+				zIndex: 100,
 				color: "#C8D6E8",
 			}}>
 			{/* Ambient glow */}
@@ -595,8 +597,8 @@ export default function PlanetSidePanel({
 					<p
 						style={{
 							margin: "0 0 7px",
-							fontSize: 11,
-							color: "rgba(255,255,255,0.3)",
+							fontSize: 13,
+							color: "rgba(255,255,255,0.6)",
 							fontStyle: "italic",
 						}}>
 						Before you reflect — how long ago did this happen?

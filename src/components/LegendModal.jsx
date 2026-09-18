@@ -1,7 +1,7 @@
 // src/components/LegendModal.jsx
 // Reference documentation, re-openable anytime — separate from AboutModal,
 // which carries the "why" (philosophy). This carries the "how" (mechanics).
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
 	X,
 	MousePointer,
@@ -10,7 +10,9 @@ import {
 	Hand,
 	Locate,
 	RotateCcw,
+	ZoomIn,
 } from "lucide-react";
+import { getSetting, setSetting } from "../lib/db";
 
 const sectionTitle = {
 	fontSize: 13,
@@ -43,7 +45,38 @@ const rowDesc = {
 	lineHeight: 1.5,
 };
 
-export default function LegendModal({ onClose, onReplayWalkthrough }) {
+export default function LegendModal({
+	onClose,
+	onReplayWalkthrough,
+	onDimensionPrefChange,
+	onOrbitSpeedChange,
+}) {
+	const [showAllDimensions, setShowAllDimensions] = useState(false);
+	const [orbitSpeed, setOrbitSpeed] = useState(1);
+
+	useEffect(() => {
+		getSetting("orbitSpeedMultiplier").then((v) => {
+			if (v) setOrbitSpeed(v);
+		});
+	}, []);
+
+	const changeOrbitSpeed = async (multiplier) => {
+		setOrbitSpeed(multiplier);
+		await setSetting("orbitSpeedMultiplier", multiplier);
+		onOrbitSpeedChange?.(multiplier);
+	};
+
+	useEffect(() => {
+		getSetting("showAllDimensions").then((v) => setShowAllDimensions(!!v));
+	}, []);
+
+	const toggleShowAllDimensions = async () => {
+		const next = !showAllDimensions;
+		setShowAllDimensions(next);
+		await setSetting("showAllDimensions", next);
+		onDimensionPrefChange?.();
+	};
+
 	return (
 		<div
 			style={{
@@ -226,6 +259,13 @@ export default function LegendModal({ onClose, onReplayWalkthrough }) {
 							everything back in view.
 						</span>
 					</div>
+					<div style={row}>
+						<ZoomIn size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+						<span style={rowDesc}>
+							<strong>Zoom in/out</strong> — magnifies from the center of your
+							current view. Ctrl/Cmd+scroll also works anywhere.
+						</span>
+					</div>
 
 					<div style={sectionTitle}>Keys</div>
 					<div style={row}>
@@ -237,6 +277,83 @@ export default function LegendModal({ onClose, onReplayWalkthrough }) {
 					<div style={row}>
 						<span style={rowLabel}>Space (hold)</span>
 						<span style={rowDesc}>Temporarily pan from any tool.</span>
+					</div>
+
+					<div style={sectionTitle}>Preferences</div>
+					<label
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: 10,
+							padding: "10px 0",
+							cursor: "pointer",
+							userSelect: "none",
+						}}>
+						<div
+							onClick={toggleShowAllDimensions}
+							style={{
+								width: 36,
+								height: 20,
+								borderRadius: 10,
+								background: showAllDimensions
+									? "#6C63FF"
+									: "rgba(255,255,255,0.15)",
+								position: "relative",
+								transition: "background 0.15s",
+								flexShrink: 0,
+							}}>
+							<div
+								style={{
+									position: "absolute",
+									top: 2,
+									left: showAllDimensions ? 18 : 2,
+									width: 16,
+									height: 16,
+									borderRadius: "50%",
+									background: "#fff",
+									transition: "left 0.15s",
+								}}
+							/>
+						</div>
+						<span
+							style={{ fontSize: 13, color: "#CBD5E1" }}
+							onClick={toggleShowAllDimensions}>
+							Show all 4 reflection dimensions from the start, instead of
+							unlocking Behavioral and Framing progressively (at 5 and 15
+							reflections)
+						</span>
+					</label>
+
+					<div style={{ padding: "10px 0" }}>
+						<div style={{ fontSize: 13, color: "#CBD5E1", marginBottom: 8 }}>
+							Moon orbit speed
+						</div>
+						<div style={{ display: "flex", gap: 8 }}>
+							{[
+								{ label: "Slow", value: 0.4 },
+								{ label: "Normal", value: 1 },
+								{ label: "Fast", value: 2.5 },
+							].map(({ label, value }) => (
+								<button
+									key={label}
+									onClick={() => changeOrbitSpeed(value)}
+									style={{
+										padding: "6px 14px",
+										borderRadius: 7,
+										border: `1px solid ${orbitSpeed === value ? "#6C63FF" : "rgba(255,255,255,0.12)"}`,
+										background:
+											orbitSpeed === value
+												? "rgba(108,99,255,0.2)"
+												: "transparent",
+										color: orbitSpeed === value ? "#A78BFA" : "#94A3B8",
+										fontSize: 12,
+										fontWeight: 600,
+										cursor: "pointer",
+									}}>
+									{label}
+								</button>
+							))}
+						</div>
 					</div>
 
 					{onReplayWalkthrough && (

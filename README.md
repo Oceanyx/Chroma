@@ -2,69 +2,68 @@
 
 A local-first tool for mapping how you make sense of your own experiences.
 
+**Live:** https://oceanyx.github.io/Chroma/
+
 ## What it is
 
-Chroma treats each thing you notice or do as a small planet. You can attach
-reflections to it along up to four dimensions — what you felt, what you did,
-what's externally verifiable, and what pattern or frame it fits — shown as
-moons that orbit the planet. Planets can be linked to each other, grouped
-into constellations, and marked as being in tension or in support of one
-another.
+Chroma treats each thing you notice, do, or intend as a small planet —
+an Observation, an Action, or an Intention. You reflect on a planet from
+different angles, shown as moons that orbit it:
 
-The idea is to make it easier to notice the gap between how something felt
+- **Inner Experience** — how it felt, from the inside
+- **External** — how it looked from outside, or to someone else
+- **Behavioral** — what was actually done or said (unlocks after 5
+  reflections)
+- **Framing** — what pattern or lens it fits into (unlocks after 15)
+
+The progressive unlock is deliberate pacing for new users, not a limit —
+it can be turned off entirely (Legend → Preferences → "Show all 4
+dimensions from the start").
+
+Planets can be linked to each other (followed / caused / triggered /
+enabled / contradicts / resolved), grouped into named constellations, and
+individual moons can be marked in tension or in support of one another.
+
+The goal is to make it easier to notice the gap between how something felt
 and what was actually observable, and to see patterns surface across many
-small reflections over time.
-
-Perception in humans is noticeably fickle, and, as such, the hope of this project
-was to encourage people to be able to not just understand themselves better, but
-also inquire as to the mechanisms and structure of how we come to conclusions
-about our own thoughts and behaviors.
+small reflections over time. The four dimensions aren't a claim that
+they're the "correct" or complete way to carve up experience — they're a
+starting structure, meant to be held loosely.
 
 ## Status
 
-Early, working prototype. The core loop — create an observation, reflect on
-it across dimensions, connect it to others — works. Expect some rough
-edges; see **Known Issues** below.
+Live and working. Core loop (create an experience, reflect on it from
+multiple angles, connect it to others, group related ones into
+constellations) is solid and has been through several rounds of bug fixes
+and UX passes. Actively developed — see the in-app Legend (bottom-left "?"
+button) for the current feature set, since this README won't always be
+perfectly in sync with the latest build.
 
-## Features (currently working)
+## Features
 
-- Create Observation / Action / Intention nodes on an infinite pan-and-zoom
-  canvas
-- Drag nodes to reposition them
-- Add reflections ("moons") across dimensions. Two dimensions are open from
-  the start; Behavioral unlocks after 5 total reflections, Framing unlocks
-  after 15 — **this pacing is intentional, not a bug**
-- Mark tension between two reflections
-- Mark support between two reflections
-- Group related nodes into constellations
-- Connect nodes with typed relationships: followed / caused / triggered /
-  enabled / contradicts / resolved
-- Export your data to JSON and re-import it later
-- Everything is stored locally in your browser (IndexedDB) — nothing is
-  ever sent anywhere
-
-## Not built yet (on purpose)
-
-These are deliberately out of scope for now, not missing by accident. The
-goal is to test whether the core idea holds up before the surface area
-grows:
-
-- Accounts, sign-in, or cross-device sync
-- Voice capture / dictation
-- Search and filtering
-- A settings panel (a couple of flags exist in the database but aren't
-  exposed in the UI yet)
-- Undo/redo
-- Keyboard shortcuts beyond Escape, Enter, and holding Space to pan
-- Accessibility support (screen reader labels, full keyboard navigation)
-
-## Data & privacy
-
-Chroma makes no network requests of any kind. Everything you create lives
-in your browser's local storage (IndexedDB) and never leaves your device.
-Clearing your browser's site data will delete it, so use **Export**
-regularly if you want a backup. There's no account system and no server —
-nothing to breach, because there's nowhere for data to go.
+- Infinite pan/zoom canvas with an explicit tool mode for each action:
+  Select, Pan, Connect, Group — no modifier-key gestures, no hidden
+  interactions
+- Recenter (frames everything currently on the map back into view) and
+  dedicated zoom in/out controls, both anchored to your current viewport
+  center
+- Reflections ("moons") across four dimensions, with progressive unlock
+  and an opt-out toggle
+- Tension and support relationships between moons, with visible connector
+  lines
+- Typed connections between planets, with custom labels
+- Constellations — named, archetyped groupings of related planets
+- Custom lenses for framing a reflection, shareable across your whole map
+- Version history per reflection ("Update" for a quick fix with no
+  history kept, "Mark as Evolved" for a deliberate change that archives
+  the previous version)
+- First-run onboarding (five short animated steps, skippable at every
+  step, replayable anytime from Legend) and a full mechanics reference in
+  Legend
+- Export/Import to JSON, including custom lenses (merged on import, not
+  overwritten)
+- Zero network requests. Everything lives in your browser's IndexedDB.
+  Nothing you write is ever sent anywhere.
 
 ## Getting started
 
@@ -79,16 +78,39 @@ Open the local URL it prints. To build a static production version:
 npm run build
 ```
 
-The output in `dist/` is a fully static site with no backend required. It
-can be hosted as-is on Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
+The output in `dist/` is a fully static site — no backend required.
 
-## Known issues
+## Tech stack
 
-A handful of interactions are still buggy. Tracked and being fixed
-incrementally — see the project's test checklist for the current list.
+- React 18 + Vite
+- Dexie (IndexedDB) for local storage
+- lucide-react for icons
+- Pure CSS/SVG for all animation — no animation library
+
+## Deployment
+
+Deployed to GitHub Pages via GitHub Actions
+(`.github/workflows/deploy.yml`), which builds and redeploys automatically
+on every push to `main`. One thing worth knowing if you fork this: Vite's
+`base` path in `vite.config.js` is set to `/Chroma/` to match this repo's
+Pages URL — if you rename the repo or deploy elsewhere, update that too,
+or your built assets will 404.
+
+## Data & privacy
+
+Chroma makes no network requests of any kind. Everything you create lives
+in your browser's local storage (IndexedDB) and never leaves your device.
+Clearing your browser's site data will delete it — use Export regularly if
+you want a backup. There's no account system and no server.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
+No formal license file yet. The source is public on GitHub as-is.
 
 ## Contributing
+
+Not currently seeking contributions, but issues and feedback are welcome.
+
+## Credits
+
+Built by [Brian Chan](https://oceanyx.github.io) ([@Oceanyx](https://github.com/Oceanyx)).

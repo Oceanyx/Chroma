@@ -13,8 +13,9 @@
 import React from "react";
 import { CONSTELLATION_ARCHETYPES } from "../utils/constellationConfig";
 
-const NEBULA_COLOR = "#6C63FF";
-const NEBULA_COLOR_MID = "#8B5CF6";
+const NEBULA_COLOR = "#A78BFA";
+const NEBULA_COLOR_MID = "#C4B5FD";
+const NEBULA_COLOR_BRIGHT = "#E9D5FF";
 
 export default function ConstellationNebula({
 	constellation,
@@ -48,8 +49,8 @@ export default function ConstellationNebula({
 			}}>
 			<defs>
 				<radialGradient id={gradId} cx="50%" cy="50%" r="50%">
-					<stop offset="0%" stopColor={NEBULA_COLOR} stopOpacity={0.9} />
-					<stop offset="45%" stopColor={NEBULA_COLOR_MID} stopOpacity={0.5} />
+					<stop offset="0%" stopColor={NEBULA_COLOR_BRIGHT} stopOpacity={1} />
+					<stop offset="40%" stopColor={NEBULA_COLOR_MID} stopOpacity={0.75} />
 					<stop offset="100%" stopColor={NEBULA_COLOR} stopOpacity={0} />
 				</radialGradient>
 
@@ -63,7 +64,7 @@ export default function ConstellationNebula({
 			<circle
 				r={48}
 				fill={`url(#${gradId})`}
-				opacity={0.35}
+				opacity={0.65}
 				filter={`url(#${filterId})`}>
 				<animate
 					attributeName="r"
@@ -73,14 +74,14 @@ export default function ConstellationNebula({
 				/>
 				<animate
 					attributeName="opacity"
-					values="0.3;0.45;0.3"
+					values="0.6;0.75;0.6"
 					dur="4s"
 					repeatCount="indefinite"
 				/>
 			</circle>
 
 			{/* Mid layer */}
-			<circle r={34} fill={`url(#${gradId})`} opacity={0.55}>
+			<circle r={34} fill={`url(#${gradId})`} opacity={0.85}>
 				<animate
 					attributeName="r"
 					values="33;36;33"
@@ -90,18 +91,21 @@ export default function ConstellationNebula({
 				/>
 			</circle>
 
+			{/* Crisp boundary ring — the soft blur alone read as "fades into the
+			    background"; a defined edge gives it a confident shape at a glance */}
+			<circle
+				r={36}
+				fill="none"
+				stroke={NEBULA_COLOR_BRIGHT}
+				strokeWidth={2}
+				opacity={0.8}
+			/>
+
 			{/* Core */}
-			<circle r={20} fill={NEBULA_COLOR} opacity={0.75}>
+			<circle r={22} fill={NEBULA_COLOR_MID} opacity={1}>
 				<animate
 					attributeName="r"
-					values="19;21;19"
-					dur="4s"
-					begin="1s"
-					repeatCount="indefinite"
-				/>
-				<animate
-					attributeName="opacity"
-					values="0.7;0.85;0.7"
+					values="21;23;21"
 					dur="4s"
 					begin="1s"
 					repeatCount="indefinite"
@@ -109,7 +113,7 @@ export default function ConstellationNebula({
 			</circle>
 
 			{/* Bright centre dot */}
-			<circle r={6} fill="white" opacity={0.6} />
+			<circle r={10} fill="white" opacity={0.95} />
 
 			{/* Archetype emoji above label */}
 			{emoji && (
@@ -126,22 +130,36 @@ export default function ConstellationNebula({
 			<text
 				y={62}
 				textAnchor="middle"
-				fill="rgba(255,255,255,0.9)"
-				fontSize={11}
+				fill="rgba(255,255,255,0.95)"
+				fontSize={12}
 				fontFamily="system-ui, sans-serif"
-				fontWeight={500}
-				style={{ pointerEvents: "none", userSelect: "none" }}>
+				fontWeight={600}
+				style={{
+					pointerEvents: "none",
+					userSelect: "none",
+					paintOrder: "stroke",
+					stroke: "rgba(8,13,25,0.85)",
+					strokeWidth: 4,
+					strokeLinejoin: "round",
+				}}>
 				{displayLabel}
 			</text>
 
 			{/* Node count + note indicator */}
 			<text
-				y={76}
+				y={77}
 				textAnchor="middle"
-				fill="rgba(255,255,255,0.4)"
-				fontSize={10}
+				fill="rgba(255,255,255,0.6)"
+				fontSize={11}
 				fontFamily="system-ui, sans-serif"
-				style={{ pointerEvents: "none", userSelect: "none" }}>
+				style={{
+					pointerEvents: "none",
+					userSelect: "none",
+					paintOrder: "stroke",
+					stroke: "rgba(8,13,25,0.85)",
+					strokeWidth: 3,
+					strokeLinejoin: "round",
+				}}>
 				{nodeCount} {nodeCount === 1 ? "node" : "nodes"}
 				{hasNote ? " · ✦" : ""}
 			</text>
