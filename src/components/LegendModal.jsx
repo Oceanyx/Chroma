@@ -169,23 +169,34 @@ export default function LegendModal({
 							Something you're planning, past, present, or future.
 						</span>
 					</div>
+					<div style={row}>
+						<span style={rowLabel}>Hypothetical</span>
+						<span style={rowDesc}>
+							Something imagined, dreamed, or wondered about — not a claim
+							that it happened. Open, confirmed, or dismissed as it resolves.
+						</span>
+					</div>
 
 					<div style={sectionTitle}>Moons — reflecting on a planet</div>
 					<div style={row}>
 						<span style={rowLabel}>Inner Experience</span>
-						<span style={rowDesc}>How it felt, from the inside.</span>
+						<span style={rowDesc}>
+							What you felt, thought, or sensed — the part no one outside
+							could see.
+						</span>
 					</div>
 					<div style={row}>
 						<span style={rowLabel}>External</span>
 						<span style={rowDesc}>
-							What can be verified or observed in shared space — how it looked
-							from outside, or to someone else.
+							What was observably true of the situation as a whole —
+							independent of what you, specifically, did.
 						</span>
 					</div>
 					<div style={row}>
 						<span style={rowLabel}>Behavioral</span>
 						<span style={rowDesc}>
-							What was actually done or said — unlocks after 5 reflections.
+							What you yourself did or said — the observable, outside-facing
+							part of it. Unlocks after 5 reflections.
 						</span>
 					</div>
 					<div style={row}>
@@ -193,6 +204,61 @@ export default function LegendModal({
 						<span style={rowDesc}>
 							What pattern or lens this fits into — unlocks after 15.
 						</span>
+					</div>
+
+					<div
+						style={{
+							marginTop: 14,
+							padding: "12px 14px",
+							background: "rgba(255,255,255,0.02)",
+							border: "1px solid rgba(255,255,255,0.07)",
+							borderRadius: 8,
+						}}>
+						<div
+							style={{
+								fontSize: 11,
+								color: "#94A3B8",
+								fontWeight: 600,
+								letterSpacing: "0.04em",
+								marginBottom: 8,
+							}}>
+							THE FIRST THREE, AT A GLANCE
+						</div>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "auto 1fr 1fr",
+								gap: "4px 10px",
+								fontSize: 12,
+								color: "#CBD5E1",
+							}}>
+							<div />
+							<div style={{ color: "#94A3B8", fontWeight: 600 }}>Felt</div>
+							<div style={{ color: "#94A3B8", fontWeight: 600 }}>Observed</div>
+
+							<div style={{ color: "#94A3B8", fontWeight: 600 }}>You</div>
+							<div>Inner Experience</div>
+							<div>Behavioral</div>
+
+							<div style={{ color: "#94A3B8", fontWeight: 600 }}>
+								Shared / field
+							</div>
+							<div style={{ color: "#5B6B80" }}>— (not claimable) —</div>
+							<div>External</div>
+						</div>
+						<div
+							style={{
+								fontSize: 11,
+								color: "#7A8FA6",
+								lineHeight: 1.5,
+								marginTop: 8,
+							}}>
+							Framing sits outside this grid — it's not a viewpoint, it's
+							applying a model to any of the three. There's no "what they
+							felt" box either: you can only report what you yourself felt.
+							Guessing at someone else's inner state belongs in External,
+							tagged with vantage: theirs.
+						</div>
 					</div>
 
 					<div style={sectionTitle}>Relationships</div>
@@ -207,6 +273,13 @@ export default function LegendModal({
 						<span style={rowLabel}>Support</span>
 						<span style={rowDesc}>
 							Two reflections that reinforce each other.
+						</span>
+					</div>
+					<div style={row}>
+						<span style={rowLabel}>Echo</span>
+						<span style={rowDesc}>
+							Two reflections that remind you of each other — lighter than
+							tension or support, doesn't anchor either moon in place.
 						</span>
 					</div>
 					<div style={row}>

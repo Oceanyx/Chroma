@@ -241,10 +241,32 @@ function OwnershipChip({ value, onToggle }) {
 }
 
 // ── Relationship button ───────────────────────────────────────────────────────
+// ── Relationship type UI metadata (shared by the action buttons and the
+//    relationships list below) ─────────────────────────────────────────────
+const REL_TYPE_UI = {
+	tension: {
+		icon: "⚡",
+		label: "Conflicts With",
+		accent: "#EF4444",
+		prompt: "⚡ Click the conflicting moon",
+	},
+	support: {
+		icon: "〜",
+		label: "Resonates With",
+		accent: "#10B981",
+		prompt: "〜 Click the resonating moon",
+	},
+	association: {
+		icon: "◈",
+		label: "Echoes",
+		accent: "#6366F1",
+		prompt: "◈ Click the echoing moon",
+	},
+};
+
 function RelActionButton({ type, onClick }) {
 	const [hov, setHov] = useState(false);
-	const isTension = type === "tension";
-	const accent = isTension ? "#EF4444" : "#10B981";
+	const { icon, label, accent } = REL_TYPE_UI[type];
 	return (
 		<button
 			onClick={onClick}
@@ -268,8 +290,8 @@ function RelActionButton({ type, onClick }) {
 				transition: "all 0.18s",
 				outline: "none",
 			}}>
-			<span style={{ fontSize: 18 }}>{isTension ? "⚡" : "〜"}</span>
-			<span>{isTension ? "Conflicts With" : "Resonates With"}</span>
+			<span style={{ fontSize: 18 }}>{icon}</span>
+			<span>{label}</span>
 		</button>
 	);
 }
@@ -277,8 +299,7 @@ function RelActionButton({ type, onClick }) {
 // ── Relationship link ─────────────────────────────────────────────────────────
 function RelLink({ rel, onRemove }) {
 	const [hov, setHov] = useState(false);
-	const isTension = rel.type === "tension";
-	const accent = isTension ? "#EF4444" : "#10B981";
+	const { icon, accent } = REL_TYPE_UI[rel.type] || REL_TYPE_UI.association;
 	return (
 		<div
 			onMouseEnter={() => setHov(true)}
@@ -294,9 +315,7 @@ function RelLink({ rel, onRemove }) {
 				transition: "all 0.15s",
 				cursor: "default",
 			}}>
-			<span style={{ fontSize: 14, flexShrink: 0 }}>
-				{isTension ? "⚡" : "〜"}
-			</span>
+			<span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
 			<span
 				style={{
 					fontSize: 13,
@@ -562,7 +581,12 @@ export default function MoonSidePanel({
 	const [isEditing, setIsEditing] = useState(false);
 	const [isHoveringText, setIsHoveringText] = useState(false);
 	const [editText, setEditText] = useState(moon.text);
-	const [editLenses, setEditLenses] = useState(moon.lensesUsed || []);
+	// Single lens, matching MoonInputCard's creation flow. Falls back to the
+	// first entry of the legacy lensesUsed array for moons created before
+	// that flow existed. null = "Open" (no specific lens).
+	const [editLens, setEditLens] = useState(
+		moon.lensUsed ?? moon.lensesUsed?.[0] ?? null,
+	);
 	const [relationshipMode, setRelationshipMode] = useState(null);
 	const [releaseHovered, setReleaseHovered] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
@@ -586,23 +610,23 @@ export default function MoonSidePanel({
 
 	useEffect(() => {
 		setEditText(moon.text);
-		setEditLenses(moon.lensesUsed || []);
+		setEditLens(moon.lensUsed ?? moon.lensesUsed?.[0] ?? null);
 		setIsEditing(false);
 		setRelationshipMode(null);
 		setShowNewLens(false);
 		setShowHistory(false);
 	}, [moon.id]);
 
-	const toggleLens = (id) =>
-		setEditLenses((prev) =>
-			prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id],
-		);
+	// Toggle off if you click the already-selected lens, same as creation.
+	const selectLens = (id) =>
+		setEditLens((prev) => (prev === id ? null : id));
 
 	const handleSave = () => {
 		if (!editText.trim()) return;
 		onAction("save-edit", moon, {
 			text: editText.trim(),
-			lensesUsed: editLenses,
+			lensUsed: editLens,
+			lensesUsed: editLens ? [editLens] : [],
 		});
 		setIsEditing(false);
 	};
@@ -612,14 +636,15 @@ export default function MoonSidePanel({
 		if ((moon.versions || []).length >= 5) return;
 		onAction("save-evolved", moon, {
 			text: editText.trim(),
-			lensesUsed: editLenses,
+			lensUsed: editLens,
+			lensesUsed: editLens ? [editLens] : [],
 		});
 		setIsEditing(false);
 	};
 
 	const handleCancelEdit = () => {
 		setEditText(moon.text);
-		setEditLenses(moon.lensesUsed || []);
+		setEditLens(moon.lensUsed ?? moon.lensesUsed?.[0] ?? null);
 		setIsEditing(false);
 		setShowNewLens(false);
 		setShowHistory(false);
@@ -642,7 +667,7 @@ export default function MoonSidePanel({
 		const updated = [...customLenses, lens];
 		setCustomLenses(updated);
 		saveCustomLenses(updated);
-		setEditLenses((prev) => [...prev, lens.id]);
+		setEditLens(lens.id);
 		setNewLensLabel("");
 		setNewLensEmoji("🔍");
 		setShowNewLens(false);
@@ -653,7 +678,7 @@ export default function MoonSidePanel({
 		const updated = customLenses.filter((l) => l.id !== id);
 		setCustomLenses(updated);
 		saveCustomLenses(updated);
-		setEditLenses((prev) => prev.filter((l) => l !== id));
+		setEditLens((prev) => (prev === id ? null : prev));
 	};
 
 	const relatedLinks = (moon.relationships || [])
@@ -839,7 +864,7 @@ export default function MoonSidePanel({
 					<div
 						onClick={() => {
 							setEditText(moon.text);
-							setEditLenses(moon.lensesUsed || []);
+							setEditLens(moon.lensUsed ?? moon.lensesUsed?.[0] ?? null);
 							setIsEditing(true);
 						}}
 						style={{
@@ -936,15 +961,15 @@ export default function MoonSidePanel({
 									key={lens.id}
 									style={{ position: "relative", display: "inline-flex" }}>
 									<button
-										onClick={() => toggleLens(lens.id)}
+										onClick={() => selectLens(lens.id)}
 										style={{
 											padding: "5px 11px",
 											borderRadius: 20,
-											border: `1px solid ${editLenses.includes(lens.id) ? `${lens.color || dimColor}60` : "rgba(255,255,255,0.12)"}`,
-											background: editLenses.includes(lens.id)
+											border: `1px solid ${editLens === lens.id ? `${lens.color || dimColor}60` : "rgba(255,255,255,0.12)"}`,
+											background: editLens === lens.id
 												? `${lens.color || dimColor}22`
 												: "transparent",
-											color: editLenses.includes(lens.id)
+											color: editLens === lens.id
 												? lens.color || dimColor
 												: "#7A8FA6",
 											fontSize: 13,
@@ -1363,46 +1388,43 @@ export default function MoonSidePanel({
 						}}>
 						Relationships
 					</span>
-					{relationshipMode && (
-						<div
-							style={{
-								padding: "10px 14px",
-								borderRadius: 8,
-								marginBottom: 10,
-								border: `1px solid ${relationshipMode === "tension" ? "rgba(239,68,68,0.4)" : "rgba(16,185,129,0.4)"}`,
-								background:
-									relationshipMode === "tension"
-										? "rgba(239,68,68,0.08)"
-										: "rgba(16,185,129,0.08)",
-								fontSize: 13,
-								fontWeight: 600,
-								color: relationshipMode === "tension" ? "#FCA5A5" : "#6EE7B7",
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "center",
-							}}>
-							<span>
-								{relationshipMode === "tension"
-									? "⚡ Click the conflicting moon"
-									: "〜 Click the resonating moon"}
-							</span>
-							<button
-								onClick={() => setRelationshipMode(null)}
-								style={{
-									background: "none",
-									border: "none",
-									color: "inherit",
-									cursor: "pointer",
-									fontSize: 11,
-									fontWeight: 700,
-									letterSpacing: "0.05em",
-									opacity: 0.7,
-									outline: "none",
-								}}>
-								CANCEL
-							</button>
-						</div>
-					)}
+					{relationshipMode &&
+						(() => {
+							const meta = REL_TYPE_UI[relationshipMode];
+							return (
+								<div
+									style={{
+										padding: "10px 14px",
+										borderRadius: 8,
+										marginBottom: 10,
+										border: `1px solid ${meta.accent}66`,
+										background: `${meta.accent}14`,
+										fontSize: 13,
+										fontWeight: 600,
+										color: meta.accent,
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+									}}>
+									<span>{meta.prompt}</span>
+									<button
+										onClick={() => setRelationshipMode(null)}
+										style={{
+											background: "none",
+											border: "none",
+											color: "inherit",
+											cursor: "pointer",
+											fontSize: 11,
+											fontWeight: 700,
+											letterSpacing: "0.05em",
+											opacity: 0.7,
+											outline: "none",
+										}}>
+										CANCEL
+									</button>
+								</div>
+							);
+						})()}
 					{!relationshipMode && (
 						<div
 							style={{
@@ -1415,8 +1437,12 @@ export default function MoonSidePanel({
 								onClick={() => handleStartRel("tension")}
 							/>
 							<RelActionButton
-								type="resonance"
+								type="support"
 								onClick={() => handleStartRel("support")}
+							/>
+							<RelActionButton
+								type="association"
+								onClick={() => handleStartRel("association")}
 							/>
 						</div>
 					)}

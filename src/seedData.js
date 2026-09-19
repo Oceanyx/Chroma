@@ -71,6 +71,24 @@ export const planetConfig = {
 	},
 };
 
+// Single source of truth for "what state does a brand-new node of this type
+// start in". I (intention) nodes use the legacy present/past/future labels;
+// O/A nodes use active/integrated/revisiting. Import this anywhere a node
+// gets created or its state gets reset, instead of hardcoding either value.
+// Single source of truth for "which node types are planets" (as opposed to
+// moon/reflection nodes, type "R"). Previously this was a repeated
+// n.type === "O" || n.type === "A" || n.type === "I" chain at 8+ call
+// sites — which is exactly how deleteNode() in db.js ended up silently
+// missing "I", and exactly the risk of adding Hypothetical by hand-editing
+// each site individually instead of doing it here once.
+export const PLANET_TYPES = ["O", "A", "I", "H"];
+
+export function getDefaultState(nodeType) {
+	if (nodeType === "I") return "present";
+	if (nodeType === "H") return "open";
+	return "active";
+}
+
 // ============================================================================
 // MOON CONFIG
 // Orbit radii are raw values. Both SpaceCanvas and ReflectionSpace apply
@@ -88,7 +106,8 @@ export const moonConfig = {
 			radius: 16,
 			orbitRadius: 155,
 			orbitSpeed: 0.001047,
-			description: "What did you feel, think, or sense internally?",
+			description:
+				"What did you feel, think, or sense — the part no one outside could see?",
 			unlockThreshold: 0,
 		},
 		behavioral: {
@@ -97,8 +116,11 @@ export const moonConfig = {
 			radius: 24,
 			orbitRadius: 245,
 			orbitSpeed: 0.00075,
-			description: "What did you observably do or say?",
+			description:
+				"What did you yourself do or say — the observable, outside-facing part of it?",
 			unlockThreshold: 5,
+			unlockMessage:
+				"🎉 Behavioral dimension unlocked! Track what you actually did or said.",
 		},
 		intersubjective: {
 			color: dimensionColors.intersubjective,
@@ -107,7 +129,7 @@ export const moonConfig = {
 			orbitRadius: 355,
 			orbitSpeed: 0.000698,
 			description:
-				"What can be externally verified or observed in shared space?",
+				"What was observably true of the situation as a whole — independent of what you, specifically, did?",
 			unlockThreshold: 0,
 		},
 		framing: {
@@ -119,6 +141,8 @@ export const moonConfig = {
 			description:
 				"What conceptual model or framework illuminates what was happening here?",
 			unlockThreshold: 15,
+			unlockMessage:
+				"🎉 Framing dimension unlocked! Apply conceptual frameworks to illuminate what was happening.",
 		},
 		// Legacy alias — keeps orbitalPhysics.js and any other unchanged file from crashing
 		// during migration. Points to the same config as "framing".
@@ -227,42 +251,6 @@ export const lenses = [
 export const lensById = Object.fromEntries(lenses.map((l) => [l.id, l]));
 
 // ============================================================================
-// ARCHETYPE CALCULATION SYSTEM
-// ============================================================================
-export const archetypeThresholds = {
-	tensionForTurbulent: 2,
-	wobbleRatioForTurbulent: 0.5,
-	versionRatioForEnergized: 2.5,
-};
-
-export function calculateArchetype(node, moons) {
-	if (!moons || moons.length === 0) return "neutral";
-
-	const tensions = moons.filter((m) =>
-		(m.relationships || []).some((r) => r.type === "tension"),
-	).length;
-	const wobbles = moons.filter((m) => m.confidence === "wobbly").length;
-	const versions = moons.reduce((sum, m) => sum + (m.versions || []).length, 0);
-
-	if (
-		tensions >= archetypeThresholds.tensionForTurbulent ||
-		(moons.length > 0 &&
-			wobbles / moons.length >= archetypeThresholds.wobbleRatioForTurbulent)
-	) {
-		return "turbulent";
-	}
-	if (
-		moons.length > 0 &&
-		versions / moons.length >= archetypeThresholds.versionRatioForEnergized
-	) {
-		return "energized";
-	}
-	if (moons.length >= 6) return "complex";
-	if (moons.length >= 3) return "developing";
-	return "neutral";
-}
-
-// ============================================================================
 // SEED DATA
 // ============================================================================
 export const seedNodes = [
@@ -294,6 +282,15 @@ export const seedNodes = [
 		constellationIds: [],
 	},
 	{
+		id: "h-1",
+		type: "H",
+		text: "Wondered if the tension was really about the project, not about us",
+		timestamp: Date.now() - 64800000,
+		state: "open",
+		position: { x: 500, y: 520 },
+		constellationIds: [],
+	},
+	{
 		id: "r-1",
 		type: "R",
 		parentId: "o-1",
@@ -307,10 +304,8 @@ export const seedNodes = [
 		claimType: "reporting",
 		orbitAngle: 0,
 		confidence: "stable",
-		intensity: "medium",
-		temporality: "concurrent",
 		versions: [],
-		relationships: [],
+		relationships: [{ targetMoonId: "r-3", type: "association" }],
 	},
 	{
 		id: "r-2",
@@ -324,12 +319,28 @@ export const seedNodes = [
 		lensUsed: "structural",
 		lensesUsed: ["structural"],
 		claimType: "reading",
+		vantage: "mine",
 		orbitAngle: 0,
 		confidence: "stable",
-		intensity: "medium",
-		temporality: "concurrent",
 		versions: [],
 		relationships: [],
+	},
+	{
+		id: "r-3",
+		type: "R",
+		parentId: "h-1",
+		dimension: "subjective",
+		text: "This idea feels lighter than the other explanations — less personal",
+		timestamp: Date.now() - 64800000,
+		ownership: "entertained",
+		isLocked: false,
+		lensUsed: "phenomenological",
+		lensesUsed: ["phenomenological"],
+		claimType: "reporting",
+		orbitAngle: 0,
+		confidence: "wobbly",
+		versions: [],
+		relationships: [{ targetMoonId: "r-1", type: "association" }],
 	},
 ];
 

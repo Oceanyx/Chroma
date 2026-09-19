@@ -9,7 +9,7 @@
 import Dexie from "dexie";
 // seedNodes/seedEdges no longer auto-seeded (see initializeDB) but kept
 // importable here in case an opt-in "try an example" feature gets built later
-import { seedNodes, seedEdges, lenses } from "../seedData";
+import { seedNodes, seedEdges, lenses, moonConfig, PLANET_TYPES } from "../seedData";
 
 export const db = new Dexie("PerceptionMapDB_v3");
 
@@ -177,9 +177,6 @@ export async function getNodeById(id) {
 }
 
 export async function addNode(node) {
-	if (node.type === "O" || node.type === "A") {
-		node.archetype = node.archetype || "neutral";
-	}
 	node.constellationIds = node.constellationIds || [];
 	return await db.nodes.add(node);
 }
@@ -192,7 +189,7 @@ export async function deleteNode(id) {
 	const node = await db.nodes.get(id);
 	if (!node) return;
 
-	if (node.type === "O" || node.type === "A") {
+	if (PLANET_TYPES.includes(node.type)) {
 		const childMoons = await db.nodes.where("parentId").equals(id).toArray();
 		if (childMoons.length > 0) {
 			return {
@@ -259,29 +256,20 @@ export async function getTotalReflectionCount() {
 export async function getUnlockedDimensions() {
 	const totalReflections = await getTotalReflectionCount();
 	const showAll = await getSetting("showAllDimensions");
-	if (showAll)
-		return ["subjective", "behavioral", "intersubjective", "framing"];
-	const unlocked = ["subjective", "intersubjective"];
-	if (totalReflections >= 5) unlocked.push("behavioral");
-	if (totalReflections >= 15) unlocked.push("framing");
-	return unlocked;
+	const allDimensions = Object.keys(moonConfig.dimension);
+	if (showAll) return allDimensions;
+	return allDimensions.filter(
+		(dim) => totalReflections >= moonConfig.dimension[dim].unlockThreshold,
+	);
 }
 
 export async function checkDimensionUnlock(previousCount, newCount) {
 	const unlocks = [];
-	if (previousCount < 5 && newCount >= 5) {
-		unlocks.push({
-			dimension: "behavioral",
-			message:
-				"🎉 Behavioral dimension unlocked! Track what you actually did or said.",
-		});
-	}
-	if (previousCount < 15 && newCount >= 15) {
-		unlocks.push({
-			dimension: "framing",
-			message:
-				"🎉 Framing dimension unlocked! Apply conceptual frameworks to illuminate what was happening.",
-		});
+	for (const [dimension, config] of Object.entries(moonConfig.dimension)) {
+		const threshold = config.unlockThreshold;
+		if (threshold > 0 && previousCount < threshold && newCount >= threshold) {
+			unlocks.push({ dimension, message: config.unlockMessage });
+		}
 	}
 	return unlocks;
 }

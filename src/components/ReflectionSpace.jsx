@@ -9,6 +9,8 @@ import MoonSidePanel from "./MoonSidePanel";
 import DimensionUnlockNotification from "./DimensionUnlockNotification";
 import SupportLine from "./SupportLine";
 import TensionLine from "./TensionLine";
+import EchoLine from "./EchoLine";
+import MoonComparisonView from "./MoonComparisonView";
 import {
 	calculateAnimatedOrbit,
 	calculateMoonPosition,
@@ -95,6 +97,10 @@ export default function ReflectionSpace({
 	const { width: windowWidth, height: windowHeight } = useWindowSize();
 
 	const [selectedMoonId, setSelectedMoonId] = useState(null);
+	// { moonAId, moonBId, relType } | null — drives MoonComparisonView.
+	// Holding ids rather than the moon objects so the view always reflects
+	// live data even if a moon is edited while the comparison is open.
+	const [comparisonRel, setComparisonRel] = useState(null);
 	const [creatingRelationship, setCreatingRelationship] = useState(null);
 	const [relationshipSourceMoon, setRelationshipSourceMoon] = useState(null);
 	const [hoveredMoonId, setHoveredMoonId] = useState(null);
@@ -237,6 +243,7 @@ export default function ReflectionSpace({
 			case "save-edit":
 				await db.nodes.update(moon.id, {
 					text: extra.text,
+					lensUsed: extra.lensUsed,
 					lensesUsed: extra.lensesUsed,
 					editedAt: Date.now(),
 				});
@@ -247,6 +254,7 @@ export default function ReflectionSpace({
 			case "save-evolved":
 				await db.nodes.update(moon.id, {
 					text: extra.text,
+					lensUsed: extra.lensUsed,
 					lensesUsed: extra.lensesUsed,
 					editedAt: Date.now(),
 					versions: [
@@ -323,15 +331,35 @@ export default function ReflectionSpace({
 	};
 
 	// ── Relationship creation ──────────────────────────────────────────────────
+	// Echo is deliberately the lightest of the three: no intensity, no lock —
+	// "this reminded me of that" shouldn't cost you the freedom to keep
+	// re-reading either moon on its own terms.
+	const REL_TYPE_META = {
+		tension: {
+			startPrompt: "⚡ Click the conflicting moon",
+			createdMsg: "⚡ Conflict mapped",
+			color: "#EF4444",
+			locks: true,
+		},
+		support: {
+			startPrompt: "〜 Click the resonating moon",
+			createdMsg: "〜 Resonance mapped",
+			color: "#10B981",
+			locks: false,
+		},
+		association: {
+			startPrompt: "◈ Click the echoing moon",
+			createdMsg: "◈ Echo mapped",
+			color: "#6366F1",
+			locks: false,
+		},
+	};
+
 	const handleStartRelationship = (type, moon) => {
 		setCreatingRelationship(type);
 		setRelationshipSourceMoon(moon);
-		showToast(
-			type === "tension"
-				? "⚡ Click the conflicting moon"
-				: "〜 Click the resonating moon",
-			type === "tension" ? "#EF4444" : "#10B981",
-		);
+		const meta = REL_TYPE_META[type];
+		showToast(meta.startPrompt, meta.color);
 	};
 
 	const handleCreateRelationship = async (sourceMoon, targetMoon, type) => {
@@ -345,6 +373,7 @@ export default function ReflectionSpace({
 			return;
 		}
 
+		const meta = REL_TYPE_META[type];
 		const newRel = {
 			targetMoonId: targetMoon.id,
 			type,
@@ -356,7 +385,7 @@ export default function ReflectionSpace({
 			intensity: type === "tension" ? 2 : undefined,
 		};
 
-		if (type === "tension") {
+		if (meta.locks) {
 			await db.nodes.update(sourceMoon.id, {
 				relationships: [...sourceRels, newRel],
 				isLocked: true,
@@ -376,10 +405,7 @@ export default function ReflectionSpace({
 
 		await onNodesUpdate();
 		setSelectedMoonId(sourceMoon.id);
-		showToast(
-			type === "tension" ? "⚡ Conflict mapped" : "〜 Resonance mapped",
-			type === "tension" ? "#EF4444" : "#10B981",
-		);
+		showToast(meta.createdMsg, meta.color);
 	};
 
 	// ── Save new reflection ────────────────────────────────────────────────────
@@ -417,10 +443,9 @@ export default function ReflectionSpace({
 			lensUsed: data.lensUsed || null,
 			lensesUsed: data.lensesUsed || [],
 			claimType: data.claimType || "reporting",
+			vantage: data.vantage || "mine",
 			orbitAngle,
 			confidence: "stable",
-			intensity: "medium",
-			temporality: "concurrent",
 			versions: [],
 			relationships: [],
 		});
@@ -459,8 +484,7 @@ export default function ReflectionSpace({
 			const posB = moonPositionMap[target.id];
 			if (!posA || !posB) return;
 
-			const removeRel = (confirmMsg, extraUpdates = {}) => {
-				if (!window.confirm(confirmMsg)) return;
+			const removeRel = (extraUpdates = {}) => {
 				db.nodes.update(moon.id, {
 					relationships: (moon.relationships || []).filter(
 						(r) => r.targetMoonId !== target.id,
@@ -477,6 +501,17 @@ export default function ReflectionSpace({
 				showToast("Relationship removed", "#94A3B8");
 			};
 
+			const openComparison = () =>
+				setComparisonRel({
+					moonAId: moon.id,
+					moonBId: target.id,
+					relType: rel.type,
+					// Bound here since it already has the right moon/target/extraUpdates
+					// closed over; MoonComparisonView just calls it after its own confirm.
+					remove: () =>
+						removeRel(rel.type === "tension" ? { isLocked: false } : {}),
+				});
+
 			if (rel.type === "support") {
 				relLines.push(
 					<SupportLine
@@ -486,7 +521,7 @@ export default function ReflectionSpace({
 						posA={posA}
 						posB={posB}
 						isHovered={false}
-						onClick={() => removeRel("Remove this resonance relationship?")}
+						onClick={openComparison}
 					/>,
 				);
 			} else if (rel.type === "tension") {
@@ -499,12 +534,19 @@ export default function ReflectionSpace({
 						posB={posB}
 						intensity={rel.intensity || 2}
 						isHovered={false}
-						onClick={() =>
-							removeRel(
-								"Remove this conflict? Both moons will be unanchored.",
-								{ isLocked: false },
-							)
-						}
+						onClick={openComparison}
+					/>,
+				);
+			} else if (rel.type === "association") {
+				relLines.push(
+					<EchoLine
+						key={key}
+						moonA={moon}
+						moonB={target}
+						posA={posA}
+						posB={posB}
+						isHovered={false}
+						onClick={openComparison}
 					/>,
 				);
 			}
@@ -1011,6 +1053,27 @@ export default function ReflectionSpace({
 					onDismiss={() => setUnlockNotification(null)}
 				/>
 			)}
+
+			{/* ── RELATIONSHIP COMPARISON VIEW ────────────────────────────────── */}
+			{comparisonRel &&
+				(() => {
+					const moonA = childMoons.find((m) => m.id === comparisonRel.moonAId);
+					const moonB = childMoons.find((m) => m.id === comparisonRel.moonBId);
+					if (!moonA || !moonB) return null;
+					return (
+						<MoonComparisonView
+							moonA={moonA}
+							moonB={moonB}
+							relType={comparisonRel.relType}
+							onClose={() => setComparisonRel(null)}
+							onRemove={comparisonRel.remove}
+							onOpenMoon={(moonId) => {
+								setComparisonRel(null);
+								setSelectedMoonId(moonId);
+							}}
+						/>
+					);
+				})()}
 
 			<style>{`
         @keyframes fadeInUp {

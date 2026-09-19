@@ -1,6 +1,6 @@
 // src/components/NodeTypePicker.jsx
 import React from "react";
-import { Eye, Zap, Target } from "lucide-react";
+import { Eye, Zap, Target, CircleDashed } from "lucide-react";
 
 export default function NodeTypePicker({ position, onSelect, onCancel }) {
 	return (
@@ -174,6 +174,50 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 								fontWeight: 400,
 							}}>
 							A commitment to change
+						</div>
+					</div>
+				</button>
+
+				{/* Hypothetical Button */}
+				<button
+					onClick={() => onSelect("H")}
+					style={{
+						width: "100%",
+						padding: "12px 16px",
+						marginBottom: "12px",
+						background: "rgba(15, 23, 36, 0.6)",
+						border: "1px solid rgba(244, 114, 182, 0.3)",
+						borderRadius: "8px",
+						color: "#E6EEF8",
+						fontSize: "15px",
+						fontWeight: 600,
+						textAlign: "left",
+						cursor: "pointer",
+						display: "flex",
+						alignItems: "center",
+						gap: "12px",
+						transition: "all 0.2s",
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.background = "rgba(244, 114, 182, 0.2)";
+						e.currentTarget.style.borderColor = "#F472B6";
+						e.currentTarget.style.transform = "translateX(4px)";
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
+						e.currentTarget.style.borderColor = "rgba(244, 114, 182, 0.3)";
+						e.currentTarget.style.transform = "translateX(0)";
+					}}>
+					<CircleDashed size={20} />
+					<div>
+						<div>Hypothetical</div>
+						<div
+							style={{
+								fontSize: "11px",
+								color: "#94A3B8",
+								fontWeight: 400,
+							}}>
+							Something imagined, dreamed, or wondered about
 						</div>
 					</div>
 				</button>

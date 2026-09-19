@@ -30,6 +30,7 @@ export default function NodeTextInput({
 		O: { label: "Observation", color: "#3B82F6", emoji: "👁️" },
 		A: { label: "Action", color: "#F97316", emoji: "⚡" },
 		I: { label: "Intention", color: "#FBBF24", emoji: "🎯" },
+		H: { label: "Hypothetical", color: "#F472B6", emoji: "◌" },
 	};
 
 	const config = typeConfig[nodeType];
@@ -126,7 +127,9 @@ export default function NodeTextInput({
 							? "What did you notice?"
 							: nodeType === "A"
 								? "What did you do?"
-								: "What do you intend to change?"
+								: nodeType === "H"
+									? "What did you imagine, dream, or wonder?"
+									: "What do you intend to change?"
 					}
 					maxLength={200}
 					rows={4}

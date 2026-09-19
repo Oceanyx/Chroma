@@ -380,7 +380,7 @@ const steps = [
 	},
 	{
 		title: "Planets are your experiences",
-		body: "Click anywhere on the empty canvas to create one: an Observation (something you noticed), an Action (something you did), or an Intention (something you're planning).",
+		body: "Click anywhere on the empty canvas to create one: an Observation (something you noticed), an Action (something you did), an Intention (something you're planning), or a Hypothetical (something you're imagining or wondering about).",
 		demo: CreatePlanetDemo,
 	},
 	{

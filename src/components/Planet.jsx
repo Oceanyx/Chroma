@@ -33,6 +33,12 @@ const EMPTY_PLANET_COLORS_BY_TYPE = {
 		atmosphere: ["#FEF3C7", "#FFFBEB"],
 		glow: "rgba(251, 191, 36, 0.35)",
 	},
+	H: {
+		core: ["#BE185D", "#F472B6"],
+		surface: ["#F9A8D4", "#FBCFE8"],
+		atmosphere: ["#FCE7F3", "#FDF2F8"],
+		glow: "rgba(244, 114, 182, 0.35)",
+	},
 };
 
 function calculatePlanetColor(moons, nodeType) {
@@ -115,6 +121,26 @@ function calculateSurfaceState(moons) {
 	return "stormy";
 }
 
+// Ambient-only signal — no label attached, just a visual. True when this
+// planet's reflections have, on average, been marked "Evolved" a couple of
+// times over: this is something you keep coming back to and re-understanding.
+// Deliberately not surfaced as a word anywhere ("energized", "turbulent" etc.
+// were considered and dropped — a verdict in text boxes a moment in a way a
+// wordless visual doesn't). Independent of surfaceState above, so a planet
+// can be both stormy (lots of tension) and shimmering (lots of revision) —
+// that's a true, useful combination, not a contradiction to resolve into one
+// label.
+const ENERGIZED_VERSION_RATIO = 2.5;
+
+function calculateEnergized(moons) {
+	if (!moons || moons.length === 0) return false;
+	const totalVersions = moons.reduce(
+		(sum, moon) => sum + (moon.versions?.length || 0),
+		0,
+	);
+	return totalVersions / moons.length >= ENERGIZED_VERSION_RATIO;
+}
+
 // Map new state keys → the visual effect they should produce.
 // Also handles legacy keys so old exported maps still render.
 const STATE_EFFECT = {
@@ -126,6 +152,10 @@ const STATE_EFFECT = {
 	present: "pulse",
 	past: "trail",
 	future: "glow",
+	// H (hypothetical) node states
+	open: "pulse",
+	confirmed: "trail",
+	dismissed: "glow",
 };
 
 // ============================================================================
@@ -146,6 +176,7 @@ export default function Planet({
 }) {
 	const colors = calculatePlanetColor(moons, node.type);
 	const surfaceState = calculateSurfaceState(moons);
+	const isEnergized = calculateEnergized(moons);
 
 	const { x, y } = node.position;
 	const radius = planetConfig.baseRadius;
@@ -406,6 +437,31 @@ export default function Planet({
 						/>
 					</circle>
 				</>
+			)}
+
+			{/* Ambient shimmer — this planet's reflections have been revised/
+			    evolved on average ≥2.5 times each. No badge, no label, just
+			    a soft twinkle near the rim; can appear alongside the tension
+			    rings above, not instead of them. */}
+			{isEnergized && (
+				<g opacity={0.6}>
+					{[0, 1, 2].map((i) => {
+						const angle = (i / 3) * Math.PI * 2 + Math.PI / 6;
+						const cx = centerX + Math.cos(angle) * (radius + 5);
+						const cy = centerY + Math.sin(angle) * (radius + 5);
+						return (
+							<circle key={i} cx={cx} cy={cy} r={1.6} fill="#FDE68A">
+								<animate
+									attributeName="opacity"
+									values="0;0.9;0"
+									dur={`${2.6 + i * 0.4}s`}
+									begin={`${i * 0.6}s`}
+									repeatCount="indefinite"
+								/>
+							</circle>
+						);
+					})}
+				</g>
 			)}
 
 			{/* Moon count badge */}

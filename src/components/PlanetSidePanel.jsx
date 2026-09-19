@@ -6,8 +6,8 @@
 //     (calls onJoinConstellation)
 //   - Uses constellationIds[] array, not the old constellationId scalar
 import React, { useState } from "react";
-import { X, Eye, Zap, Target } from "lucide-react";
-import { moonConfig } from "../seedData";
+import { X, Eye, Zap, Target, CircleDashed } from "lucide-react";
+import { moonConfig, getDefaultState } from "../seedData";
 import { db, cascadeDeleteNode } from "../lib/db";
 
 export const PLANET_PANEL_WIDTH = 380;
@@ -39,6 +39,15 @@ const TYPE_CONFIG = {
 		border: "rgba(251,191,36,0.22)",
 		glow: "rgba(251,191,36,0.12)",
 		description: "What are you committing to change?",
+	},
+	H: {
+		label: "Hypothetical",
+		Icon: CircleDashed,
+		color: "#F472B6",
+		bg: "rgba(244,114,182,0.07)",
+		border: "rgba(244,114,182,0.22)",
+		glow: "rgba(244,114,182,0.12)",
+		description: "Something imagined, dreamed, or wondered about?",
 	},
 };
 
@@ -80,12 +89,33 @@ const I_STATE_CONFIG = {
 	},
 };
 
-function getStateConfig(nodeType) {
-	return nodeType === "I" ? I_STATE_CONFIG : OA_STATE_CONFIG;
-}
+// States for H (hypothetical) nodes — what matters is whether it resolved,
+// not how processed it feels or when it was held. Deliberately its own
+// three, not borrowed from O/A or I: this thing's real arc is "did it turn
+// out to be true", not "have I made sense of it" or "when was this".
+const H_STATE_CONFIG = {
+	open: {
+		label: "Open",
+		description: "Still just a possibility — hasn't resolved either way",
+		color: "#F472B6",
+	},
+	confirmed: {
+		label: "Confirmed",
+		description:
+			"This turned out to be true, or you've decided to treat it as real",
+		color: "#10B981",
+	},
+	dismissed: {
+		label: "Dismissed",
+		description: "You've let this go — it didn't hold up, or stopped mattering",
+		color: "#94A3B8",
+	},
+};
 
-function getDefaultState(nodeType) {
-	return nodeType === "I" ? "present" : "active";
+function getStateConfig(nodeType) {
+	if (nodeType === "I") return I_STATE_CONFIG;
+	if (nodeType === "H") return H_STATE_CONFIG;
+	return OA_STATE_CONFIG;
 }
 
 import { CONSTELLATION_ARCHETYPES } from "../utils/constellationConfig";

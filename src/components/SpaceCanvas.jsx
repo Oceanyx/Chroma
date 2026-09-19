@@ -45,7 +45,7 @@ import {
 	calculateAnimatedOrbit,
 	getOrbitalPaths,
 } from "../lib/orbitalPhysics";
-import { planetConfig } from "../seedData";
+import { planetConfig, getDefaultState, PLANET_TYPES } from "../seedData";
 import Planet from "./Planet";
 import Moon from "./Moon";
 import ConnectionLine, { CONNECTION_TYPES } from "./ConnectionLine";
@@ -374,7 +374,7 @@ export default function SpaceCanvas({
 			// content actually is — same fit-to-content math the Recenter
 			// button uses.
 			const planets = loadedNodes.filter(
-				(n) => n.type === "O" || n.type === "A" || n.type === "I",
+				(n) => PLANET_TYPES.includes(n.type),
 			);
 			const { zoom: z, pan: p } = computeFitView(planets);
 			setZoom(z);
@@ -567,7 +567,7 @@ export default function SpaceCanvas({
 			type: nodeTextInputType,
 			text,
 			timestamp: Date.now(),
-			state: "present",
+			state: getDefaultState(nodeTextInputType),
 			position: nodeCreationPos,
 		});
 		setNodes(await getAllNodes());
@@ -718,7 +718,7 @@ export default function SpaceCanvas({
 
 	const handleRecenter = useCallback(() => {
 		const planets = nodes.filter(
-			(n) => n.type === "O" || n.type === "A" || n.type === "I",
+			(n) => PLANET_TYPES.includes(n.type),
 		);
 		const { zoom: z, pan: p } = computeFitView(planets);
 		setZoom(z);
@@ -802,7 +802,7 @@ export default function SpaceCanvas({
 			// *different* planet completes it; clicking the source again
 			// cancels it, as a friendly way to back out mid-pick.
 			if (tool === "connect") {
-				if (node.type !== "O" && node.type !== "A" && node.type !== "I") {
+				if (!PLANET_TYPES.includes(node.type)) {
 					return;
 				}
 				if (!connectionSource) {
@@ -829,7 +829,7 @@ export default function SpaceCanvas({
 			// reuses the exact same multiSelectedIds Set that Shift+click in
 			// Select mode already writes to, so the two never conflict.
 			if (tool === "constellation") {
-				if (node.type === "O" || node.type === "A" || node.type === "I") {
+				if (PLANET_TYPES.includes(node.type)) {
 					setMultiSelectedIds((prev) => {
 						const next = new Set(prev);
 						if (next.has(node.id)) next.delete(node.id);
@@ -842,7 +842,7 @@ export default function SpaceCanvas({
 
 			// Shift+click → toggle multi-select (for constellation ops)
 			if (e.shiftKey && tool === "select") {
-				if (node.type === "O" || node.type === "A" || node.type === "I") {
+				if (PLANET_TYPES.includes(node.type)) {
 					setMultiSelectedIds((prev) => {
 						const next = new Set(prev);
 						if (next.has(node.id)) next.delete(node.id);
@@ -869,7 +869,7 @@ export default function SpaceCanvas({
 
 	const handlePlanetDoubleClick = useCallback(
 		(node) => {
-			if (node.type === "O" || node.type === "A" || node.type === "I") {
+			if (PLANET_TYPES.includes(node.type)) {
 				enterReflectionMode(node);
 			}
 		},
@@ -1194,7 +1194,7 @@ export default function SpaceCanvas({
 	);
 
 	const parentNodes = nodes.filter(
-		(n) => n.type === "O" || n.type === "A" || n.type === "I",
+		(n) => PLANET_TYPES.includes(n.type),
 	);
 	// Only render planets that aren't swallowed by a collapsed nebula
 	const visibleParentNodes = parentNodes.filter(
@@ -1207,11 +1207,7 @@ export default function SpaceCanvas({
 	const selectedNode = selectedNodeId
 		? nodes.find((n) => n.id === selectedNodeId)
 		: null;
-	const isPlanetNode =
-		selectedNode &&
-		(selectedNode.type === "O" ||
-			selectedNode.type === "A" ||
-			selectedNode.type === "I");
+	const isPlanetNode = selectedNode && PLANET_TYPES.includes(selectedNode.type);
 	const selectedNodeMoons = isPlanetNode
 		? nodes.filter((n) => n.parentId === selectedNode.id)
 		: [];
@@ -1221,7 +1217,7 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	const renderMoons = useCallback(() => {
 		const moonParents = nodes.filter(
-			(n) => n.type === "O" || n.type === "A" || n.type === "I",
+			(n) => PLANET_TYPES.includes(n.type),
 		);
 		const moonElements = [];
 

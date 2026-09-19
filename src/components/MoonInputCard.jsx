@@ -24,6 +24,7 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 	const [selectedLensId, setSelectedLensId] = useState(null); // null = "Open"
 	const [text, setText] = useState("");
 	const [claimType, setClaimType] = useState("reporting");
+	const [vantage, setVantage] = useState("mine");
 	const [customLenses, setCustomLenses] = useState(loadCustomLenses);
 	// Same fix as MoonSidePanel: resync on open rather than trusting the
 	// state from whenever this component instance first mounted.
@@ -86,6 +87,7 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 			lensUsed: selectedLensId,
 			lensesUsed: selectedLensId ? [selectedLensId] : [],
 			claimType,
+			vantage,
 		});
 	};
 
@@ -524,6 +526,82 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 										<button
 											key={id}
 											onClick={() => setClaimType(id)}
+											title={desc}
+											style={{
+												flex: 1,
+												padding: "9px 12px",
+												background: active
+													? `${color}18`
+													: "rgba(255,255,255,0.03)",
+												border: `1px solid ${active ? `${color}60` : "rgba(255,255,255,0.1)"}`,
+												borderRadius: 9,
+												color: active ? color : "#94A3B8",
+												cursor: "pointer",
+												fontSize: 12,
+												fontWeight: 700,
+												outline: "none",
+												transition: "all 0.15s",
+												textAlign: "left",
+											}}>
+											<div>{label}</div>
+											<div
+												style={{
+													fontSize: 11,
+													fontWeight: 500,
+													marginTop: 3,
+													opacity: 0.85,
+													whiteSpace: "normal",
+													lineHeight: 1.4,
+												}}>
+												{desc}
+											</div>
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					)}
+
+					{/* Vantage toggle — whose perspective this is voiced from. Only
+					    where "mine" is not the only sensible answer: External can be
+					    your own observation or your read on someone else's; Framing
+					    can be your own framework or one you're borrowing from someone
+					    else's take. Previously this only existed as an edit-only
+					    toggle in the side panel, easy to miss entirely — moved here
+					    so it's part of writing the reflection, same as claim type. */}
+					{(dimension === "intersubjective" || dimension === "framing") && (
+						<div style={{ marginBottom: 18 }}>
+							<p
+								style={{
+									margin: "0 0 9px",
+									fontSize: 12,
+									fontWeight: 700,
+									color: "rgba(255,255,255,0.5)",
+									letterSpacing: "0.08em",
+									textTransform: "uppercase",
+								}}>
+								Whose vantage is this?
+							</p>
+							<div style={{ display: "flex", gap: 8 }}>
+								{[
+									{
+										id: "mine",
+										label: "Mine",
+										desc: "Your own perspective on this moment",
+										color: "#10B981",
+									},
+									{
+										id: "theirs",
+										label: "Theirs",
+										desc: "Reconstructing another person's inner state or perspective",
+										color: "#F59E0B",
+									},
+								].map(({ id, label, desc, color }) => {
+									const active = vantage === id;
+									return (
+										<button
+											key={id}
+											onClick={() => setVantage(id)}
 											title={desc}
 											style={{
 												flex: 1,

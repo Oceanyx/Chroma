@@ -62,8 +62,9 @@ perfectly in sync with the latest build.
   Legend
 - Export/Import to JSON, including custom lenses (merged on import, not
   overwritten)
-- Zero network requests. Everything lives in your browser's IndexedDB.
-  Nothing you write is ever sent anywhere.
+- Zero network requests. Everything lives in your browser's local storage
+  (IndexedDB for your map data, localStorage for custom lenses). Nothing
+  you write is ever sent anywhere.
 
 ## Getting started
 
@@ -99,9 +100,10 @@ or your built assets will 404.
 ## Data & privacy
 
 Chroma makes no network requests of any kind. Everything you create lives
-in your browser's local storage (IndexedDB) and never leaves your device.
-Clearing your browser's site data will delete it — use Export regularly if
-you want a backup. There's no account system and no server.
+in your browser's local storage — map data in IndexedDB, custom lenses in
+localStorage — and never leaves your device. Clearing your browser's site
+data will delete both, so use Export regularly if you want a backup (it
+includes your custom lenses too). There's no account system and no server.
 
 ## License
 
