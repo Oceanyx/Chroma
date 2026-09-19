@@ -29,8 +29,8 @@ export default function EchoLine({
 
 	const pathData = `M ${posA.x} ${posA.y} Q ${controlX} ${controlY} ${posB.x} ${posB.y}`;
 
-	const strokeColor = isHovered ? "#818CF8" : "#6366F1";
-	const strokeWidth = isHovered ? 2.5 : 1.5;
+	const strokeColor = isHovered ? "#A5B4FC" : "#818CF8";
+	const strokeWidth = isHovered ? 3 : 2;
 
 	return (
 		<g
@@ -56,11 +56,14 @@ export default function EchoLine({
 				strokeDasharray="1.5 6"
 				strokeLinecap="round"
 				fill="none"
-				opacity={isHovered ? 0.75 : 0.4}
-				style={{ transition: "all 0.2s ease", pointerEvents: "none" }}>
+				opacity={isHovered ? 0.9 : 0.75}
+				style={{
+					transition: "stroke-width 0.2s ease",
+					pointerEvents: "none",
+				}}>
 				<animate
 					attributeName="opacity"
-					values={isHovered ? "0.5;0.85;0.5" : "0.22;0.45;0.22"}
+					values={isHovered ? "0.75;1;0.75" : "0.55;0.85;0.55"}
 					dur="4s"
 					repeatCount="indefinite"
 				/>
@@ -88,7 +91,7 @@ export default function EchoLine({
 						height={26}
 						rx={4}
 						fill="rgba(15, 23, 36, 0.95)"
-						stroke="#6366F1"
+						stroke="#818CF8"
 						strokeWidth={1}
 					/>
 					<text
@@ -97,7 +100,7 @@ export default function EchoLine({
 						textAnchor="middle"
 						dominantBaseline="central"
 						fontSize={11}
-						fill="#818CF8"
+						fill="#A5B4FC"
 						fontWeight={600}
 						style={{ pointerEvents: "none" }}>
 						Echo ◈

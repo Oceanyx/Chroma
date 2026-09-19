@@ -25,8 +25,8 @@ export default function SupportLine({
 
 	const pathData = `M ${posA.x} ${posA.y} Q ${controlX} ${controlY} ${posB.x} ${posB.y}`;
 
-	const strokeColor = isHovered ? "#34D399" : "#10B981";
-	const strokeWidth = isHovered ? 3 : 2;
+	const strokeColor = isHovered ? "#6EE7B7" : "#34D399";
+	const strokeWidth = isHovered ? 3.5 : 2.5;
 
 	return (
 		<g
@@ -50,8 +50,11 @@ export default function SupportLine({
 				stroke={strokeColor}
 				strokeWidth={strokeWidth}
 				fill="none"
-				opacity={isHovered ? 0.8 : 0.5}
-				style={{ transition: "all 0.2s ease", pointerEvents: "none" }}
+				opacity={isHovered ? 0.9 : 0.8}
+				style={{
+					transition: "opacity 0.2s ease, stroke-width 0.2s ease",
+					pointerEvents: "none",
+				}}
 			/>
 
 			{/* Glow effect on hover */}

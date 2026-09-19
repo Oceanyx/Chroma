@@ -183,9 +183,9 @@ export default function ReflectionSpace({
 	}, [creatingRelationship]);
 
 	// ── Toast ──────────────────────────────────────────────────────────────────
-	const showToast = (message, color = "#10B981") => {
+	const showToast = (message, color = "#10B981", duration = 2500) => {
 		setToast({ message, color });
-		setTimeout(() => setToast(null), 2500);
+		setTimeout(() => setToast(null), duration);
 	};
 
 	// ── Ring click ─────────────────────────────────────────────────────────────
@@ -337,19 +337,19 @@ export default function ReflectionSpace({
 	const REL_TYPE_META = {
 		tension: {
 			startPrompt: "⚡ Click the conflicting moon",
-			createdMsg: "⚡ Conflict mapped",
+			createdMsg: "⚡ Conflict mapped — click the line to compare or remove",
 			color: "#EF4444",
 			locks: true,
 		},
 		support: {
 			startPrompt: "〜 Click the resonating moon",
-			createdMsg: "〜 Resonance mapped",
+			createdMsg: "〜 Resonance mapped — click the line to compare or remove",
 			color: "#10B981",
 			locks: false,
 		},
 		association: {
 			startPrompt: "◈ Click the echoing moon",
-			createdMsg: "◈ Echo mapped",
+			createdMsg: "◈ Echo mapped — click the line to compare or remove",
 			color: "#6366F1",
 			locks: false,
 		},
@@ -405,7 +405,7 @@ export default function ReflectionSpace({
 
 		await onNodesUpdate();
 		setSelectedMoonId(sourceMoon.id);
-		showToast(meta.createdMsg, meta.color);
+		showToast(meta.createdMsg, meta.color, 3800);
 	};
 
 	// ── Save new reflection ────────────────────────────────────────────────────

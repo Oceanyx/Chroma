@@ -68,7 +68,10 @@ export default function TensionLine({
 				strokeWidth={strokeWidth}
 				fill="none"
 				opacity={isHovered ? 0.9 : 0.7}
-				style={{ transition: "all 0.2s ease", pointerEvents: "none" }}
+				style={{
+					transition: "opacity 0.2s ease, stroke-width 0.2s ease",
+					pointerEvents: "none",
+				}}
 			/>
 			{/* Glow effect on hover */}
 			{isHovered && (

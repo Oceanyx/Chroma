@@ -57,8 +57,7 @@ function MiniChip({ color, children, title }) {
 }
 
 function MoonPane({ moon, allLenses, onOpenMoon }) {
-	const dim =
-		moonConfig.dimension[moon.dimension] || moonConfig.dimension.framing;
+	const dim = moonConfig.dimension[moon.dimension] || moonConfig.dimension.framing;
 	const lens = resolveLens(moon, allLenses);
 	const showClaimType =
 		moon.dimension === "subjective" || moon.dimension === "intersubjective";
@@ -105,8 +104,7 @@ function MoonPane({ moon, allLenses, onOpenMoon }) {
 					</MiniChip>
 				)}
 				{showClaimType && (
-					<MiniChip
-						color={moon.claimType === "reading" ? "#6366F1" : "#10B981"}>
+					<MiniChip color={moon.claimType === "reading" ? "#6366F1" : "#10B981"}>
 						{moon.claimType === "reading" ? "◈ Reading" : "○ Reporting"}
 					</MiniChip>
 				)}
@@ -246,16 +244,8 @@ export default function MoonComparisonView({
 						gap: 14,
 						flexWrap: "wrap",
 					}}>
-					<MoonPane
-						moon={moonA}
-						allLenses={allLenses}
-						onOpenMoon={onOpenMoon}
-					/>
-					<MoonPane
-						moon={moonB}
-						allLenses={allLenses}
-						onOpenMoon={onOpenMoon}
-					/>
+					<MoonPane moon={moonA} allLenses={allLenses} onOpenMoon={onOpenMoon} />
+					<MoonPane moon={moonB} allLenses={allLenses} onOpenMoon={onOpenMoon} />
 				</div>
 
 				{/* Remove relationship */}
