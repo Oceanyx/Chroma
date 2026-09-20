@@ -15,7 +15,9 @@ import { loadCustomLenses, addCustomLens } from "../utils/customLenses";
 function getLensInstruction(lens, dimension) {
 	if (!lens) return null;
 	return (
-		lens.instructions?.[dimension] || `Look from this angle: ${lens.label}`
+		lens.instructions?.[dimension] ||
+		lens.customPrompt ||
+		`Look from this angle: ${lens.label}`
 	);
 }
 
@@ -34,9 +36,20 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 	const [showNewLens, setShowNewLens] = useState(false);
 	const [newLensLabel, setNewLensLabel] = useState("");
 	const [newLensEmoji, setNewLensEmoji] = useState("🔍");
+	const [newLensPrompt, setNewLensPrompt] = useState("");
 	const textareaRef = useRef(null);
 
-	const dimensionConfig = moonConfig.dimension[dimension];
+	// dimension is null for the "write it unfiled" flow — use a neutral
+	// config instead of one of the four dimension colors, since this isn't
+	// any of them yet.
+	const dimensionConfig = dimension
+		? moonConfig.dimension[dimension]
+		: {
+				name: "Unfiled Reflection",
+				color: "#94A3B8",
+				description:
+					"What happened? You can sort this into a dimension later, or leave it unsorted.",
+			};
 	if (!dimensionConfig) return null;
 
 	const lenses = [...PRESET_LENSES, ...customLenses];
@@ -72,11 +85,13 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 			label: newLensLabel,
 			emoji: newLensEmoji,
 			color: dimensionConfig.color,
+			customPrompt: newLensPrompt,
 		});
 		setCustomLenses(updated);
 		setSelectedLensId(updated[updated.length - 1].id);
 		setNewLensLabel("");
 		setNewLensEmoji("🔍");
+		setNewLensPrompt("");
 		setShowNewLens(false);
 	};
 
@@ -348,6 +363,34 @@ export default function MoonInputCard({ dimension, onSave, onCancel }) {
 								}}>
 								Add
 							</button>
+						</div>
+					)}
+					{showNewLens && (
+						<div style={{ marginBottom: 16 }}>
+							<input
+								value={newLensPrompt}
+								onChange={(e) => setNewLensPrompt(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") handleAddCustomLens();
+									if (e.key === "Escape") setShowNewLens(false);
+								}}
+								placeholder="Prompt for this lens (optional) — what should it ask you to notice?"
+								style={{
+									width: "100%",
+									padding: "8px 12px",
+									background: "rgba(30,41,59,0.6)",
+									border: "1px solid rgba(148,163,184,0.25)",
+									borderRadius: 8,
+									color: "#E6EEF8",
+									fontSize: 13,
+									outline: "none",
+									boxSizing: "border-box",
+								}}
+							/>
+							<div style={{ fontSize: 11, color: "#64748B", marginTop: 5 }}>
+								Leave blank and it'll default to "Look from this angle:{" "}
+								{newLensLabel.trim() || "[name]"}".
+							</div>
 						</div>
 					)}
 					{showNewLens && (

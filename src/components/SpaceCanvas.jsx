@@ -302,7 +302,7 @@ export default function SpaceCanvas({
 	const [contextMenu, setContextMenu] = useState(null);
 
 	/**
-	 * edgePopup: null | { edge, x, y, labelDraft }
+	 * edgePopup: null | { edge, x, y }
 	 * The inline editor shown when the user clicks an edge.
 	 */
 	const [edgePopup, setEdgePopup] = useState(null);
@@ -586,12 +586,7 @@ export default function SpaceCanvas({
 	// ─────────────────────────────────────────────────────────────────────────
 	const handleEdgeClick = useCallback((edge, clientX, clientY) => {
 		setContextMenu(null);
-		setEdgePopup({
-			edge,
-			x: clientX,
-			y: clientY,
-			labelDraft: edge.label || "",
-		});
+		setEdgePopup({ edge, x: clientX, y: clientY });
 	}, []);
 
 	const handleEdgeTypeChange = useCallback(
@@ -605,15 +600,6 @@ export default function SpaceCanvas({
 		},
 		[edgePopup],
 	);
-
-	const handleEdgeLabelSave = useCallback(async () => {
-		if (!edgePopup) return;
-		await db.edges.update(edgePopup.edge.id, {
-			label: edgePopup.labelDraft.trim() || null,
-		});
-		setEdges(await getAllEdges());
-		setEdgePopup(null);
-	}, [edgePopup]);
 
 	const handleEdgeDelete = useCallback(async () => {
 		if (!edgePopup) return;
@@ -862,6 +848,7 @@ export default function SpaceCanvas({
 				}
 				setSelectedNodeId((prev) => (prev === node.id ? null : node.id));
 				setMultiSelectedIds(new Set()); // clear multi-select on single click
+				setConstellationEditor(null);
 			}
 		},
 		[tool, connectionSource, nodes, enterReflectionMode],
@@ -1363,9 +1350,9 @@ export default function SpaceCanvas({
 				<g key={`hull-${c.id}`}>
 					<path
 						d={pathD}
-						fill={`${CONSTELLATION_COLOR}0.04)`}
-						stroke={`${CONSTELLATION_COLOR}0.28)`}
-						strokeWidth={2}
+						fill={`${CONSTELLATION_COLOR}0.06)`}
+						stroke={`${CONSTELLATION_COLOR}0.6)`}
+						strokeWidth={2.5}
 						strokeDasharray="6,4"
 						pointerEvents="none"
 					/>
@@ -1376,6 +1363,7 @@ export default function SpaceCanvas({
 						onClick={(e) => {
 							e.stopPropagation();
 							setConstellationEditor({ constellationId: c.id });
+							setSelectedNodeId(null);
 						}}>
 						<rect
 							x={labelPos.x - 70}
@@ -1390,10 +1378,10 @@ export default function SpaceCanvas({
 							x={labelPos.x}
 							y={labelPos.y - padding * 0.55}
 							textAnchor="middle"
-							fill={`${CONSTELLATION_COLOR}0.55)`}
-							fontSize={11}
+							fill={`${CONSTELLATION_COLOR}0.95)`}
+							fontSize={12}
+							fontWeight={700}
 							fontFamily="system-ui, sans-serif"
-							fontWeight={600}
 							pointerEvents="none"
 							style={{ userSelect: "none" }}>
 							{archetypeData?.emoji ? `${archetypeData.emoji} ` : ""}
@@ -1404,7 +1392,7 @@ export default function SpaceCanvas({
 							x={labelPos.x}
 							y={labelPos.y - padding * 0.55 + 14}
 							textAnchor="middle"
-							fill={`${CONSTELLATION_COLOR}0.25)`}
+							fill={`${CONSTELLATION_COLOR}0.5)`}
 							fontSize={9}
 							fontFamily="system-ui, sans-serif"
 							pointerEvents="none"
@@ -2017,6 +2005,7 @@ export default function SpaceCanvas({
 									setConstellationEditor({
 										constellationId: contextMenu.payload.constellationId,
 									});
+									setSelectedNodeId(null);
 									setContextMenu(null);
 								}}
 								onMouseEnter={(e) =>
@@ -2069,6 +2058,7 @@ export default function SpaceCanvas({
 									setConstellationEditor({
 										constellationId: contextMenu.payload.constellationId,
 									});
+									setSelectedNodeId(null);
 									setContextMenu(null);
 								}}
 								onMouseEnter={(e) =>
@@ -2232,68 +2222,6 @@ export default function SpaceCanvas({
 						);
 					})}
 
-					{/* Custom label */}
-					<div
-						style={{
-							borderTop: "1px solid rgba(255,255,255,0.07)",
-							margin: "6px 0 4px",
-						}}
-					/>
-					<p
-						style={{
-							margin: "4px 12px 5px",
-							fontSize: 10,
-							fontWeight: 700,
-							color: "#94A3B8",
-							textTransform: "uppercase",
-							letterSpacing: "0.06em",
-						}}>
-						Custom label
-					</p>
-					<div style={{ padding: "0 10px 6px", display: "flex", gap: 6 }}>
-						<input
-							value={edgePopup.labelDraft}
-							onChange={(e) =>
-								setEdgePopup((prev) =>
-									prev ? { ...prev, labelDraft: e.target.value } : null,
-								)
-							}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") handleEdgeLabelSave();
-								if (e.key === "Escape") setEdgePopup(null);
-								e.stopPropagation();
-							}}
-							placeholder="e.g. triggered"
-							maxLength={40}
-							style={{
-								flex: 1,
-								minWidth: 0,
-								background: "rgba(255,255,255,0.06)",
-								border: "1px solid rgba(108,99,255,0.3)",
-								borderRadius: 5,
-								color: "white",
-								fontSize: 12,
-								padding: "5px 8px",
-								outline: "none",
-								fontFamily: "system-ui, sans-serif",
-							}}
-						/>
-						<button
-							onClick={handleEdgeLabelSave}
-							style={{
-								padding: "5px 10px",
-								flexShrink: 0,
-								background: "rgba(108,99,255,0.7)",
-								border: "none",
-								borderRadius: 5,
-								color: "white",
-								fontSize: 12,
-								cursor: "pointer",
-							}}>
-							Set
-						</button>
-					</div>
-
 					{/* Delete */}
 					<div
 						style={{
@@ -2339,7 +2267,7 @@ export default function SpaceCanvas({
 								position: "fixed",
 								top: 60,
 								right: 0,
-								width: 300,
+								width: "min(300px, 88vw)",
 								bottom: 0,
 								background: "rgba(10,15,28,0.98)",
 								borderLeft: "1px solid rgba(108,99,255,0.2)",

@@ -7,46 +7,46 @@
 //   - Uses constellationIds[] array, not the old constellationId scalar
 import React, { useState } from "react";
 import { X, Eye, Zap, Target, CircleDashed } from "lucide-react";
-import { moonConfig, getDefaultState } from "../seedData";
+import { moonConfig, getDefaultState, nodeTypeColors } from "../seedData";
 import { db, cascadeDeleteNode } from "../lib/db";
 
-export const PLANET_PANEL_WIDTH = 380;
+export const PLANET_PANEL_WIDTH = "min(380px, 90vw)";
 
 const TYPE_CONFIG = {
 	O: {
 		label: "Observation",
 		Icon: Eye,
-		color: "#4D9FFF",
-		bg: "rgba(77,159,255,0.07)",
-		border: "rgba(77,159,255,0.22)",
-		glow: "rgba(77,159,255,0.12)",
+		color: nodeTypeColors.O.accent,
+		bg: nodeTypeColors.O.bg,
+		border: nodeTypeColors.O.border,
+		glow: nodeTypeColors.O.glow,
 		description: "What did you notice or experience?",
 	},
 	A: {
 		label: "Action",
 		Icon: Zap,
-		color: "#FB923C",
-		bg: "rgba(251,146,60,0.07)",
-		border: "rgba(251,146,60,0.22)",
-		glow: "rgba(251,146,60,0.12)",
+		color: nodeTypeColors.A.accent,
+		bg: nodeTypeColors.A.bg,
+		border: nodeTypeColors.A.border,
+		glow: nodeTypeColors.A.glow,
 		description: "What did you do or decide?",
 	},
 	I: {
 		label: "Intention",
 		Icon: Target,
-		color: "#FBBF24",
-		bg: "rgba(251,191,36,0.07)",
-		border: "rgba(251,191,36,0.22)",
-		glow: "rgba(251,191,36,0.12)",
+		color: nodeTypeColors.I.accent,
+		bg: nodeTypeColors.I.bg,
+		border: nodeTypeColors.I.border,
+		glow: nodeTypeColors.I.glow,
 		description: "What are you committing to change?",
 	},
 	H: {
 		label: "Hypothetical",
 		Icon: CircleDashed,
-		color: "#F472B6",
-		bg: "rgba(244,114,182,0.07)",
-		border: "rgba(244,114,182,0.22)",
-		glow: "rgba(244,114,182,0.12)",
+		color: nodeTypeColors.H.accent,
+		bg: nodeTypeColors.H.bg,
+		border: nodeTypeColors.H.border,
+		glow: nodeTypeColors.H.glow,
 		description: "Something imagined, dreamed, or wondered about?",
 	},
 };

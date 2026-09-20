@@ -1,6 +1,80 @@
-// src/components/NodeTypePicker.jsx
+// src/components/NodeTypePicker.jsx - V2.0
+// Changes from V1.x:
+//   - Colors now read from the shared nodeTypeColors instead of four
+//     separately hardcoded copies
+//   - Persistent color reinforcement at rest, not just on hover: a colored
+//     left stripe and a tinted icon, so the picker teaches the color
+//     mapping before you've committed to a choice, not after
 import React from "react";
 import { Eye, Zap, Target, CircleDashed } from "lucide-react";
+import { nodeTypeColors } from "../seedData";
+
+const TYPES = [
+	{
+		type: "O",
+		Icon: Eye,
+		label: "Observation",
+		desc: "What did you notice?",
+	},
+	{ type: "A", Icon: Zap, label: "Action", desc: "What did you do?" },
+	{
+		type: "I",
+		Icon: Target,
+		label: "Intention",
+		desc: "A commitment to change",
+	},
+	{
+		type: "H",
+		Icon: CircleDashed,
+		label: "Hypothetical",
+		desc: "Something imagined, dreamed, or wondered about",
+	},
+];
+
+function TypeButton({ type, Icon, label, desc, onSelect }) {
+	const accent = nodeTypeColors[type].accent;
+	return (
+		<button
+			onClick={() => onSelect(type)}
+			style={{
+				width: "100%",
+				padding: "12px 16px 12px 13px",
+				marginBottom: "8px",
+				background: `${accent}14`,
+				border: `1px solid ${accent}45`,
+				borderLeft: `4px solid ${accent}`,
+				borderRadius: "8px",
+				color: "#E6EEF8",
+				fontSize: "15px",
+				fontWeight: 600,
+				textAlign: "left",
+				cursor: "pointer",
+				display: "flex",
+				alignItems: "center",
+				gap: "12px",
+				transition: "all 0.2s",
+			}}
+			onMouseEnter={(e) => {
+				e.currentTarget.style.background = `${accent}28`;
+				e.currentTarget.style.borderColor = accent;
+				e.currentTarget.style.transform = "translateX(4px)";
+			}}
+			onMouseLeave={(e) => {
+				e.currentTarget.style.background = `${accent}14`;
+				e.currentTarget.style.borderColor = `${accent}45`;
+				e.currentTarget.style.borderLeftColor = accent;
+				e.currentTarget.style.transform = "translateX(0)";
+			}}>
+			<Icon size={20} color={accent} />
+			<div>
+				<div>{label}</div>
+				<div style={{ fontSize: "11px", color: "#94A3B8", fontWeight: 400 }}>
+					{desc}
+				</div>
+			</div>
+		</button>
+	);
+}
 
 export default function NodeTypePicker({ position, onSelect, onCancel }) {
 	return (
@@ -46,181 +120,9 @@ export default function NodeTypePicker({ position, onSelect, onCancel }) {
 					Create Node:
 				</h3>
 
-				{/* Observation Button */}
-				<button
-					onClick={() => onSelect("O")}
-					style={{
-						width: "100%",
-						padding: "12px 16px",
-						marginBottom: "8px",
-						background: "rgba(15, 23, 36, 0.6)",
-						border: "1px solid rgba(59, 130, 246, 0.3)",
-						borderRadius: "8px",
-						color: "#E6EEF8",
-						fontSize: "15px",
-						fontWeight: 600,
-						textAlign: "left",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						gap: "12px",
-						transition: "all 0.2s",
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.background = "rgba(59, 130, 246, 0.2)";
-						e.currentTarget.style.borderColor = "#3B82F6";
-						e.currentTarget.style.transform = "translateX(4px)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
-						e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.3)";
-						e.currentTarget.style.transform = "translateX(0)";
-					}}>
-					<Eye size={20} />
-					<div>
-						<div>Observation</div>
-						<div
-							style={{
-								fontSize: "11px",
-								color: "#94A3B8",
-								fontWeight: 400,
-							}}>
-							What did you notice?
-						</div>
-					</div>
-				</button>
-
-				{/* Action Button */}
-				<button
-					onClick={() => onSelect("A")}
-					style={{
-						width: "100%",
-						padding: "12px 16px",
-						marginBottom: "8px",
-						background: "rgba(15, 23, 36, 0.6)",
-						border: "1px solid rgba(249, 115, 22, 0.3)",
-						borderRadius: "8px",
-						color: "#E6EEF8",
-						fontSize: "15px",
-						fontWeight: 600,
-						textAlign: "left",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						gap: "12px",
-						transition: "all 0.2s",
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.background = "rgba(249, 115, 22, 0.2)";
-						e.currentTarget.style.borderColor = "#F97316";
-						e.currentTarget.style.transform = "translateX(4px)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
-						e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.3)";
-						e.currentTarget.style.transform = "translateX(0)";
-					}}>
-					<Zap size={20} />
-					<div>
-						<div>Action</div>
-						<div
-							style={{
-								fontSize: "11px",
-								color: "#94A3B8",
-								fontWeight: 400,
-							}}>
-							What did you do?
-						</div>
-					</div>
-				</button>
-
-				{/* Intention Button */}
-				<button
-					onClick={() => onSelect("I")}
-					style={{
-						width: "100%",
-						padding: "12px 16px",
-						marginBottom: "12px",
-						background: "rgba(15, 23, 36, 0.6)",
-						border: "1px solid rgba(251, 191, 36, 0.3)",
-						borderRadius: "8px",
-						color: "#E6EEF8",
-						fontSize: "15px",
-						fontWeight: 600,
-						textAlign: "left",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						gap: "12px",
-						transition: "all 0.2s",
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.background = "rgba(251, 191, 36, 0.2)";
-						e.currentTarget.style.borderColor = "#FBBF24";
-						e.currentTarget.style.transform = "translateX(4px)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
-						e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.3)";
-						e.currentTarget.style.transform = "translateX(0)";
-					}}>
-					<Target size={20} />
-					<div>
-						<div>Intention</div>
-						<div
-							style={{
-								fontSize: "11px",
-								color: "#94A3B8",
-								fontWeight: 400,
-							}}>
-							A commitment to change
-						</div>
-					</div>
-				</button>
-
-				{/* Hypothetical Button */}
-				<button
-					onClick={() => onSelect("H")}
-					style={{
-						width: "100%",
-						padding: "12px 16px",
-						marginBottom: "12px",
-						background: "rgba(15, 23, 36, 0.6)",
-						border: "1px solid rgba(244, 114, 182, 0.3)",
-						borderRadius: "8px",
-						color: "#E6EEF8",
-						fontSize: "15px",
-						fontWeight: 600,
-						textAlign: "left",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						gap: "12px",
-						transition: "all 0.2s",
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.background = "rgba(244, 114, 182, 0.2)";
-						e.currentTarget.style.borderColor = "#F472B6";
-						e.currentTarget.style.transform = "translateX(4px)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.background = "rgba(15, 23, 36, 0.6)";
-						e.currentTarget.style.borderColor = "rgba(244, 114, 182, 0.3)";
-						e.currentTarget.style.transform = "translateX(0)";
-					}}>
-					<CircleDashed size={20} />
-					<div>
-						<div>Hypothetical</div>
-						<div
-							style={{
-								fontSize: "11px",
-								color: "#94A3B8",
-								fontWeight: 400,
-							}}>
-							Something imagined, dreamed, or wondered about
-						</div>
-					</div>
-				</button>
+				{TYPES.map((t) => (
+					<TypeButton key={t.type} {...t} onSelect={onSelect} />
+				))}
 
 				{/* Cancel Button */}
 				<button

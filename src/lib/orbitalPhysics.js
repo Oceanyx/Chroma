@@ -14,7 +14,12 @@ export function calculateMoonPosition(
 	dimension = "subjective",
 	scale = 1.0,
 ) {
-	const dimensionConfig = moonConfig.dimension[dimension];
+	// Unsorted (unfiled) moons have dimension: null — they're never actually
+	// rendered from this position (both call sites filter by a real
+	// dimension key before using it), but fall back safely rather than
+	// throwing on moonConfig.dimension[null].
+	const dimensionConfig =
+		moonConfig.dimension[dimension] || moonConfig.dimension.subjective;
 	const planetRadius = planetConfig.baseRadius;
 	const centerX = parent.position.x + planetRadius;
 	const centerY = parent.position.y + planetRadius;
@@ -107,7 +112,7 @@ export function calculateAnimatedOrbit(
 	speedMultiplier = 1,
 ) {
 	const dim = dimension === "symbolic" ? "framing" : dimension;
-	const dimensionConfig = moonConfig.dimension[dim];
+	const dimensionConfig = moonConfig.dimension[dim] || moonConfig.dimension.subjective;
 	const baseAngle = moon.orbitAngle || 0;
 
 	// Anchored moons should stay put, matching ReflectionSpace's own

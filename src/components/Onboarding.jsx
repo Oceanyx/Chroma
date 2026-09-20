@@ -380,12 +380,12 @@ const steps = [
 	},
 	{
 		title: "Planets are your experiences",
-		body: "Click anywhere on the empty canvas to create one: an Observation (something you noticed), an Action (something you did), an Intention (something you're planning), or a Hypothetical (something you're imagining or wondering about).",
+		body: "Double click anywhere on the empty canvas to create one: an Observation (something you noticed), an Action (something you did), an Intention (something you're planning), or a Hypothetical (something you're imagining or wondering about).",
 		demo: CreatePlanetDemo,
 	},
 	{
 		title: "Moons are your reflections",
-		body: "Open a planet and add reflections on it — how it felt, how it looked from outside, what you actually did, what pattern it fits. More dimensions unlock the more you reflect.",
+		body: "Open a planet and add reflections on it — how it felt, how it looked from outside, what you actually did, what pattern it fits. Double-click a planet to open it. More dimensions unlock the more you reflect.",
 		demo: ReflectMoonDemo,
 	},
 	{

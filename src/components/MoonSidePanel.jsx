@@ -9,11 +9,11 @@
 //   - Close button default state brighter: #334155 → #6B7F95
 //   - Custom lens creation and editing logic unchanged
 import React, { useState, useEffect } from "react";
-import { X, Pencil } from "lucide-react";
+import { X, Pencil, Lock } from "lucide-react";
 import { moonConfig, lenses as DEFAULT_LENSES, lensById } from "../seedData";
 import { loadCustomLenses, saveCustomLenses } from "../utils/customLenses";
 
-export const PANEL_WIDTH = 460;
+export const PANEL_WIDTH = "min(460px, 94vw)";
 
 const DIM_STYLES = {
 	subjective: {
@@ -46,6 +46,14 @@ const DIM_STYLES = {
 		borderColor: "rgba(96,165,250,0.28)",
 		glow: "rgba(96,165,250,0.15)",
 		accent: "#60A5FA",
+	},
+	// Unfiled — deliberately neutral gray, not one of the four dimension
+	// colors, so an unfiled moon never looks like it's already been sorted.
+	unfiled: {
+		bg: "linear-gradient(170deg, rgba(148,163,184,0.08) 0%, rgba(8,13,25,0.99) 32%)",
+		borderColor: "rgba(148,163,184,0.25)",
+		glow: "rgba(148,163,184,0.12)",
+		accent: "#94A3B8",
 	},
 };
 
@@ -573,6 +581,8 @@ export default function MoonSidePanel({
 	moon,
 	allMoons,
 	dimColor,
+	unlockedDimensions = [],
+	onFileMoon,
 	temporalDistance, // from parent planet node — e.g. "days later"
 	onClose,
 	onAction,
@@ -603,10 +613,11 @@ export default function MoonSidePanel({
 	const [showNewLens, setShowNewLens] = useState(false);
 	const [newLensLabel, setNewLensLabel] = useState("");
 	const [newLensEmoji, setNewLensEmoji] = useState("🔍");
+	const [newLensPrompt, setNewLensPrompt] = useState("");
 
 	const allLenses = [...DEFAULT_LENSES, ...customLenses];
 	const config = moonConfig.dimension[moon.dimension];
-	const ds = DIM_STYLES[moon.dimension] || DIM_STYLES.subjective;
+	const ds = DIM_STYLES[moon.dimension] || DIM_STYLES.unfiled;
 
 	useEffect(() => {
 		setEditText(moon.text);
@@ -663,6 +674,7 @@ export default function MoonSidePanel({
 			emoji: newLensEmoji,
 			color: dimColor,
 			custom: true,
+			customPrompt: newLensPrompt.trim() || null,
 		};
 		const updated = [...customLenses, lens];
 		setCustomLenses(updated);
@@ -670,6 +682,7 @@ export default function MoonSidePanel({
 		setEditLens(lens.id);
 		setNewLensLabel("");
 		setNewLensEmoji("🔍");
+		setNewLensPrompt("");
 		setShowNewLens(false);
 		setShowHistory(false);
 	};
@@ -758,7 +771,7 @@ export default function MoonSidePanel({
 								textTransform: "uppercase",
 								color: ds.accent,
 							}}>
-							{config.name}
+							{config?.name || "Unfiled"}
 						</span>
 					</div>
 					<button
@@ -789,6 +802,69 @@ export default function MoonSidePanel({
 						<X size={13} />
 					</button>
 				</div>
+
+				{/* ── FILE THIS REFLECTION (unfiled moons only) ────────────────── */}
+				{!moon.dimension && (
+					<div
+						style={{
+							marginBottom: 16,
+							padding: "12px 14px",
+							background: "rgba(148,163,184,0.06)",
+							border: "1px solid rgba(148,163,184,0.2)",
+							borderRadius: 10,
+						}}>
+						<p
+							style={{
+								margin: "0 0 10px",
+								fontSize: 12.5,
+								color: "#9AAEC4",
+								lineHeight: 1.5,
+							}}>
+							This hasn't been filed into a dimension yet. You can leave it
+							here, or sort it now:
+						</p>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr",
+								gap: 6,
+							}}>
+							{Object.entries(moonConfig.dimension).map(([key, dim]) => {
+								const isUnlocked = unlockedDimensions.includes(key);
+								return (
+									<button
+										key={key}
+										disabled={!isUnlocked}
+										onClick={() => isUnlocked && onFileMoon?.(moon.id, key)}
+										title={
+											isUnlocked
+												? dim.description
+												: "Not unlocked yet — keep reflecting to open this up"
+										}
+										style={{
+											display: "flex",
+											alignItems: "center",
+											gap: 6,
+											padding: "7px 10px",
+											background: isUnlocked
+												? `${dim.color}16`
+												: "rgba(255,255,255,0.02)",
+											border: `1px solid ${isUnlocked ? `${dim.color}45` : "rgba(255,255,255,0.08)"}`,
+											borderRadius: 7,
+											color: isUnlocked ? dim.color : "#4B5A6E",
+											fontSize: 12,
+											fontWeight: 700,
+											cursor: isUnlocked ? "pointer" : "default",
+											outline: "none",
+										}}>
+										{!isUnlocked && <Lock size={10} />}
+										{dim.name}
+									</button>
+								);
+							})}
+						</div>
+					</div>
+				)}
 
 				{/* Row 2: Status chips — own row with breathing room */}
 				<div
@@ -1126,6 +1202,35 @@ export default function MoonSidePanel({
 										}}>
 										✕
 									</button>
+								</div>
+							)}
+							{showNewLens && (
+								<div style={{ marginTop: 6 }}>
+									<input
+										value={newLensPrompt}
+										onChange={(e) => setNewLensPrompt(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") handleAddCustomLens();
+											if (e.key === "Escape") {
+												setShowNewLens(false);
+												setShowHistory(false);
+												setNewLensLabel("");
+												setNewLensPrompt("");
+											}
+										}}
+										placeholder="Prompt for this lens (optional) — what should it ask you to notice?"
+										style={{
+											width: "100%",
+											padding: "6px 10px",
+											background: "rgba(255,255,255,0.04)",
+											border: `1px solid ${ds.accent}30`,
+											borderRadius: 8,
+											color: "#C8D6E8",
+											fontSize: 12,
+											outline: "none",
+											boxSizing: "border-box",
+										}}
+									/>
 								</div>
 							)}
 						</div>

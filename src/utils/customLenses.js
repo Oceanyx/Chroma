@@ -17,13 +17,14 @@ export function saveCustomLenses(l) {
 	localStorage.setItem(CUSTOM_LENS_KEY, JSON.stringify(l));
 }
 
-export function addCustomLens({ label, emoji, color }) {
+export function addCustomLens({ label, emoji, color, customPrompt }) {
 	const lens = {
 		id: `custom_${Date.now()}`,
 		label: label.trim(),
 		emoji: emoji || "🔍",
 		color,
 		custom: true,
+		customPrompt: customPrompt?.trim() || null,
 	};
 	const updated = [...loadCustomLenses(), lens];
 	saveCustomLenses(updated);

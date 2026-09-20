@@ -1,5 +1,6 @@
 // src/components/NodeTextInput.jsx
 import React, { useState, useRef, useEffect } from "react";
+import { nodeTypeColors } from "../seedData";
 
 export default function NodeTextInput({
 	position,
@@ -27,10 +28,10 @@ export default function NodeTextInput({
 	};
 
 	const typeConfig = {
-		O: { label: "Observation", color: "#3B82F6", emoji: "👁️" },
-		A: { label: "Action", color: "#F97316", emoji: "⚡" },
-		I: { label: "Intention", color: "#FBBF24", emoji: "🎯" },
-		H: { label: "Hypothetical", color: "#F472B6", emoji: "◌" },
+		O: { label: "Observation", color: nodeTypeColors.O.accent, emoji: "👁️" },
+		A: { label: "Action", color: nodeTypeColors.A.accent, emoji: "⚡" },
+		I: { label: "Intention", color: nodeTypeColors.I.accent, emoji: "🎯" },
+		H: { label: "Hypothetical", color: nodeTypeColors.H.accent, emoji: "◌" },
 	};
 
 	const config = typeConfig[nodeType];

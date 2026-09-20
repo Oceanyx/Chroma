@@ -18,6 +18,56 @@ export const dimensionColors = {
 };
 
 // ============================================================================
+// NODE TYPE COLORS (single source of truth)
+// ============================================================================
+// Every place a planet's type-color shows up — the orb gradient, the type
+// badge, the creation picker, the text-input header — reads from here
+// instead of hardcoding its own copy. Chosen to be distinct from every
+// dimensionColors value above (dimension colors live on moons, type colors
+// live on planets, but a user shouldn't have to wonder whether a color
+// means "this is an Action" or "this is Behavioral" when they look similar).
+// O and A were previously blue/orange, which collided with Framing's blue
+// and Behavioral's orange respectively — cyan and lime replace them.
+export const nodeTypeColors = {
+	O: {
+		accent: "#22D3EE", // Cyan — Observation
+		core: ["#0E7490", "#22D3EE"],
+		surface: ["#67E8F9", "#A5F3FC"],
+		atmosphere: ["#CFFAFE", "#ECFEFF"],
+		glow: "rgba(34, 211, 238, 0.35)",
+		bg: "rgba(34,211,238,0.07)",
+		border: "rgba(34,211,238,0.22)",
+	},
+	A: {
+		accent: "#A3E635", // Lime — Action
+		core: ["#4D7C0F", "#A3E635"],
+		surface: ["#BEF264", "#D9F99D"],
+		atmosphere: ["#ECFCCB", "#F7FEE7"],
+		glow: "rgba(163, 230, 53, 0.35)",
+		bg: "rgba(163,230,53,0.07)",
+		border: "rgba(163,230,53,0.22)",
+	},
+	I: {
+		accent: "#FBBF24", // Gold — Intention
+		core: ["#B45309", "#FBBF24"],
+		surface: ["#FCD34D", "#FDE68A"],
+		atmosphere: ["#FEF3C7", "#FFFBEB"],
+		glow: "rgba(251, 191, 36, 0.35)",
+		bg: "rgba(251,191,36,0.07)",
+		border: "rgba(251,191,36,0.22)",
+	},
+	H: {
+		accent: "#F472B6", // Pink — Hypothetical
+		core: ["#BE185D", "#F472B6"],
+		surface: ["#F9A8D4", "#FBCFE8"],
+		atmosphere: ["#FCE7F3", "#FDF2F8"],
+		glow: "rgba(244, 114, 182, 0.35)",
+		bg: "rgba(244,114,182,0.07)",
+		border: "rgba(244,114,182,0.22)",
+	},
+};
+
+// ============================================================================
 // PLANET CONFIG
 // ============================================================================
 export const planetConfig = {

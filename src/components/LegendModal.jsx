@@ -45,6 +45,16 @@ const rowDesc = {
 	lineHeight: 1.5,
 };
 
+const tableCellRight = { borderRight: "1px solid rgba(255,255,255,0.14)" };
+const tableCellBottom = { borderBottom: "1px solid rgba(255,255,255,0.14)" };
+const tableCell = { padding: "10px 14px" };
+const tableCellHead = {
+	padding: "10px 14px",
+	background: "rgba(255,255,255,0.05)",
+	color: "#94A3B8",
+	fontWeight: 700,
+};
+
 export default function LegendModal({
 	onClose,
 	onReplayWalkthrough,
@@ -179,6 +189,14 @@ export default function LegendModal({
 
 					<div style={sectionTitle}>Moons — reflecting on a planet</div>
 					<div style={row}>
+						<span style={rowLabel}>Unfiled</span>
+						<span style={rowDesc}>
+							Don't want to pick a dimension yet? Write from the Unfiled
+							list on the left instead. Sort it whenever you like — or
+							never.
+						</span>
+					</div>
+					<div style={row}>
 						<span style={rowLabel}>Inner Experience</span>
 						<span style={rowDesc}>
 							What you felt, thought, or sensed — the part no one outside
@@ -208,19 +226,19 @@ export default function LegendModal({
 
 					<div
 						style={{
-							marginTop: 14,
-							padding: "12px 14px",
-							background: "rgba(255,255,255,0.02)",
-							border: "1px solid rgba(255,255,255,0.07)",
-							borderRadius: 8,
+							marginTop: 18,
+							padding: "18px 20px",
+							background: "rgba(255,255,255,0.03)",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: 10,
 						}}>
 						<div
 							style={{
-								fontSize: 11,
-								color: "#94A3B8",
-								fontWeight: 600,
-								letterSpacing: "0.04em",
-								marginBottom: 8,
+								fontSize: 13,
+								color: "#A5B4FC",
+								fontWeight: 700,
+								letterSpacing: "0.05em",
+								marginBottom: 12,
 							}}>
 							THE FIRST THREE, AT A GLANCE
 						</div>
@@ -228,30 +246,41 @@ export default function LegendModal({
 							style={{
 								display: "grid",
 								gridTemplateColumns: "auto 1fr 1fr",
-								gap: "4px 10px",
-								fontSize: 12,
-								color: "#CBD5E1",
+								border: "1px solid rgba(255,255,255,0.14)",
+								borderRadius: 6,
+								overflow: "hidden",
+								fontSize: 15,
+								color: "#E2E8F0",
 							}}>
-							<div />
-							<div style={{ color: "#94A3B8", fontWeight: 600 }}>Felt</div>
-							<div style={{ color: "#94A3B8", fontWeight: 600 }}>Observed</div>
-
-							<div style={{ color: "#94A3B8", fontWeight: 600 }}>You</div>
-							<div>Inner Experience</div>
-							<div>Behavioral</div>
-
-							<div style={{ color: "#94A3B8", fontWeight: 600 }}>
-								Shared / field
+							{/* Header row */}
+							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }} />
+							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }}>
+								Felt
 							</div>
-							<div style={{ color: "#5B6B80" }}>— (not claimable) —</div>
-							<div>External</div>
+							<div style={{ ...tableCellHead, ...tableCellBottom }}>Observed</div>
+
+							{/* You row */}
+							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }}>
+								You
+							</div>
+							<div style={{ ...tableCell, ...tableCellRight, ...tableCellBottom }}>
+								Inner Experience
+							</div>
+							<div style={{ ...tableCell, ...tableCellBottom }}>Behavioral</div>
+
+							{/* Shared / field row */}
+							<div style={{ ...tableCellHead, ...tableCellRight }}>Shared / field</div>
+							<div style={{ ...tableCell, ...tableCellRight, color: "#64748B" }}>
+								— (not claimable) —
+							</div>
+							<div style={tableCell}>External</div>
 						</div>
 						<div
 							style={{
-								fontSize: 11,
-								color: "#7A8FA6",
-								lineHeight: 1.5,
-								marginTop: 8,
+								fontSize: 13,
+								color: "#9AAEC4",
+								lineHeight: 1.6,
+								marginTop: 12,
 							}}>
 							Framing sits outside this grid — it's not a viewpoint, it's
 							applying a model to any of the three. There's no "what they
