@@ -100,6 +100,62 @@ function Tooltip({ text, children }) {
 }
 
 // ── State chip ────────────────────────────────────────────────────────────────
+// ── Two-option toggle (claim type / vantage / ownership) ────────────────────
+// Both sides are always visibly colored and legible — previously the
+// inactive side was flat gray-on-transparent, which is why these read as
+// decorative rather than as real, meaningful choices most of the time
+// (most reflections sit at the default option).
+function TwoOptionToggle({
+	leftLabel,
+	leftValue,
+	leftColor,
+	leftTooltip,
+	rightLabel,
+	rightValue,
+	rightColor,
+	rightTooltip,
+	value,
+	onSelect,
+}) {
+	const isLeft = value !== rightValue;
+	const segStyle = (active, color) => ({
+		padding: "6px 12px",
+		background: active ? `${color}2A` : "transparent",
+		color: active ? color : "#9BAEC2",
+		fontWeight: 700,
+		fontSize: 12.5,
+		border: "none",
+		cursor: "pointer",
+		outline: "none",
+		whiteSpace: "nowrap",
+	});
+	return (
+		<div
+			style={{
+				display: "inline-flex",
+				borderRadius: 20,
+				overflow: "hidden",
+				border: "1px solid rgba(255,255,255,0.16)",
+			}}>
+			<Tooltip text={leftTooltip}>
+				<button
+					onClick={() => onSelect(leftValue)}
+					style={{
+						...segStyle(isLeft, leftColor),
+						borderRight: "1px solid rgba(255,255,255,0.12)",
+					}}>
+					{leftLabel}
+				</button>
+			</Tooltip>
+			<Tooltip text={rightTooltip}>
+				<button onClick={() => onSelect(rightValue)} style={segStyle(!isLeft, rightColor)}>
+					{rightLabel}
+				</button>
+			</Tooltip>
+		</div>
+	);
+}
+
 function StateChip({ active, activeColor, tooltip, onClick, children }) {
 	const [hov, setHov] = useState(false);
 	return (
@@ -109,16 +165,16 @@ function StateChip({ active, activeColor, tooltip, onClick, children }) {
 				onMouseEnter={() => setHov(true)}
 				onMouseLeave={() => setHov(false)}
 				style={{
-					padding: "5px 13px",
+					padding: "6px 13px",
 					borderRadius: 20,
-					border: `1px solid ${active ? `${activeColor}60` : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
+					border: `1px solid ${active ? `${activeColor}60` : hov ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.14)"}`,
 					background: active
 						? `${activeColor}22`
 						: hov
 							? "rgba(255,255,255,0.07)"
 							: "transparent",
-					color: active ? activeColor : hov ? "#C8D6E8" : "#7A8FA6",
-					fontSize: 12,
+					color: active ? activeColor : hov ? "#C8D6E8" : "#9BAEC2",
+					fontSize: 12.5,
 					fontWeight: 700,
 					letterSpacing: "0.04em",
 					cursor: "pointer",
@@ -135,116 +191,55 @@ function StateChip({ active, activeColor, tooltip, onClick, children }) {
 
 // ── Claim type chip (reporting / reading) ────────────────────────────────────
 function ClaimTypeChip({ value, onToggle }) {
-	const isReading = value === "reading";
-	const [hov, setHov] = useState(false);
-	const color = isReading ? "#6366F1" : "#10B981";
 	return (
-		<Tooltip
-			text={
-				isReading
-					? "A framework or inference applied to make sense of what was present"
-					: "Your best reconstruction of what was present in that moment"
-			}>
-			<button
-				onClick={onToggle}
-				onMouseEnter={() => setHov(true)}
-				onMouseLeave={() => setHov(false)}
-				style={{
-					padding: "5px 13px",
-					borderRadius: 20,
-					border: `1px solid ${isReading ? "rgba(99,102,241,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
-					background: isReading
-						? "rgba(99,102,241,0.15)"
-						: hov
-							? "rgba(255,255,255,0.07)"
-							: "transparent",
-					color: isReading ? "#818CF8" : hov ? "#C8D6E8" : "#7A8FA6",
-					fontSize: 12,
-					fontWeight: 700,
-					letterSpacing: "0.04em",
-					cursor: "pointer",
-					transition: "all 0.15s",
-					outline: "none",
-				}}>
-				{isReading ? "◈ Reading" : "○ Reporting"}
-			</button>
-		</Tooltip>
+		<TwoOptionToggle
+			value={value}
+			leftLabel="○ Reporting"
+			leftValue="reporting"
+			leftColor="#10B981"
+			leftTooltip="Your best reconstruction of what was present in that moment"
+			rightLabel="◈ Reading"
+			rightValue="reading"
+			rightColor="#818CF8"
+			rightTooltip="A framework or inference applied to make sense of what was present"
+			onSelect={onToggle}
+		/>
 	);
 }
 
 // ── Vantage chip (whose perspective) ─────────────────────────────────────────
 function VantageChip({ value, onToggle }) {
-	const isOther = value === "theirs";
-	const [hov, setHov] = useState(false);
 	return (
-		<Tooltip
-			text={
-				isOther
-					? "Reconstructing another person's inner state or perspective"
-					: "Your own perspective on this moment"
-			}>
-			<button
-				onClick={onToggle}
-				onMouseEnter={() => setHov(true)}
-				onMouseLeave={() => setHov(false)}
-				style={{
-					padding: "5px 13px",
-					borderRadius: 20,
-					border: `1px solid ${isOther ? "rgba(251,191,36,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
-					background: isOther
-						? "rgba(251,191,36,0.12)"
-						: hov
-							? "rgba(255,255,255,0.07)"
-							: "transparent",
-					color: isOther ? "#FBBF24" : hov ? "#C8D6E8" : "#7A8FA6",
-					fontSize: 12,
-					fontWeight: 700,
-					letterSpacing: "0.04em",
-					cursor: "pointer",
-					transition: "all 0.15s",
-					outline: "none",
-				}}>
-				{isOther ? "⟳ Reconstructing another's" : "⊙ My perspective"}
-			</button>
-		</Tooltip>
+		<TwoOptionToggle
+			value={value}
+			leftLabel="⊙ Mine"
+			leftValue="mine"
+			leftColor="#10B981"
+			leftTooltip="Your own perspective on this moment"
+			rightLabel="⟳ Theirs"
+			rightValue="theirs"
+			rightColor="#FBBF24"
+			rightTooltip="Reconstructing another person's inner state or perspective"
+			onSelect={onToggle}
+		/>
 	);
 }
 
 // ── Ownership chip ────────────────────────────────────────────────────────────
 function OwnershipChip({ value, onToggle }) {
-	const isEntertained = value === "entertained";
-	const [hov, setHov] = useState(false);
 	return (
-		<Tooltip
-			text={
-				isEntertained
-					? "You're trying on this idea without fully endorsing it"
-					: "This is your own direct experience, stated as it felt to you"
-			}>
-			<button
-				onClick={onToggle}
-				onMouseEnter={() => setHov(true)}
-				onMouseLeave={() => setHov(false)}
-				style={{
-					padding: "5px 13px",
-					borderRadius: 20,
-					border: `1px solid ${isEntertained ? "rgba(251,191,36,0.55)" : hov ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
-					background: isEntertained
-						? "rgba(251,191,36,0.15)"
-						: hov
-							? "rgba(255,255,255,0.07)"
-							: "transparent",
-					color: isEntertained ? "#FBBF24" : hov ? "#C8D6E8" : "#7A8FA6",
-					fontSize: 12,
-					fontWeight: 700,
-					letterSpacing: "0.04em",
-					cursor: "pointer",
-					transition: "all 0.15s",
-					outline: "none",
-				}}>
-				{isEntertained ? "✦ Entertained" : "Asserted"}
-			</button>
-		</Tooltip>
+		<TwoOptionToggle
+			value={value}
+			leftLabel="Asserted"
+			leftValue="asserted"
+			leftColor="#10B981"
+			leftTooltip="This is your own direct experience, stated as it felt to you"
+			rightLabel="Entertained"
+			rightValue="entertained"
+			rightColor="#FBBF24"
+			rightTooltip="You're trying on this idea without fully endorsing it"
+			onSelect={onToggle}
+		/>
 	);
 }
 
@@ -519,8 +514,7 @@ function VersionDots({ versions, accent }) {
 							fontSize: 14,
 							lineHeight: 1.7,
 							color: "#5A7090",
-							fontFamily: "Georgia, 'Times New Roman', serif",
-							fontStyle: "italic",
+							fontFamily: "system-ui, -apple-system, sans-serif",
 						}}>
 						{reversed[selectedIdx].text}
 					</div>
@@ -713,9 +707,14 @@ export default function MoonSidePanel({
 				bottom: 0,
 				display: "flex",
 				flexDirection: "column",
-				background: ds.bg,
-				borderLeft: `1px solid ${ds.borderColor}`,
-				boxShadow: `inset 3px 0 0 0 ${ds.accent}, -8px 0 32px rgba(0,0,0,0.35)`,
+				background: isEditing
+					? `linear-gradient(170deg, ${ds.accent}14 0%, rgba(8,13,25,0.99) 26%)`
+					: ds.bg,
+				borderLeft: `1px solid ${isEditing ? ds.accent : ds.borderColor}`,
+				boxShadow: isEditing
+					? `inset 4px 0 0 0 ${ds.accent}, inset 0 0 0 1px ${ds.accent}40, -8px 0 32px rgba(0,0,0,0.35)`
+					: `inset 3px 0 0 0 ${ds.accent}, -8px 0 32px rgba(0,0,0,0.35)`,
+				transition: "background 0.25s ease, box-shadow 0.25s ease",
 				overflowY: "auto",
 				zIndex: 100,
 				color: "#C8D6E8",
@@ -773,6 +772,25 @@ export default function MoonSidePanel({
 							}}>
 							{config?.name || "Unfiled"}
 						</span>
+						{isEditing && (
+							<span
+								style={{
+									display: "inline-flex",
+									alignItems: "center",
+									gap: 4,
+									padding: "2px 9px",
+									borderRadius: 20,
+									background: ds.accent,
+									color: "#0B1220",
+									fontSize: 10,
+									fontWeight: 800,
+									letterSpacing: "0.08em",
+									textTransform: "uppercase",
+								}}>
+								<Pencil size={9} strokeWidth={3} />
+								Editing
+							</span>
+						)}
 					</div>
 					<button
 						onClick={onClose}
@@ -947,8 +965,7 @@ export default function MoonSidePanel({
 							fontSize: 17,
 							lineHeight: 1.8,
 							color: isEntertained ? "#C9A84C" : "#D4E1F0",
-							fontFamily: "Georgia, 'Times New Roman', serif",
-							fontStyle: "italic",
+							fontFamily: "system-ui, -apple-system, sans-serif",
 							cursor: "text",
 							padding: "16px 18px",
 							background: "rgba(255,255,255,0.03)",
@@ -958,6 +975,7 @@ export default function MoonSidePanel({
 								: "1px solid rgba(255,255,255,0.07)",
 							borderLeft: `3px ${isEntertained ? "dashed" : "solid"} ${ds.accent}70`,
 							transition: "background 0.2s",
+							animation: "chromaFadeIn 0.18s ease",
 							position: "relative",
 							minHeight: 64,
 							wordBreak: "break-word",
@@ -1000,7 +1018,7 @@ export default function MoonSidePanel({
 						)}
 					</div>
 				) : (
-					<div>
+					<div style={{ animation: "chromaFadeIn 0.18s ease" }}>
 						<textarea
 							value={editText}
 							onChange={(e) => setEditText(e.target.value)}
@@ -1014,8 +1032,7 @@ export default function MoonSidePanel({
 								borderRadius: 10,
 								color: "#D4E1F0",
 								fontSize: 17,
-								fontFamily: "Georgia, 'Times New Roman', serif",
-								fontStyle: "italic",
+								fontFamily: "system-ui, -apple-system, sans-serif",
 								lineHeight: 1.8,
 								resize: "none",
 								outline: "none",

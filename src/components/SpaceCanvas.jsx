@@ -312,6 +312,10 @@ export default function SpaceCanvas({
 	 * Side panel for editing a constellation's label/note/archetype.
 	 */
 	const [constellationEditor, setConstellationEditor] = useState(null);
+	// Brief "✓ Saved" flash after an onBlur auto-save, so the no-button save
+	// pattern gives feedback instead of just silently happening.
+	const [constellationJustSaved, setConstellationJustSaved] = useState(false);
+	const constellationSavedTimerRef = useRef(null);
 	/**
 	 * constellationInput: null | { nodeIds: number[], x: number, y: number, label: string }
 	 * Active while the user is typing a label to create a new constellation.
@@ -2259,6 +2263,12 @@ export default function SpaceCanvas({
 						setConstellations((prev) =>
 							prev.map((x) => (x.id === c.id ? { ...x, ...updates } : x)),
 						);
+						setConstellationJustSaved(true);
+						clearTimeout(constellationSavedTimerRef.current);
+						constellationSavedTimerRef.current = setTimeout(
+							() => setConstellationJustSaved(false),
+							1600,
+						);
 					};
 
 					return (
@@ -2306,6 +2316,18 @@ export default function SpaceCanvas({
 											fontWeight: 600,
 										}}>
 										{c.label}
+									</p>
+									<p
+										style={{
+											margin: "4px 0 0",
+											fontSize: 11,
+											fontWeight: 600,
+											color: "#6EE7B7",
+											opacity: constellationJustSaved ? 1 : 0,
+											transition: "opacity 0.3s ease",
+											height: 14,
+										}}>
+										✓ Saved
 									</p>
 								</div>
 								<button

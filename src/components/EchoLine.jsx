@@ -81,6 +81,22 @@ export default function EchoLine({
 				/>
 			)}
 
+			{/* Persistent midpoint marker — visible at rest, not just on
+			    hover, so the line reads as clickable before you've found
+			    it by accident. */}
+			{!isHovered && (
+				<circle
+					cx={midX}
+					cy={midY}
+					r={5}
+					fill="rgba(15, 23, 36, 0.9)"
+					stroke={strokeColor}
+					strokeWidth={1.5}
+					opacity={0.85}
+					style={{ pointerEvents: "none" }}
+				/>
+			)}
+
 			{/* Label on hover */}
 			{isHovered && (
 				<g>

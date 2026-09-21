@@ -6,7 +6,7 @@
 //     (calls onJoinConstellation)
 //   - Uses constellationIds[] array, not the old constellationId scalar
 import React, { useState } from "react";
-import { X, Eye, Zap, Target, CircleDashed } from "lucide-react";
+import { X, Eye, Zap, Target, CircleDashed, Pencil } from "lucide-react";
 import { moonConfig, getDefaultState, nodeTypeColors } from "../seedData";
 import { db, cascadeDeleteNode } from "../lib/db";
 
@@ -257,9 +257,14 @@ export default function PlanetSidePanel({
 				bottom: 0,
 				display: "flex",
 				flexDirection: "column",
-				background: `linear-gradient(165deg, ${tc.bg} 0%, rgba(8,13,25,0.99) 28%)`,
-				borderLeft: `1px solid ${tc.border}`,
-				boxShadow: `inset 3px 0 0 0 ${tc.color}, -8px 0 32px rgba(0,0,0,0.35)`,
+				background: isEditing
+					? `linear-gradient(165deg, ${tc.color}14 0%, rgba(8,13,25,0.99) 24%)`
+					: `linear-gradient(165deg, ${tc.bg} 0%, rgba(8,13,25,0.99) 28%)`,
+				borderLeft: `1px solid ${isEditing ? tc.color : tc.border}`,
+				boxShadow: isEditing
+					? `inset 4px 0 0 0 ${tc.color}, inset 0 0 0 1px ${tc.color}40, -8px 0 32px rgba(0,0,0,0.35)`
+					: `inset 3px 0 0 0 ${tc.color}, -8px 0 32px rgba(0,0,0,0.35)`,
+				transition: "background 0.25s ease, box-shadow 0.25s ease",
 				overflowY: "auto",
 				zIndex: 100,
 				color: "#C8D6E8",
@@ -302,6 +307,25 @@ export default function PlanetSidePanel({
 						}}>
 						{tc.label}
 					</span>
+					{isEditing && (
+						<span
+							style={{
+								display: "inline-flex",
+								alignItems: "center",
+								gap: 4,
+								padding: "2px 9px",
+								borderRadius: 20,
+								background: tc.color,
+								color: "#0B1220",
+								fontSize: 10,
+								fontWeight: 800,
+								letterSpacing: "0.08em",
+								textTransform: "uppercase",
+							}}>
+							<Pencil size={9} strokeWidth={3} />
+							Editing
+						</span>
+					)}
 					{node.state && stateConfig[node.state] && (
 						<span
 							style={{
@@ -367,8 +391,7 @@ export default function PlanetSidePanel({
 							fontSize: 16,
 							lineHeight: 1.75,
 							color: "#D4E1F0",
-							fontFamily: "Georgia, 'Times New Roman', serif",
-							fontStyle: "italic",
+							fontFamily: "system-ui, -apple-system, sans-serif",
 							cursor: "text",
 							padding: "15px 16px",
 							background: "rgba(255,255,255,0.03)",
@@ -376,6 +399,7 @@ export default function PlanetSidePanel({
 							border: "1px solid rgba(255,255,255,0.07)",
 							borderLeft: `3px solid ${tc.color}60`,
 							transition: "background 0.2s",
+							animation: "chromaFadeIn 0.18s ease",
 							position: "relative",
 							minHeight: 56,
 							wordBreak: "break-word",
@@ -409,7 +433,7 @@ export default function PlanetSidePanel({
 						</span>
 					</div>
 				) : (
-					<div>
+					<div style={{ animation: "chromaFadeIn 0.18s ease" }}>
 						<textarea
 							value={editText}
 							onChange={(e) => setEditText(e.target.value)}
@@ -423,8 +447,7 @@ export default function PlanetSidePanel({
 								borderRadius: 10,
 								color: "#D4E1F0",
 								fontSize: 16,
-								fontFamily: "Georgia, 'Times New Roman', serif",
-								fontStyle: "italic",
+								fontFamily: "system-ui, -apple-system, sans-serif",
 								lineHeight: 1.75,
 								resize: "none",
 								outline: "none",
@@ -450,7 +473,7 @@ export default function PlanetSidePanel({
 										color:
 											editState === s
 												? stateConfig[s]?.color || tc.color
-												: "#7A8FA6",
+												: "#9BAEC2",
 										cursor: "pointer",
 										fontSize: 12,
 										fontWeight: 700,

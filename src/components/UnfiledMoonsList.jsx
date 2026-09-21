@@ -35,7 +35,7 @@ export default function UnfiledMoonsList({
 				top: 16,
 				left: 16,
 				maxHeight: "calc(100% - 80px)",
-				width: "min(240px, 78vw)",
+				width: "min(300px, 82vw)",
 				zIndex: 30,
 				display: "flex",
 				flexDirection: "column",
@@ -151,9 +151,9 @@ export default function UnfiledMoonsList({
 									}}>
 									<div
 										style={{
-											fontSize: 12.5,
-											color: "#E2E8F0",
-											lineHeight: 1.4,
+											fontSize: 13.5,
+											color: "#F1F5F9",
+											lineHeight: 1.45,
 											display: "-webkit-box",
 											WebkitLineClamp: 3,
 											WebkitBoxOrient: "vertical",
@@ -161,7 +161,7 @@ export default function UnfiledMoonsList({
 										}}>
 										{moon.text}
 									</div>
-									<div style={{ fontSize: 10, color: "#64748B" }}>
+									<div style={{ fontSize: 10.5, color: "#94A3B8" }}>
 										{timeAgo(moon.timestamp)}
 									</div>
 								</button>

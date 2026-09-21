@@ -50,3 +50,18 @@ body,
 .btn-seg button {
   padding: 0.4rem 0.6rem;
 }
+
+/* Shared fade-in for content that swaps in on mode changes (e.g. read/edit
+   toggles in the moon and planet side panels), so the swap reads as an
+   intentional transition rather than an instant, jarring pop. */
+@keyframes chromaFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

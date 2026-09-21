@@ -194,13 +194,23 @@ export const moonConfig = {
 			unlockMessage:
 				"🎉 Framing dimension unlocked! Apply conceptual frameworks to illuminate what was happening.",
 		},
-		// Legacy alias — keeps orbitalPhysics.js and any other unchanged file from crashing
-		// during migration. Points to the same config as "framing".
-		get symbolic() {
-			return this.framing;
-		},
 	},
 };
+
+// Legacy alias — keeps orbitalPhysics.js and any other unchanged file from
+// crashing if it's ever handed an old "symbolic" dimension value. Defined
+// with Object.defineProperty (enumerable: false) rather than as a plain
+// object-literal getter — a plain getter here is enumerable by default,
+// which meant Object.entries/Object.keys on moonConfig.dimension silently
+// picked it up as a real 5th dimension identical to "framing" everywhere
+// that iterated it: the ring diagram, the unlock-check logic, and the
+// moon-filing picker all rendered or counted a duplicate "Framing".
+Object.defineProperty(moonConfig.dimension, "symbolic", {
+	get() {
+		return this.framing;
+	},
+	enumerable: false,
+});
 
 // ============================================================================
 // LENSES — V2
