@@ -64,6 +64,7 @@ export default function AboutModal({ onClose }) {
 
 				{/* Content */}
 				<div
+					className="chroma-scroll"
 					style={{
 						flex: 1,
 						overflowY: "auto",

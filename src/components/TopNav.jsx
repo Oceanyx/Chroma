@@ -195,11 +195,30 @@ export default function TopNav({
 							fontSize: 17,
 							fontWeight: 700,
 							background:
-								"linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)",
+								"linear-gradient(90deg, #6C63FF 0%, #4D9FFF 25%, #A78BFA 50%, #4D9FFF 75%, #6C63FF 100%)",
+							backgroundSize: "250% auto",
 							WebkitBackgroundClip: "text",
 							WebkitTextFillColor: "transparent",
 							backgroundClip: "text",
 							letterSpacing: "-0.3px",
+							display: "inline-block",
+							animation: "chromaShimmer 7s ease-in-out infinite",
+							filter: "drop-shadow(0 0 0px rgba(108,99,255,0))",
+							transform: "scale(1)",
+							transition: "filter 0.3s ease, transform 0.3s ease",
+							cursor: "default",
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.animationDuration = "1.6s";
+							e.currentTarget.style.filter =
+								"drop-shadow(0 0 10px rgba(108,99,255,0.6))";
+							e.currentTarget.style.transform = "scale(1.04)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.animationDuration = "7s";
+							e.currentTarget.style.filter =
+								"drop-shadow(0 0 0px rgba(108,99,255,0))";
+							e.currentTarget.style.transform = "scale(1)";
 						}}>
 						Chroma
 					</h1>

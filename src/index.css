@@ -65,3 +65,36 @@ body,
   }
 }
 
+/* Shared themed scrollbar — used anywhere a panel scrolls, so it never
+   falls back to the browser's default white/gray scrollbar. */
+.chroma-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chroma-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chroma-scroll::-webkit-scrollbar-thumb {
+  background: rgba(108, 99, 255, 0.35);
+  border-radius: 8px;
+}
+.chroma-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 99, 255, 0.55);
+}
+.chroma-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(108, 99, 255, 0.35) transparent;
+}
+
+/* Continuous ambient shimmer for the Chroma wordmark, sped up on hover. */
+@keyframes chromaShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+

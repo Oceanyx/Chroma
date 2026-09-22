@@ -147,23 +147,8 @@ export default function LegendModal({
 
 				{/* Body */}
 				<div
-					className="chroma-legend-scroll"
+					className="chroma-scroll"
 					style={{ padding: "8px 24px 24px", overflowY: "auto" }}>
-					<style>{`
-						.chroma-legend-scroll::-webkit-scrollbar { width: 8px; }
-						.chroma-legend-scroll::-webkit-scrollbar-track { background: transparent; }
-						.chroma-legend-scroll::-webkit-scrollbar-thumb {
-							background: rgba(108,99,255,0.35);
-							border-radius: 8px;
-						}
-						.chroma-legend-scroll::-webkit-scrollbar-thumb:hover {
-							background: rgba(108,99,255,0.55);
-						}
-						.chroma-legend-scroll {
-							scrollbar-width: thin;
-							scrollbar-color: rgba(108,99,255,0.35) transparent;
-						}
-					`}</style>
 					<div style={sectionTitle}>Planets</div>
 					<div style={row}>
 						<span style={rowLabel}>Observation</span>

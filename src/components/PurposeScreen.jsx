@@ -23,6 +23,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 	const canvasRef = useRef(null);
 	const mousePos = useRef({ x: 0, y: 0 });
 	const creatures = useRef([]);
+	const distantOrbs = useRef([]);
 
 	// Interactive background animation
 	useEffect(() => {
@@ -33,86 +34,163 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 
-		// Create simple creatures that follow the mouse
-		class Creature {
+		// Small stars that drift and gently gather toward the mouse — in the
+		// app's actual brand hues (210–256°, the range #4D9FFF through
+		// #A78BFA actually falls in), not the generic cyan-blue the old
+		// blob creatures used, and previewing the starfield/orbital visual
+		// language the rest of the app already uses.
+		class Star {
 			constructor() {
 				this.x = Math.random() * canvas.width;
 				this.y = Math.random() * canvas.height;
-				this.size = Math.random() * 20 + 10;
+				this.size = Math.random() * 1.4 + 0.8;
 				this.vx = 0;
 				this.vy = 0;
-				this.hue = Math.random() * 60 + 180; // Blue-green range
-				this.pulsePhase = Math.random() * Math.PI * 2;
+				this.hue = Math.random() * 46 + 210;
+				this.twinklePhase = Math.random() * Math.PI * 2;
+				this.twinkleSpeed = Math.random() * 0.02 + 0.015;
 			}
 
 			update(mouseX, mouseY) {
-				// Gentle attraction to mouse
+				// Responsive attraction to mouse
 				const dx = mouseX - this.x;
 				const dy = mouseY - this.y;
 				const dist = Math.sqrt(dx * dx + dy * dy);
 
-				if (dist > 50) {
-					this.vx += (dx / dist) * 0.05;
-					this.vy += (dy / dist) * 0.05;
+				if (dist > 30) {
+					this.vx += (dx / dist) * 0.12;
+					this.vy += (dy / dist) * 0.12;
 				}
 
-				// Damping
-				this.vx *= 0.95;
-				this.vy *= 0.95;
+				// Friction — higher than before so stars track the cursor
+				// crisply instead of floating/overshooting past it
+				this.vx *= 0.88;
+				this.vy *= 0.88;
 
 				// Update position
 				this.x += this.vx;
 				this.y += this.vy;
 
 				// Wrap around edges
-				if (this.x < -50) this.x = canvas.width + 50;
-				if (this.x > canvas.width + 50) this.x = -50;
-				if (this.y < -50) this.y = canvas.height + 50;
-				if (this.y > canvas.height + 50) this.y = -50;
+				if (this.x < -20) this.x = canvas.width + 20;
+				if (this.x > canvas.width + 20) this.x = -20;
+				if (this.y < -20) this.y = canvas.height + 20;
+				if (this.y > canvas.height + 20) this.y = -20;
 
-				this.pulsePhase += 0.05;
+				this.twinklePhase += this.twinkleSpeed;
 			}
 
 			draw(ctx) {
-				const pulse = Math.sin(this.pulsePhase) * 0.3 + 1;
-				const currentSize = this.size * pulse;
+				const twinkle = Math.sin(this.twinklePhase) * 0.35 + 0.65;
+				const currentSize = this.size;
 
 				ctx.save();
 				ctx.translate(this.x, this.y);
 
-				// Glow effect
+				// Soft glow
 				const gradient = ctx.createRadialGradient(
 					0,
 					0,
 					0,
 					0,
 					0,
-					currentSize * 2,
+					currentSize * 5,
 				);
-				gradient.addColorStop(0, `hsla(${this.hue}, 70%, 60%, 0.4)`);
-				gradient.addColorStop(0.5, `hsla(${this.hue}, 70%, 50%, 0.2)`);
-				gradient.addColorStop(1, `hsla(${this.hue}, 70%, 40%, 0)`);
+				gradient.addColorStop(
+					0,
+					`hsla(${this.hue}, 85%, 75%, ${0.5 * twinkle})`,
+				);
+				gradient.addColorStop(
+					0.4,
+					`hsla(${this.hue}, 80%, 65%, ${0.18 * twinkle})`,
+				);
+				gradient.addColorStop(1, `hsla(${this.hue}, 80%, 60%, 0)`);
 				ctx.fillStyle = gradient;
 				ctx.fillRect(
-					-currentSize * 2,
-					-currentSize * 2,
-					currentSize * 4,
-					currentSize * 4,
+					-currentSize * 5,
+					-currentSize * 5,
+					currentSize * 10,
+					currentSize * 10,
 				);
 
-				// Core body
-				ctx.fillStyle = `hsla(${this.hue}, 70%, 60%, 0.6)`;
+				// Bright core point
+				ctx.fillStyle = `hsla(${this.hue}, 90%, 88%, ${0.85 * twinkle})`;
 				ctx.beginPath();
 				ctx.arc(0, 0, currentSize, 0, Math.PI * 2);
 				ctx.fill();
 
-				// Highlight
-				ctx.fillStyle = `hsla(${this.hue}, 70%, 80%, 0.4)`;
+				ctx.restore();
+			}
+		}
+
+		// A few slow, distant planets that drift independently (not
+		// toward the mouse) — a deliberate, visible nod to the planets the
+		// rest of the app is built from, not a faint background wash.
+		class DistantOrb {
+			constructor() {
+				this.x = Math.random() * canvas.width;
+				this.y = Math.random() * canvas.height;
+				this.size = Math.random() * 9 + 15;
+				this.vx = (Math.random() - 0.5) * 0.1;
+				this.vy = (Math.random() - 0.5) * 0.1;
+				this.hue = Math.random() * 46 + 210;
+			}
+
+			update() {
+				this.x += this.vx;
+				this.y += this.vy;
+				if (this.x < -this.size) this.x = canvas.width + this.size;
+				if (this.x > canvas.width + this.size) this.x = -this.size;
+				if (this.y < -this.size) this.y = canvas.height + this.size;
+				if (this.y > canvas.height + this.size) this.y = -this.size;
+			}
+
+			draw(ctx) {
+				ctx.save();
+				ctx.translate(this.x, this.y);
+
+				// Soft ambient glow, well beyond the body
+				const halo = ctx.createRadialGradient(
+					0,
+					0,
+					this.size * 0.6,
+					0,
+					0,
+					this.size * 2.2,
+				);
+				halo.addColorStop(0, `hsla(${this.hue}, 75%, 60%, 0.25)`);
+				halo.addColorStop(1, `hsla(${this.hue}, 75%, 55%, 0)`);
+				ctx.fillStyle = halo;
 				ctx.beginPath();
-				ctx.arc(
-					-currentSize * 0.3,
-					-currentSize * 0.3,
-					currentSize * 0.4,
+				ctx.arc(0, 0, this.size * 2.2, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Defined body — a real, visible sphere, not a smudge
+				const body = ctx.createRadialGradient(
+					-this.size * 0.25,
+					-this.size * 0.25,
+					this.size * 0.1,
+					0,
+					0,
+					this.size,
+				);
+				body.addColorStop(0, `hsla(${this.hue}, 70%, 68%, 0.9)`);
+				body.addColorStop(0.55, `hsla(${this.hue}, 72%, 52%, 0.75)`);
+				body.addColorStop(1, `hsla(${this.hue}, 75%, 38%, 0.6)`);
+				ctx.fillStyle = body;
+				ctx.beginPath();
+				ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Small highlight, same treatment as the app's real planets
+				ctx.fillStyle = `hsla(${this.hue}, 60%, 90%, 0.35)`;
+				ctx.beginPath();
+				ctx.ellipse(
+					-this.size * 0.32,
+					-this.size * 0.32,
+					this.size * 0.28,
+					this.size * 0.18,
+					-0.6,
 					0,
 					Math.PI * 2,
 				);
@@ -122,16 +200,25 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 			}
 		}
 
-		// Initialize creatures
-		for (let i = 0; i < 15; i++) {
-			creatures.current.push(new Creature());
+		for (let i = 0; i < 3; i++) {
+			distantOrbs.current.push(new DistantOrb());
+		}
+
+		// Initialize stars
+		for (let i = 0; i < 70; i++) {
+			creatures.current.push(new Star());
 		}
 
 		// Animation loop
 		let animationId;
 		const animate = () => {
-			ctx.fillStyle = "rgba(10, 15, 30, 0.1)";
+			ctx.fillStyle = "rgba(10, 15, 30, 0.18)";
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			distantOrbs.current.forEach((orb) => {
+				orb.update();
+				orb.draw(ctx);
+			});
 
 			creatures.current.forEach((creature) => {
 				creature.update(mousePos.current.x, mousePos.current.y);
@@ -272,24 +359,29 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							fontSize: "28px",
 							fontWeight: 700,
 							background:
-								"linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)",
+								"linear-gradient(90deg, #6C63FF 0%, #4D9FFF 25%, #A78BFA 50%, #4D9FFF 75%, #6C63FF 100%)",
+							backgroundSize: "250% auto",
 							WebkitBackgroundClip: "text",
 							WebkitTextFillColor: "transparent",
 							backgroundClip: "text",
 							letterSpacing: "-0.5px",
-							transition: "all 0.3s ease",
+							display: "inline-block",
+							animation: "chromaShimmer 7s ease-in-out infinite",
+							filter: "drop-shadow(0 0 0px rgba(108,99,255,0))",
+							transform: "scale(1)",
+							transition: "filter 0.3s ease, transform 0.3s ease",
 						}}
 						onMouseEnter={(e) => {
-							e.currentTarget.style.background =
-								"linear-gradient(135deg, #A78BFA 0%, #6C63FF 50%, #4D9FFF 100%)";
-							e.currentTarget.style.WebkitBackgroundClip = "text";
-							e.currentTarget.style.backgroundClip = "text";
+							e.currentTarget.style.animationDuration = "1.6s";
+							e.currentTarget.style.filter =
+								"drop-shadow(0 0 14px rgba(108,99,255,0.65))";
+							e.currentTarget.style.transform = "scale(1.035)";
 						}}
 						onMouseLeave={(e) => {
-							e.currentTarget.style.background =
-								"linear-gradient(135deg, #6C63FF 0%, #4D9FFF 50%, #A78BFA 100%)";
-							e.currentTarget.style.WebkitBackgroundClip = "text";
-							e.currentTarget.style.backgroundClip = "text";
+							e.currentTarget.style.animationDuration = "7s";
+							e.currentTarget.style.filter =
+								"drop-shadow(0 0 0px rgba(108,99,255,0))";
+							e.currentTarget.style.transform = "scale(1)";
 						}}>
 						Chroma
 					</h1>
@@ -301,7 +393,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							fontWeight: 500,
 							letterSpacing: "0.3px",
 						}}>
-						Your Perception, Amplified
+						Map what happened. See it whole.
 					</p>
 				</div>
 			</div>
@@ -341,7 +433,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 								fontWeight: 600,
 								color: "#E6EEF8",
 							}}>
-							Begin Your Journey
+							Begin Mapping
 						</h2>
 					</div>
 					<p
@@ -351,7 +443,9 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							fontSize: "14px",
 							lineHeight: "1.5",
 						}}>
-						Take a moment to set your intention
+						Each experience becomes a planet — you'll reflect on it from
+						different angles: how it felt, how it looked from outside, what
+						you actually did.
 					</p>
 				</div>
 
