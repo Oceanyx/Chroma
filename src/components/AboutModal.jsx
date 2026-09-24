@@ -1,6 +1,6 @@
 // src/components/AboutModal.jsx
 import React from "react";
-import { X, Sparkles } from "lucide-react";
+import { X, Moon } from "lucide-react";
 
 export default function AboutModal({ onClose }) {
 	return (
@@ -42,7 +42,7 @@ export default function AboutModal({ onClose }) {
 							"linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, rgba(77, 159, 255, 0.05) 100%)",
 					}}>
 					<div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-						<Sparkles size={24} color="#6C63FF" />
+						<Moon size={24} color="#6C63FF" />
 						<h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>
 							From the creator
 						</h2>
@@ -76,63 +76,44 @@ export default function AboutModal({ onClose }) {
 							lineHeight: "1.75",
 							color: "#CBD5E1",
 						}}>
+						<p>Hi, I'm Brian. Thanks for checking out Chroma.</p>
 						<p>
-							Hi, I'm Brian — thank you for taking the time to look at Chroma.
-							At its simplest, this is a tool for mapping your experiences: each
-							one becomes a planet, and the ways you reflect on it — how it
-							felt, how it looked from outside, what you actually did, what
-							pattern it fits — orbit that planet as moons. But the mechanics
-							are the easy part to explain. Here's why I actually built it.
+							Chroma is a tool for mapping your experiences. Think of each
+							experience as a planet, and your reflections on it (how it felt,
+							what you did, the patterns it fits) as moons in orbit.
 						</p>
 						<p>
-							Perception is one of the strangest, most finicky things about
-							being human, and given how fundamental it is to consciousness,
-							I've come to think it's not just useful but necessary to actually
-							sit with how we perceive things. Friends, family, colleagues, even
-							adversaries all hand you different vantage points on the same
-							moment. Building up — and taking apart — your own perception is
-							part of what sharpens the mind on the way toward something like a
-							personal, internalized truth. Part of what this project is trying
-							to do is help people see patterns: not just in their own thinking,
-							but in how belief itself can shape, and sometimes quietly control,
+							Mechanics aside, I built Chroma because perception shapes
+							everything we do, yet we rarely examine how we form it. Everyone
+							around us sees the same moment through a different lens.
+							Deconstructing your own perspective is how you sharpen your mind
+							and uncover your own internalized truth. This tool is designed to
+							help you spot those patterns and see how beliefs quietly direct
 							who we become.
 						</p>
 						<p>
-							As you map out your present and future here, you'll probably hit
-							friction — the gap between raw experience and putting it into a
-							structure like this is real, and it gets harder the more aimless
-							it feels. But I think there's something worth finding on the other
-							side of asking why you feel you need an "aim" at all.
+							Mapping raw experience into structure comes with friction,
+							especially when the process feels aimless. But there is real value
+							on the other side of asking why we feel the need for an aim at
+							all.
 						</p>
 						<p>
-							Take something as simple as a billboard, an ad, a piece of
-							propaganda. Why does it work? Can you dodge the framing — and more
-							importantly, should you? What makes you, or anyone, act the way
-							you do? What's the shape of the whole pattern, not just the one
-							moment? Those are close to the questions I built this to sit with.
-							Maybe you'll use it that way too — a kind of practice, a mental
-							exercise.
+							Why do ads or propaganda work? Can you escape outside framing, and
+							should you? What drives your decisions? Chroma was built to sit
+							with these questions as a kind of mental exercise.
 						</p>
 						<p>
-							One limit I keep running into, in myself and everyone else: you
-							can't experience something you haven't experienced. Someone else's
-							account can get you close — secondhand, through their own
-							recollection — but it's never quite the shape of the thing itself.
+							Ultimately, what I want for you here is a freedom to explore your
+							thoughts. There are no pre-packaged answers at the end, only
+							observations and beliefs. Statements like "I am smart" or "I am
+							flawed" may feel fixed, but no belief is final just because you
+							hold it or because others repeat it back to you. A different lens,
+							a different vantage point, a different value system, etc. all
+							create different answers based on how you hold it. You might find
+							ideas here worth keeping, or ones worth challenging.
 						</p>
 						<p>
-							So here's what I actually want for you while you're using this:
-							freedom. There's no answer waiting at the end, only observations,
-							framings, beliefs. Some will feel real and fixed — "I am smart,"
-							"I am ugly" — and none of them are final just because you believe
-							them, or because other people keep repeating them back to you. You
-							might find a belief here worth taking seriously. You might find
-							one worth arguing with instead.
-						</p>
-						<p>
-							Whatever you take from this, or don't, is yours to decide — the
-							meaning of every word and category here is up to you. What I've
-							built is just scaffolding. What you do with it is the actual
-							project.
+							I provided the scaffolding. The meaning you give it is up to you.
 						</p>
 						<p style={{ marginBottom: 0 }}>
 							Happy perceiving.

@@ -9,6 +9,7 @@ import {
 	Mail,
 	Coffee,
 	HelpCircle,
+	Heart,
 } from "lucide-react";
 import AboutModal from "./AboutModal";
 
@@ -23,7 +24,6 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 	const canvasRef = useRef(null);
 	const mousePos = useRef({ x: 0, y: 0 });
 	const creatures = useRef([]);
-	const distantOrbs = useRef([]);
 
 	// Interactive background animation
 	useEffect(() => {
@@ -123,87 +123,6 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 			}
 		}
 
-		// A few slow, distant planets that drift independently (not
-		// toward the mouse) — a deliberate, visible nod to the planets the
-		// rest of the app is built from, not a faint background wash.
-		class DistantOrb {
-			constructor() {
-				this.x = Math.random() * canvas.width;
-				this.y = Math.random() * canvas.height;
-				this.size = Math.random() * 9 + 15;
-				this.vx = (Math.random() - 0.5) * 0.1;
-				this.vy = (Math.random() - 0.5) * 0.1;
-				this.hue = Math.random() * 46 + 210;
-			}
-
-			update() {
-				this.x += this.vx;
-				this.y += this.vy;
-				if (this.x < -this.size) this.x = canvas.width + this.size;
-				if (this.x > canvas.width + this.size) this.x = -this.size;
-				if (this.y < -this.size) this.y = canvas.height + this.size;
-				if (this.y > canvas.height + this.size) this.y = -this.size;
-			}
-
-			draw(ctx) {
-				ctx.save();
-				ctx.translate(this.x, this.y);
-
-				// Soft ambient glow, well beyond the body
-				const halo = ctx.createRadialGradient(
-					0,
-					0,
-					this.size * 0.6,
-					0,
-					0,
-					this.size * 2.2,
-				);
-				halo.addColorStop(0, `hsla(${this.hue}, 75%, 60%, 0.25)`);
-				halo.addColorStop(1, `hsla(${this.hue}, 75%, 55%, 0)`);
-				ctx.fillStyle = halo;
-				ctx.beginPath();
-				ctx.arc(0, 0, this.size * 2.2, 0, Math.PI * 2);
-				ctx.fill();
-
-				// Defined body — a real, visible sphere, not a smudge
-				const body = ctx.createRadialGradient(
-					-this.size * 0.25,
-					-this.size * 0.25,
-					this.size * 0.1,
-					0,
-					0,
-					this.size,
-				);
-				body.addColorStop(0, `hsla(${this.hue}, 70%, 68%, 0.9)`);
-				body.addColorStop(0.55, `hsla(${this.hue}, 72%, 52%, 0.75)`);
-				body.addColorStop(1, `hsla(${this.hue}, 75%, 38%, 0.6)`);
-				ctx.fillStyle = body;
-				ctx.beginPath();
-				ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-				ctx.fill();
-
-				// Small highlight, same treatment as the app's real planets
-				ctx.fillStyle = `hsla(${this.hue}, 60%, 90%, 0.35)`;
-				ctx.beginPath();
-				ctx.ellipse(
-					-this.size * 0.32,
-					-this.size * 0.32,
-					this.size * 0.28,
-					this.size * 0.18,
-					-0.6,
-					0,
-					Math.PI * 2,
-				);
-				ctx.fill();
-
-				ctx.restore();
-			}
-		}
-
-		for (let i = 0; i < 3; i++) {
-			distantOrbs.current.push(new DistantOrb());
-		}
-
 		// Initialize stars
 		for (let i = 0; i < 70; i++) {
 			creatures.current.push(new Star());
@@ -214,11 +133,6 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 		const animate = () => {
 			ctx.fillStyle = "rgba(10, 15, 30, 0.18)";
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-			distantOrbs.current.forEach((orb) => {
-				orb.update();
-				orb.draw(ctx);
-			});
 
 			creatures.current.forEach((creature) => {
 				creature.update(mousePos.current.x, mousePos.current.y);
@@ -393,7 +307,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							fontWeight: 500,
 							letterSpacing: "0.3px",
 						}}>
-						Map what happened. See it whole.
+						Your Perception, Amplified.
 					</p>
 				</div>
 			</div>
@@ -444,8 +358,8 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 							lineHeight: "1.5",
 						}}>
 						Each experience becomes a planet — you'll reflect on it from
-						different angles: how it felt, how it looked from outside, what
-						you actually did.
+						different angles: how it felt, how it looked from outside, what you
+						actually did.
 					</p>
 				</div>
 
@@ -715,6 +629,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 			{/* What's This Button - Bottom Left */}
 			<button
 				onClick={() => setShowAbout(true)}
+				title="A note from the creator"
 				style={{
 					position: "fixed",
 					bottom: "20px",
@@ -744,7 +659,7 @@ export default function PurposeScreen({ onComplete, onSkip }) {
 					e.currentTarget.style.boxShadow =
 						"0 4px 12px rgba(108, 99, 255, 0.2)";
 				}}>
-				<HelpCircle size={28} />
+				<Heart size={28} />
 			</button>
 
 			{/* About Modal */}
