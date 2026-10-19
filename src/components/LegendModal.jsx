@@ -167,8 +167,7 @@ export default function LegendModal({
 					<div style={row}>
 						<span style={rowLabel}>Hypothetical</span>
 						<span style={rowDesc}>
-							Something imagined, dreamed, or wondered about — not a claim
-							that it happened. Open, confirmed, or dismissed as it resolves.
+							Something imagined, dreamed, or wondered about.
 						</span>
 					</div>
 
@@ -176,23 +175,22 @@ export default function LegendModal({
 					<div style={row}>
 						<span style={rowLabel}>Unfiled</span>
 						<span style={rowDesc}>
-							Don't want to pick a dimension yet? Write from the Unfiled
-							list on the left instead. Sort it whenever you like — or
-							never.
+							Don't want to pick a dimension yet? Write from the Unfiled list on
+							the left instead. Sort it whenever you like — or never.
 						</span>
 					</div>
 					<div style={row}>
 						<span style={rowLabel}>Inner Experience</span>
 						<span style={rowDesc}>
-							What you felt, thought, or sensed — the part no one outside
-							could see.
+							What you felt, thought, or sensed — the part no one outside could
+							see.
 						</span>
 					</div>
 					<div style={row}>
 						<span style={rowLabel}>External</span>
 						<span style={rowDesc}>
-							What was observably true of the situation as a whole —
-							independent of what you, specifically, did.
+							What was observably true of the situation as a whole — independent
+							of what you, specifically, did.
 						</span>
 					</div>
 					<div style={row}>
@@ -238,24 +236,46 @@ export default function LegendModal({
 								color: "#E2E8F0",
 							}}>
 							{/* Header row */}
-							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }} />
-							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }}>
+							<div
+								style={{
+									...tableCellHead,
+									...tableCellRight,
+									...tableCellBottom,
+								}}
+							/>
+							<div
+								style={{
+									...tableCellHead,
+									...tableCellRight,
+									...tableCellBottom,
+								}}>
 								Felt
 							</div>
-							<div style={{ ...tableCellHead, ...tableCellBottom }}>Observed</div>
+							<div style={{ ...tableCellHead, ...tableCellBottom }}>
+								Observed
+							</div>
 
 							{/* You row */}
-							<div style={{ ...tableCellHead, ...tableCellRight, ...tableCellBottom }}>
+							<div
+								style={{
+									...tableCellHead,
+									...tableCellRight,
+									...tableCellBottom,
+								}}>
 								You
 							</div>
-							<div style={{ ...tableCell, ...tableCellRight, ...tableCellBottom }}>
+							<div
+								style={{ ...tableCell, ...tableCellRight, ...tableCellBottom }}>
 								Inner Experience
 							</div>
 							<div style={{ ...tableCell, ...tableCellBottom }}>Behavioral</div>
 
 							{/* Shared / field row */}
-							<div style={{ ...tableCellHead, ...tableCellRight }}>Shared / field</div>
-							<div style={{ ...tableCell, ...tableCellRight, color: "#64748B" }}>
+							<div style={{ ...tableCellHead, ...tableCellRight }}>
+								Shared / field
+							</div>
+							<div
+								style={{ ...tableCell, ...tableCellRight, color: "#64748B" }}>
 								— (not claimable) —
 							</div>
 							<div style={tableCell}>External</div>
@@ -268,10 +288,10 @@ export default function LegendModal({
 								marginTop: 12,
 							}}>
 							Framing sits outside this grid — it's not a viewpoint, it's
-							applying a model to any of the three. There's no "what they
-							felt" box either: you can only report what you yourself felt.
-							Guessing at someone else's inner state belongs in External,
-							tagged with vantage: theirs.
+							applying a model to any of the three. There's no "what they felt"
+							box either: you can only report what you yourself felt. Guessing
+							at someone else's inner state belongs in External, tagged with
+							vantage: theirs.
 						</div>
 					</div>
 
@@ -306,8 +326,8 @@ export default function LegendModal({
 					<div style={row}>
 						<span style={rowLabel}>Constellations</span>
 						<span style={rowDesc}>
-							A named group of related planets — turning point, loop, avoidance,
-							breakthrough, drift, or awakening.
+							A named group of related experience nodes(planets) — turning
+							point, loop, avoidance, breakthrough, drift, or awakening.
 						</span>
 					</div>
 
