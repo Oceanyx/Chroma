@@ -78,47 +78,39 @@ export default function AboutModal({ onClose }) {
 						}}>
 						<p>Hi, I'm Brian. Thanks for checking out Chroma.</p>
 						<p>
-							Chroma is a tool for mapping your experiences. Think of each
-							experience as a planet, and your reflections on it (how it felt,
-							what you did, the patterns it fits) as moons in orbit.
+							Chroma is a tool for mapping your experiences. Each experience is
+							a planet, and your reflections on it (how it felt, what you did,
+							the patterns it fits) are moons in orbit.
 						</p>
 						<p>
-							Mechanics aside, I built Chroma because perception shapes
-							everything we do, yet we rarely examine how we form it. Everyone
-							around us sees the same moment through a different lens.
-							Deconstructing your own perspective is how you sharpen your mind
-							and uncover your own internalized truth. This tool is designed to
-							help you spot those patterns and see how beliefs quietly direct
-							who we become.
+							I built it because perception shapes everything we do, and we
+							almost never look at how we form it. Two people can live through
+							the same moment and come away with different versions of it. I
+							wanted a way to look at my own version and see which beliefs are
+							steering me.
 						</p>
 						<p>
-							Mapping raw experience into structure comes with friction,
-							especially when the process feels aimless. But there is real value
-							on the other side of asking why we feel the need for an aim at
+							Some questions I had in mind: why do ads and propaganda work? Can
+							you escape outside framing, and should you? What actually drives
+							your decisions? Even when we feel like we have an answer we
+							believe in, is it really the one single answer, or is it just the
+							one that fits the current moment inside your body and mind? How do
+							you know if your beliefs are true, or just convenient? Is it just
+							consistency in a belief that makes it feel true, or is there
+							something more?
+						</p>
+						<p>
+							Perceptual mapping might feel aimless and pointless at first.
+							That's fine. Part of the exercise is asking why we need an aim at
 							all.
 						</p>
 						<p>
-							Why do ads or propaganda work? Can you escape outside framing, and
-							should you? What drives your decisions? Chroma was built to sit
-							with these questions as a kind of mental exercise.
+							There's no answer at the end, just what you notice. "I am smart"
+							or "I am flawed" can feel fixed, but a different angle or a
+							different set of values gives a different answer. Keep what's
+							useful, challenge the rest.
 						</p>
-						<p>
-							Ultimately, what I want for you here is a freedom to explore your
-							thoughts. There are no pre-packaged answers at the end, only
-							observations and beliefs. Statements like "I am smart" or "I am
-							flawed" may feel fixed, but no belief is final just because you
-							hold it or because others repeat it back to you. A different lens,
-							a different vantage point, a different value system, etc. all
-							create different answers based on how you hold it. You might find
-							ideas here worth keeping, or ones worth challenging.
-						</p>
-						<p>
-							I provided the scaffolding. The meaning you give it is up to you.
-						</p>
-						<p style={{ marginBottom: 0 }}>
-							Happy perceiving.
-							<br />— Brian
-						</p>
+						<p style={{ marginBottom: 0 }}>— Brian</p>
 					</div>
 				</div>
 			</div>
